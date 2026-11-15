@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -150,8 +149,8 @@ internal fun WorkflowBlueprintCanvas(
     // 卡片窗口矩形（卡片自己报上来）：拉线落点只在这里比，坐标口径唯一。
     var bounds by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
     // 卡片拖动只改绘制层平移，不改布局位置；防止每帧重测全画布、针脚矩形与连线互相追赶。
-    val draggingNodeIdState = remember { mutableStateOf<String?>(null) }
-    val draggingNodeDeltaState = remember { mutableStateOf(Offset.Zero) }
+    var draggingNodeId by remember { mutableStateOf<String?>(null) }
+    var draggingNodeDelta by remember { mutableStateOf(Offset.Zero) }
     // 画布的空白点击与拉线回调也要最新值（手势块的 key 不会因回调变化而重启）。
     val blankTapCb = rememberUpdatedState(onBlankTap)
     val wireDropCb = rememberUpdatedState(onWireDrop)
@@ -340,8 +339,8 @@ internal fun WorkflowBlueprintCanvas(
                     dataColor = edgeColor,
                     pinColors = pinColors,
                     selectedNodeId = selectedNodeId,
-                    movingNodeIdState = draggingNodeIdState,
-                    movingNodeDeltaState = draggingNodeDeltaState,
+                    movingNodeId = draggingNodeId,
+                    movingNodeDelta = draggingNodeDelta,
                 )
             }
 
@@ -359,25 +358,25 @@ internal fun WorkflowBlueprintCanvas(
                     modifier = Modifier
                         .offset(x = pos.x.dp, y = pos.y.dp)
                         .graphicsLayer {
-                            if (draggingNodeIdState.value == node.id) {
-                                translationX = draggingNodeDeltaState.value.x
-                                translationY = draggingNodeDeltaState.value.y
+                            if (draggingNodeId == node.id) {
+                                translationX = draggingNodeDelta.x
+                                translationY = draggingNodeDelta.y
                             }
                         },
                     onTap = { if (!node.locked) onNodeClick?.invoke(node.id) },
                     // 锁定的卡不接拖动（锁定 = 不能拖动，见 WorkflowNode.locked）。
                     onDrag = if (node.locked) null else ({ dx: Float, dy: Float ->
-                        if (draggingNodeIdState.value == node.id) draggingNodeDeltaState.value += Offset(dx, dy)
+                        if (draggingNodeId == node.id) draggingNodeDelta += Offset(dx, dy)
                     }),
                     onDragStart = if (node.locked) null else ({
-                        draggingNodeIdState.value = node.id
-                        draggingNodeDeltaState.value = Offset.Zero
+                        draggingNodeId = node.id
+                        draggingNodeDelta = Offset.Zero
                         onNodeDragStart?.invoke(node.id)
                     }),
                     onDragEnd = if (node.locked) null else ({
-                        onNodeDragEnd?.invoke(node.id, draggingNodeDeltaState.value.x, draggingNodeDeltaState.value.y)
-                        draggingNodeIdState.value = null
-                        draggingNodeDeltaState.value = Offset.Zero
+                        onNodeDragEnd?.invoke(node.id, draggingNodeDelta.x, draggingNodeDelta.y)
+                        draggingNodeId = null
+                        draggingNodeDelta = Offset.Zero
                     }),
                     // 卡上直接改参数：只在编辑态开放（预览/详情传 null，输入框自动 disabled）。
                     onParamChange = onNodeParamChange?.let { cb -> { key, value -> cb(node.id, key, value) } },
@@ -398,12 +397,9 @@ internal fun WorkflowBlueprintCanvas(
                     // 卡片矩形同样**当场**换算成世界坐标：它与 pinRects 是同一个坑 ——
                     // 平移不重新布局，boundsInWindow 不会刷新，绘制时再用新 pan 逆变换就偏了。
                     onBounds = { rect ->
-                        // 被拖卡片的 graphicsLayer bounds 含瞬时平移；保留拖动前的基准矩形，
-                        // 否则线端再叠 dragDelta 会发生双重偏移。
-                        if (draggingNodeIdState.value != node.id) {
-                            val world = toWorldRect(rect, origin, pan, scale)
-                            if (bounds[node.id] != world) bounds = bounds + (node.id to world)
-                        }
+                        // 同样只在变化时写回：否则会与布局形成反馈循环（卡片发抖）。
+                        val world = toWorldRect(rect, origin, pan, scale)
+                        if (bounds[node.id] != world) bounds = bounds + (node.id to world)
                     },
                     // ── 针脚矩形一律**当场换算成世界坐标**再存 ──
                     //
@@ -417,17 +413,13 @@ internal fun WorkflowBlueprintCanvas(
                     // 解决办法：在**测到的这一刻**就用当时的 pan/scale 逆变换回世界坐标，
                     // 之后无论怎么平移缩放，这个值都稳定 —— 与卡片落点用的是同一套坐标。
                     onPinBounds = { pinKind, rect ->
-                        if (draggingNodeIdState.value != node.id) {
-                            putPinRect("${node.id}:$pinKind", toWorldRect(rect, origin, pan, scale))
-                        }
+                        putPinRect("${node.id}:$pinKind", toWorldRect(rect, origin, pan, scale))
                     },
                     // 同时按引脚 id 登记：数据边与落点判定要精确到"哪一颗"。
                     onPinIdBounds = { pinId, pinKind, rect ->
-                        if (draggingNodeIdState.value != node.id) {
-                            val world = toWorldRect(rect, origin, pan, scale)
-                            putPinRect("${node.id}:$pinId", world)
-                            putPinRect("${node.id}:$pinKind", world)
-                        }
+                        val world = toWorldRect(rect, origin, pan, scale)
+                        putPinRect("${node.id}:$pinId", world)
+                        putPinRect("${node.id}:$pinKind", world)
                     },
                     onPinDrag = { pinKind, anchor, pointer ->
                         wireFrom = node.id
@@ -689,8 +681,8 @@ private fun DrawScope.drawBlueprintEdges(
     pinColors: Map<String, Color> = emptyMap(),
     /** 当前选中的节点：与它相连的线加粗置顶（参考实现把选中卡的线单独再画一遍）。 */
     selectedNodeId: String? = null,
-    movingNodeIdState: State<String?>,
-    movingNodeDeltaState: State<Offset>,
+    movingNodeId: String? = null,
+    movingNodeDelta: Offset = Offset.Zero,
 ) {
     val density = this.density
     // 绘制顺序 = 层级。与选中卡相连的边排到最后画，于是它压在别的线上面 ——
@@ -704,8 +696,6 @@ private fun DrawScope.drawBlueprintEdges(
         val to = positions[edge.to] ?: continue
         // 正在拖动的卡片只由 graphicsLayer 移动，布局 positions 不变；
         // 线的相应端点必须叠加同一像素偏移，否则卡片跟了、线没跟。
-        val movingNodeId = movingNodeIdState.value
-        val movingNodeDelta = movingNodeDeltaState.value
         val fromShift = if (movingNodeId == edge.from) movingNodeDelta else Offset.Zero
         val toShift = if (movingNodeId == edge.to) movingNodeDelta else Offset.Zero
         val isData = edge.kind == WorkflowEdgeKind.DATA
