@@ -751,7 +751,7 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
   ok(snap(pxToDp(110, 2.75)) === 36, "40dp 吸附到 12dp 网格 = 36dp");
   // 拖动位移在画布内按像素实时渲染，父级只在松手时转 dp 并吸附。
   ok(/snapToGridDp\(from\.second \+ dxPx \/ density\)/.test(SRC.editorSurface) &&
-    /translationX = draggingNodeDelta\.x/.test(SRC.canvas), "松手按 density 换算吸附，实时层使用像素增量");
+    /translationX = draggingNodeDeltaState\.value\.x/.test(SRC.canvas), "松手按 density 换算吸附，实时层使用像素增量");
   // 手势新模型（对齐点击助手）：卡片各自 onTouchEvent，画布只接空白处。
   ok(/detectDragGestures/.test(SRC.card) && /clickable/.test(SRC.card),
     "卡片自己接点/拖手势（命中不需要手算，也就不会比错坐标系）");
@@ -1030,11 +1030,11 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   const c = SRC.card;
   const cv = SRC.canvas;
   // ① 原地颤抖：画布内部按帧更新被拖卡片的 graphicsLayer，父级不更新 positions。
-  ok(/draggingNodeDelta \+= Offset\(dx, dy\)/.test(cv) &&
+  ok(/draggingNodeDeltaState\.value \+= Offset\(dx, dy\)/.test(cv) &&
     /onNodeDragEnd = \{ id, dxPx, dyPx ->/.test(e) && /snapToGridDp\(from\.second \+ dxPx \/ density\)/.test(e),
     "拖动只重绘单卡，松手才吸附并落盘");
-  ok(/draggingNodeDelta \+= Offset\(dx, dy\)/.test(cv) &&
-    /translationX = draggingNodeDelta\.x/.test(cv) && /translationY = draggingNodeDelta\.y/.test(cv),
+  ok(/draggingNodeDeltaState\.value \+= Offset\(dx, dy\)/.test(cv) &&
+    /translationX = draggingNodeDeltaState\.value\.x/.test(cv) && /translationY = draggingNodeDeltaState\.value\.y/.test(cv),
     "拖动中的视觉位移只在被拖卡片的 graphicsLayer 上更新，不重组全画布");
   // ② 拉线：手势挂在针脚自己身上，线头就是这颗粒子；局部坐标的基准也是粒子。
   ok(/private fun LinkablePinDot\(/.test(c) && /pointerInput\(Unit\)/.test(c),
