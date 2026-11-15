@@ -463,6 +463,8 @@ internal fun WorkflowEditorSurface(
     // 拖动卡片：起点 + **未吸附**的累加位移（每帧吸附会让小位移被吞掉 → 原地颤抖），
     // 松手时才吸附网格落盘。
     var dragFrom by remember { mutableStateOf<Triple<String, Float, Float>?>(null) }
+    var dragAcc by remember { mutableStateOf(Offset.Zero) }
+    var dragPreview by remember { mutableStateOf<Pair<String, Offset>?>(null) }
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     // 连边被拒（成环）时给一次即时反馈：编辑期就要说，不能等到保存才报。
     val context = LocalContext.current
@@ -863,10 +865,10 @@ internal fun WorkflowEditorSurface(
                             canvasSize = it.size
                         },
                 ) {
-                    // 布局位置在拖动期间保持稳定；被拖卡片由 BlueprintCanvas 的 graphicsLayer
-                    // 单独叠加临时位移，避免每帧重组整张图。
                     val placed = editorLayoutFor(def)
                         .associate { it.first to Offset(it.second, it.third) }
+                        .toMutableMap()
+                        .apply { dragPreview?.let { (id, p) -> this[id] = p } }
                     WorkflowBlueprintCanvas(
                         definition = def,
                         positions = placed,
@@ -912,20 +914,44 @@ internal fun WorkflowEditorSurface(
                         onNodeClick = { id -> selected = if (selected == id) null else id },
                         onNodeDragStart = { id ->
                             val node = def.nodes.firstOrNull { it.id == id }
-                            if (node != null) dragFrom = Triple(id, node.posX.toFloat(), node.posY.toFloat())
+                            if (node != null) {
+                                dragFrom = Triple(id, node.posX.toFloat(), node.posY.toFloat())
+                                dragAcc = Offset.Zero
+                                dragPreview = id to Offset(node.posX.toFloat(), node.posY.toFloat())
+                            }
                         },
-                        // 父级只在松手时收到**累计像素**位移；拖动中的每帧更新留在 Canvas 内部。
-                        onNodeDragEnd = { id, dxPx, dyPx ->
+                        onNodeDrag = { id, dxPx, dyPx ->
                             val from = dragFrom
                             if (from != null && from.first == id) {
-                                // 负坐标照常保留；像素增量转 dp 后才吸附到网格。
-                                val nx = WorkflowGeometry.snapToGridDp(from.second + dxPx / density)
-                                val ny = WorkflowGeometry.snapToGridDp(from.third + dyPx / density)
+                                // 累加**未吸附**位移：拖动过程中 1:1 跟手，松手时再吸附。
+                                // 位移要经视口换算：缩放后手指走 100px，节点只能走 100/(scale·density) dp。
+                                dragAcc += viewport.dragDeltaDp(dxPx, dyPx, density)
+                                // 坐标**不夹紧**：画布是无限网格，卡片要能拖到负坐标。
+                                //
+                                // 上一版夹在 [0, 2000]：一旦手往左/往上拖过头，卡片就停住不动，
+                                // 看起来像"画布左边到头了"。参考实现直接把位置存成 Int
+                                // （setPos((int)((x - offsetX) / gridSize))），负数照存，
+                                // 所以它那边没有这个边界。
+                                dragPreview = id to Offset(
+                                    from.second + dragAcc.x,
+                                    from.third + dragAcc.y,
+                                )
+                            }
+                        },
+                        onNodeDragEnd = { id ->
+                            val from = dragFrom
+                            val preview = dragPreview
+                            if (from != null && preview != null && from.first == id) {
+                                // 同样不夹紧：落盘坐标允许负值（参考实现也是 Int 直存）。
+                                val nx = WorkflowGeometry.snapToGridDp(preview.second.x)
+                                val ny = WorkflowGeometry.snapToGridDp(preview.second.y)
                                 draft = def.copy(
                                     nodes = def.nodes.map { if (it.id == id) it.copy(posX = nx, posY = ny) else it },
                                 )
                             }
                             dragFrom = null
+                            dragAcc = Offset.Zero
+                            dragPreview = null
                         },
                         onWireDrop = { fromId, fromPin, toId, pointer, targetPin ->
                             if (toId != null) {

@@ -80,9 +80,9 @@ internal fun WorkflowBlueprintCanvas(
     /** 卡上「锁」按钮：冻结这张卡（不能拖/不能选/不能删）。 */
     onNodeToggleLock: ((nodeId: String) -> Unit)? = null,
     onNodeClick: ((String) -> Unit)? = null,
+    onNodeDrag: ((id: String, dxPx: Float, dyPx: Float) -> Unit)? = null,
     onNodeDragStart: ((id: String) -> Unit)? = null,
-    /** 松手时一次性交付累计像素位移；父级只保存一次，不参与每帧重组。 */
-    onNodeDragEnd: ((id: String, dxPx: Float, dyPx: Float) -> Unit)? = null,
+    onNodeDragEnd: ((id: String) -> Unit)? = null,
     /** 卡上「复制」按钮（对齐参考实现 ActionCard.initCopy）。 */
     onNodeCopy: ((id: String) -> Unit)? = null,
     /** 卡上「删除」按钮（第一下武装、第二下真删，见 deleteArmedNodeId）。 */
@@ -148,9 +148,6 @@ internal fun WorkflowBlueprintCanvas(
     var origin by remember { mutableStateOf(Offset.Zero) }
     // 卡片窗口矩形（卡片自己报上来）：拉线落点只在这里比，坐标口径唯一。
     var bounds by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
-    // 卡片拖动只改绘制层平移，不改布局位置；防止每帧重测全画布、针脚矩形与连线互相追赶。
-    var draggingNodeId by remember { mutableStateOf<String?>(null) }
-    var draggingNodeDelta by remember { mutableStateOf(Offset.Zero) }
     // 画布的空白点击与拉线回调也要最新值（手势块的 key 不会因回调变化而重启）。
     val blankTapCb = rememberUpdatedState(onBlankTap)
     val wireDropCb = rememberUpdatedState(onWireDrop)
@@ -339,8 +336,6 @@ internal fun WorkflowBlueprintCanvas(
                     dataColor = edgeColor,
                     pinColors = pinColors,
                     selectedNodeId = selectedNodeId,
-                    movingNodeId = draggingNodeId,
-                    movingNodeDelta = draggingNodeDelta,
                 )
             }
 
@@ -353,31 +348,12 @@ internal fun WorkflowBlueprintCanvas(
                     requiredCaps = requiredCapsOf(node),
                     granted = requiredCapsOf(node).all { it in grantedCaps },
                     selected = selectedNodeId == node.id,
-                    // 基准位置保持 Modifier.offset 不变；拖动中的临时位移走 graphicsLayer，
-                    // 只重绘这一张卡，不触发布局树和所有针脚重新测量。
-                    modifier = Modifier
-                        .offset(x = pos.x.dp, y = pos.y.dp)
-                        .graphicsLayer {
-                            if (draggingNodeId == node.id) {
-                                translationX = draggingNodeDelta.x
-                                translationY = draggingNodeDelta.y
-                            }
-                        },
+                    modifier = Modifier.offset(x = pos.x.dp, y = pos.y.dp),
                     onTap = { if (!node.locked) onNodeClick?.invoke(node.id) },
                     // 锁定的卡不接拖动（锁定 = 不能拖动，见 WorkflowNode.locked）。
-                    onDrag = if (node.locked) null else ({ dx: Float, dy: Float ->
-                        if (draggingNodeId == node.id) draggingNodeDelta += Offset(dx, dy)
-                    }),
-                    onDragStart = if (node.locked) null else ({
-                        draggingNodeId = node.id
-                        draggingNodeDelta = Offset.Zero
-                        onNodeDragStart?.invoke(node.id)
-                    }),
-                    onDragEnd = if (node.locked) null else ({
-                        onNodeDragEnd?.invoke(node.id, draggingNodeDelta.x, draggingNodeDelta.y)
-                        draggingNodeId = null
-                        draggingNodeDelta = Offset.Zero
-                    }),
+                    onDrag = if (node.locked) null else ({ dx: Float, dy: Float -> onNodeDrag?.invoke(node.id, dx, dy) }),
+                    onDragStart = if (node.locked) null else ({ onNodeDragStart?.invoke(node.id) }),
+                    onDragEnd = if (node.locked) null else ({ onNodeDragEnd?.invoke(node.id) }),
                     // 卡上直接改参数：只在编辑态开放（预览/详情传 null，输入框自动 disabled）。
                     onParamChange = onNodeParamChange?.let { cb -> { key, value -> cb(node.id, key, value) } },
                     onToggleExpand = onNodeToggleExpand?.let { { it(node.id) } },
@@ -681,8 +657,6 @@ private fun DrawScope.drawBlueprintEdges(
     pinColors: Map<String, Color> = emptyMap(),
     /** 当前选中的节点：与它相连的线加粗置顶（参考实现把选中卡的线单独再画一遍）。 */
     selectedNodeId: String? = null,
-    movingNodeId: String? = null,
-    movingNodeDelta: Offset = Offset.Zero,
 ) {
     val density = this.density
     // 绘制顺序 = 层级。与选中卡相连的边排到最后画，于是它压在别的线上面 ——
@@ -694,10 +668,6 @@ private fun DrawScope.drawBlueprintEdges(
     for (edge in orderedEdges) {
         val from = positions[edge.from] ?: continue
         val to = positions[edge.to] ?: continue
-        // 正在拖动的卡片只由 graphicsLayer 移动，布局 positions 不变；
-        // 线的相应端点必须叠加同一像素偏移，否则卡片跟了、线没跟。
-        val fromShift = if (movingNodeId == edge.from) movingNodeDelta else Offset.Zero
-        val toShift = if (movingNodeId == edge.to) movingNodeDelta else Offset.Zero
         val isData = edge.kind == WorkflowEdgeKind.DATA
         // 线头的针脚键：控制流用引脚种类名，数据边用引脚 id（见 [dataPinIdOf]）。
         // 两者共用 "<节点id>:<引脚键>" 这一套索引，卡片在 onPinBounds / onPinIdBounds 里都登记。
@@ -731,13 +701,13 @@ private fun DrawScope.drawBlueprintEdges(
         // 与针脚尖错开整整半个针脚宽。用户说的"连线没对齐"就是这一处。
         val startVertical = !isData
         val startX = if (pinned != null) {
-            worldX(if (startVertical) pinned.center.x else pinned.right) + fromShift.x
+            worldX(if (startVertical) pinned.center.x else pinned.right)
         } else {
             (from.x * density) + (if (isData) 0f else CARD_W_DP * density)
         }
         val startY = if (pinned != null) {
             // 出口才落在底边；入口（EXEC_IN 用作源的情况）落在顶边。
-            worldY(if (startVertical) pinned.bottom else pinned.center.y) + fromShift.y
+            worldY(if (startVertical) pinned.bottom else pinned.center.y)
         } else {
             (from.y * density) + WorkflowNodeCardAnchorY * density
         }
@@ -749,12 +719,12 @@ private fun DrawScope.drawBlueprintEdges(
         // 线要停在针脚的外沿，压到针脚身上会把它盖住。
         val toPinned = pinRects["${edge.to}:${if (isData) edge.toPin else WorkflowPinKind.EXEC_IN.name}"]
         val endX = if (toPinned != null) {
-            worldX(if (isData) toPinned.left else toPinned.center.x) + toShift.x
+            worldX(if (isData) toPinned.left else toPinned.center.x)
         } else {
             to.x * density
         }
         val endY = if (toPinned != null) {
-            worldY(if (isData) toPinned.center.y else toPinned.top) + toShift.y
+            worldY(if (isData) toPinned.center.y else toPinned.top)
         } else {
             (to.y * density) + WorkflowNodeCardAnchorY * density
         }
