@@ -663,10 +663,9 @@ console.log("\u2500 #16d 蓝图节点卡与画布（阶段 2）");
   // 而且点阵只有一屏，一平移就露出空白，像"画布到头了"。
   ok(/drawBlueprintGrid\(dotColor, pan, scale\)/.test(SRC.canvas),
     "背景网格在视口层按 pan/scale 取模铺满（无限画布）");
-  // 连线颜色不能用 outline（那是"描边用灰"，深色主题下与背景几乎分不开）。
-  // 参考实现的连线取针脚颜色（PinView.getPinColor → PinInfo.getColor），是明显的一族色。
-  ok(/val edgeColor = MaterialTheme\.colorScheme\.onSurfaceVariant/.test(SRC.canvas),
-    "控制流连线用 onSurfaceVariant 而不是 outline（outline 太灰暗）");
+  // 参考实现的执行针脚是 colorPrimaryVariant，连线取针脚颜色。Compose 映射到 primary。
+  ok(/val edgeColor = MaterialTheme\.colorScheme\.primary/.test(SRC.canvas),
+    "控制流连线用 primary（对齐 colorPrimaryVariant 针脚），不用暗灰色中性角色");
   // ── 坐标不得夹紧：画布无限，卡片要能拖到负坐标 ──
   //
   // 踩过：拖动/新建把坐标夹在 [0, 2000] 和 coerceAtLeast(0)，于是往左上拖过头就停住，

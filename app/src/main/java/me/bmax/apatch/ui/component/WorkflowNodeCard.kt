@@ -326,7 +326,9 @@ internal fun WorkflowNodeCard(
             //   - 按下即抬起 = 点击选中。
             // 不能用 clickable + 拖动两层：clickable 会先吃掉按下事件，卡片就永远拖不动。
             awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
+                // 输入框 / 开关等子控件消费 down 后，父卡片不得再拿同一次手势。
+                // false 会让卡片和 BasicTextField 同时收到按下，造成拖动抢光标、卡片抖动。
+                val down = awaitFirstDown(requireUnconsumed = true)
                 val slop = viewConfiguration.touchSlop
                 var pastSlop = false
                 val pointer = down.id
