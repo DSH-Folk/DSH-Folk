@@ -1944,6 +1944,8 @@ console.log("\u2500 #16k 卡片可编辑 / 悬浮层定位 / 虚线框跟着选�
       "整卡 base 链上挂指针输入（卡面任意位置都能拖动）");
     ok(/awaitFirstDown/.test(baseChain) && /touchSlop/.test(baseChain),
       "自己判拖动阈值：越过 slop 算拖动，按下即抬起算点击");
+    ok(/down\.consume\(\)/.test(baseChain),
+      "按下立即认领卡片手势，避免 touchSlop 前先平移画布");
     ok(/change\.consume\(\)/.test(baseChain),
       "拖动时**消费**事件，不再冒泡到画布变成平移");
     // 位移必须用 position 相减，不用 positionChange() 扩展：

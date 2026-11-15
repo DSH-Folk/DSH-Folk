@@ -329,6 +329,10 @@ internal fun WorkflowNodeCard(
                 // 输入框 / 开关等子控件消费 down 后，父卡片不得再拿同一次手势。
                 // false 会让卡片和 BasicTextField 同时收到按下，造成拖动抢光标、卡片抖动。
                 val down = awaitFirstDown(requireUnconsumed = true)
+                // 立即认领这次手势，别等超过 touchSlop 才消费：否则阈值前的几帧会先
+                // 冒泡到画布，画布已经 pan 了一点，卡片再开始拖就会跳/抖。
+                // 子输入控件已消费的 down 在上面被排除，因此不会抢它们。
+                down.consume()
                 val slop = viewConfiguration.touchSlop
                 var pastSlop = false
                 val pointer = down.id
