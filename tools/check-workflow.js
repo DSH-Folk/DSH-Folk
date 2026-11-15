@@ -315,12 +315,12 @@ ok(/onOpenWorkflow = \{ navigator\.navigate\(WorkflowScreenDestination\)( \{ lau
 // 阶段 2.4b：旧的画布/节点卡自绘已删除，画布与卡片只剩新组件这一份实现。
 ok(/WorkflowBlueprintCanvas\(/.test(SRC.dialogs) && !/private fun NodeCard\(/.test(SRC.dialogs),
   "编辑页/预览用同一块画布，旧的自绘节点卡已删除（不是一列输入框）");
-// 编辑页的画布已换成 WorkflowBlueprintCanvas（与预览同一套）；拖动回调的手势量是像素，
-// 先在密度里换算成 dp 再吸附 12dp 网格，最后写回 posX/posY。
-ok(/onNodeDrag = \{ id, dxPx, dyPx ->[\s\S]{0,700}?dragAcc \+= viewport\.dragDeltaDp\(/.test(SRC.editorSurface) &&
-    /onNodeDragEnd = \{ id ->[\s\S]{0,700}?WorkflowGeometry\.snapToGridDp\(preview\.second\.x\)/.test(SRC.editorSurface) &&
-    /it\.copy\(posX = nx, posY = ny\)/.test(SRC.editorSurface),
-  "拖动把坐标写回定义（像素→dp→吸附网格，摆位不落盘下次打开就会自己跳）");
+// 编辑页拖动状态只在松手时落盘；累计像素位移与实时视觉偏移留在画布内。
+ok(/onNodeDragEnd = \{ id, dxPx, dyPx ->/.test(SRC.editorSurface) &&
+    /snapToGridDp\(from\.second \+ dxPx \/ density\)/.test(SRC.editorSurface) &&
+    /it\.copy\(posX = nx, posY = ny\)/.test(SRC.editorSurface) &&
+    !/onNodeDrag =/.test(SRC.editorSurface),
+  "父级只在松手时收到总像素位移并写回，不逐帧重组画布");
 ok(/WorkflowBlueprintCanvas\(/.test(SRC.editorSurface) &&
   /onWireDrop/.test(SRC.canvas) && !/hitTest\(/.test(SRC.canvas),
   "编辑页用同一块画布；手势由卡片自己接（画布不再手算命中）");
@@ -749,10 +749,9 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
   const snap = (dp) => Math.round(dp / 12) * 12;
   ok(Math.abs(pxToDp(110, 2.75) - 40) < 1e-6, "110px / 2.75 = 40dp（1:1 换算）");
   ok(snap(pxToDp(110, 2.75)) === 36, "40dp 吸附到 12dp 网格 = 36dp");
-  // 宿主：写回只经几何对象，不再出现裸除密度。
-  ok(/viewport\.dragDeltaDp\(dxPx, dyPx, density\)/.test(SRC.editorSurface) &&
-    /WorkflowGeometry\.snapToGridDp\(/.test(SRC.editorSurface), "编辑页写回走视口逆变换 + snapToGridDp");
-  ok(!/dxPx \/ density/.test(SRC.editorSurface), "编辑页不再裸除密度（截断/加速的来源）");
+  // 拖动位移在画布内按像素实时渲染，父级只在松手时转 dp 并吸附。
+  ok(/snapToGridDp\(from\.second \+ dxPx \/ density\)/.test(SRC.editorSurface) &&
+    /translationX = draggingNodeDelta\.x/.test(SRC.canvas), "松手按 density 换算吸附，实时层使用像素增量");
   // 手势新模型（对齐点击助手）：卡片各自 onTouchEvent，画布只接空白处。
   ok(/detectDragGestures/.test(SRC.card) && /clickable/.test(SRC.card),
     "卡片自己接点/拖手势（命中不需要手算，也就不会比错坐标系）");
@@ -1030,12 +1029,13 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   const e = SRC.editorSurface;
   const c = SRC.card;
   const cv = SRC.canvas;
-  // ① 原地颤抖：拖动过程中每帧吸附会把小位移吞掉；现在累加未吸附位移，松手才吸附。
-  ok(/dragAcc \+= viewport\.dragDeltaDp\(/.test(e) && /dragPreview = id to Offset\(/.test(e) &&
-    /onNodeDragEnd = \{ id ->/.test(e) && /snapToGridDp\(preview\.second\.x\)/.test(e),
-    "拖动过程中不吸附（累加未吸附位移），松手才吸附网格");
-  ok(/dragPreview\?\.let \{ \(id, p\) -> this\[id\] = p \}/.test(e),
-    "拖动中画布用预览位置（1:1 跟手，右不抖）");
+  // ① 原地颤抖：画布内部按帧更新被拖卡片的 graphicsLayer，父级不更新 positions。
+  ok(/draggingNodeDelta \+= Offset\(dx, dy\)/.test(cv) &&
+    /onNodeDragEnd = \{ id, dxPx, dyPx ->/.test(e) && /snapToGridDp\(from\.second \+ dxPx \/ density\)/.test(e),
+    "拖动只重绘单卡，松手才吸附并落盘");
+  ok(/draggingNodeDelta \+= Offset\(dx, dy\)/.test(cv) &&
+    /translationX = draggingNodeDelta\.x/.test(cv) && /translationY = draggingNodeDelta\.y/.test(cv),
+    "拖动中的视觉位移只在被拖卡片的 graphicsLayer 上更新，不重组全画布");
   // ② 拉线：手势挂在针脚自己身上，线头就是这颗粒子；局部坐标的基准也是粒子。
   ok(/private fun LinkablePinDot\(/.test(c) && /pointerInput\(Unit\)/.test(c),
     "拉线手势挂在针脚粒子自己身上（不是整列，命中范围=看得见的点）");
@@ -1984,7 +1984,7 @@ console.log("\u2500 #16k 卡片可编辑 / 悬浮层定位 / 虚线框跟着选�
   // 虚线框用实测矩形，且跟着选中态而不是拖动。
   ok(/val rect = bounds\[framed\]/.test(SRC.canvas), "虚线框用卡片实测矩形（不写死高度）");
   ok(/val framed = selectedNodeId/.test(SRC.canvas), "虚线框跟选中态（松手后不消失）");
-  ok(!/draggingNodeId/.test(SRC.canvas), "不再有 draggingNodeId 这一路状态");
+  ok(/draggingNodeId/.test(SRC.canvas) && /draggingNodeDelta/.test(SRC.canvas), "画布有被拖卡片的瞬态 graphicsLayer 位移状态");
 }
 
 console.log("\u2500 #16l 展开三档 / 锁定（对齐 TouchTool ActionCard + PinView.expand）");
