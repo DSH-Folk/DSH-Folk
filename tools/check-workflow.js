@@ -135,8 +135,11 @@ ok(/if \(v != null\) \{/.test(SRC.models.split("fun interpolate")[1] || ""),
 console.log("\u2500 #2 校验器：看不懂的定义一律拒绝");
 ok(/fun validate\(def: WorkflowDefinition, allowedCaps: Set<String>\): Result/.test(SRC.validator), "校验是纯函数（不碰设备、可单测）");
 ok(/findCycle\(def\)/.test(SRC.validator), "查环");
-ok(/reachableFrom\(def, entry\)/.test(SRC.validator) && /从 trigger 出发到不了/.test(SRC.validator), "要求每个节点从入口可达");
-ok(/必须且只能有一个 trigger 节点/.test(SRC.validator), "唯一入口");
+ok(!SRC.validator.includes("从 trigger 出发到不了"), "不再要求全部节点从入口可达（未接上的卡片不参与本次运行）");
+ok(SRC.validator.includes("没有开始卡片"), "入口是开始卡片：允许多张，有节点时至少一张");
+ok(!SRC.validator.includes("必须且只能有一个 trigger"), "不再强制唯一入口");
+ok(!SRC.validator.includes("必须各有 true"), "不再强制判断节点分支成对");
+
 ok(/fun branchingNode\(node: WorkflowNode\?\)/.test(SRC.validator), "分支节点判定独立成函数（判断/逻辑/要求 DSH 的入口）");
 ok(/MAX_NODES = 64/.test(SRC.models) && /MAX_EDGES = 256/.test(SRC.models) && /MAX_CMD_CHARS = 8_192/.test(SRC.models),
   "规模上限存在（64 节点 / 256 边 / 8KB 命令）");
@@ -766,8 +769,7 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
     "编辑页拖动走视口逆变换 + 整格位移（dx 截断取整，不是逐帧累加）");
   ok(!/dxPx \/ density/.test(SRC.editorSurface), "编辑页不再裸除密度（截断/加速的来源）");
   // 手势新模型（对齐点击助手）：卡片各自 onTouchEvent，画布只接空白处。
-  ok(/detectDragGestures/.test(SRC.card) && /clickable/.test(SRC.card),
-    "卡片自己接点/拖手势（命中不需要手算，也就不会比错坐标系）");
+ok(SRC.card.includes("pointerInput(node.id)") && SRC.card.includes("awaitEachGesture"), "卡片自己接点/拖手势（命中不需要手算，也就不会比错坐标系）");
   ok(/boundsInWindow/.test(SRC.card) && /onPinDrag/.test(SRC.card),
     "卡片把自己的窗口矩形与拉线事件报给画布（窗口坐标对窗口坐标）");
   ok(!/hitTest/.test(SRC.canvas) && !/CARD_H_FALLBACK_DP/.test(SRC.canvas),
@@ -780,8 +782,9 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
   // 卡片：不接手势，交给 focusable/semantics 与画布实测。
   ok(/focusable\(\)/.test(SRC.card) && /semantics \{ contentDescription/.test(SRC.card),
     "卡片可被无障碍聚焦，并带名称描述");
-  ok(/detectDragGestures/.test(SRC.card) && !/hitTest/.test(SRC.card),
-    "卡片自己处理拖动（不再依赖画布命中判定）");
+ok(SRC.card.includes("awaitFirstDown(requireUnconsumed = false)") &&
+  SRC.card.includes("down.consume()") && !SRC.card.includes("detectDragGestures("),
+  "针脚在按下时认领手势（拉线不再同时拖动卡片）");
   // 平移只应用一次。
   ok(/translationX = pan\.x/.test(SRC.canvas) && !/pos\.x \+ pan/.test(SRC.canvas),
     "画布平移只在图层上应用一次（不再在卡片偏移里重复加）");
@@ -1054,8 +1057,8 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   // ② 拉线：手势挂在针脚自己身上，线头就是这颗粒子；局部坐标的基准也是粒子。
   ok(/private fun LinkablePinDot\(/.test(c) && /pointerInput\(Unit\)/.test(c),
     "拉线手势挂在针脚粒子自己身上（不是整列，命中范围=看得见的点）");
-  ok(/pointer = originState\.value \+ start/.test(c) && /o\.x \+ s\.width \/ 2f/.test(c),
-    "手指与线头都在窗口坐标里算（粒子原点 + 局部坐标 / 粒子中心）");
+ok(c.includes("originState.value + change.position") && c.includes("originState.value + down.position") && c.includes("o.x + s.width / 2f"),
+  "手指与线头都在窗口坐标里算（针脚窗口原点 + 指针局部坐标）");
   ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\.boundsInWindow\(\)\)/.test(c),
     "针脚上报窗口矩形（含引脚类型），已连的线也从真针脚画出去");
   // 从针脚矩形起画，且**先逆变换回世界坐标**（窗口→内容层局部，再除以缩放）。
@@ -1550,8 +1553,7 @@ console.log("\u2500 #17 用户自己也能建/改流程");
     "起点里不再有手写的 action/cmd（手写就等于第二份默认值）");
   ok(/WorkflowValidator\.validate\(def, DshNativeBridge\.Cap\.entries/.test(SRC.screen), "列表就地校验");
   ok(/enabled = enabled && valid/.test(SRC.screen), "不合法时运行按钮点不动");
-  ok(/dsh_workflow_invalid_run/.test(SRC.screen) && /dsh_workflow_editor_errors/.test(SRC.editorSurface),
-    "同一批错误既在列表也在编辑页显示（与 AI 收到的是同源）");
+ok(SRC.screen.includes("invalid_run") && !SRC.editorSurface.includes("editor_err"), "列表仍标注不合法；编辑页不再浮「流程不合法」红条（对齐点击助手）");
   ok(/DshRuntime\.refreshContainerCli\(\)/.test(SRC.screen), "打开页面/打开开关时刷新容器侧 CLI 与指南");
   ok(/fun refreshContainerCli\(\)/.test(SRC.runtime), "DshRuntime 提供刷新入口");
   ok(/dsh_workflow_tools_restart/.test(SRC.screen), "如实说明「工具插件要重启 DSH 才注册」");

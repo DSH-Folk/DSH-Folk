@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -853,23 +852,49 @@ private fun LinkablePinDot(
                 onPinIdBounds?.invoke(pin.id, pin.kind.name, coords.boundsInWindow())
             }
             .pointerInput(Unit) {
-                var pointer = Offset.Zero
+                val slop = viewConfiguration.touchSlop
                 fun anchorWindow(): Offset {
                     val o = originState.value
                     val s = sizeState.value
                     return Offset(o.x + s.width / 2f, o.y + s.height / 2f)
                 }
-                detectDragGestures(
-                    onDragStart = { start ->
-                        pointer = originState.value + start
-                        pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
-                    },
-                    onDragEnd = { pinDropCb.value?.invoke(pointer) },
-                    onDragCancel = { pinDropCb.value?.invoke(pointer) },
-                ) { change, amount ->
-                    change.consume()
-                    pointer += amount
-                    pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
+                awaitEachGesture {
+                    // 按下就**认领**这次手势：参考实现的 ACTION_DOWN 顺序是
+                    //   findCachedPin(x, y) → 命中即 TOUCH_PIN，否则才 getActionCard → TOUCH_CARD
+                    // 命中针脚时卡片永远不会进入 TOUCH_CARD。
+                    //
+                    // 之前用 detectDragGestures：它要等超过 touchSlop 才消费，于是卡片的
+                    // awaitFirstDown(requireUnconsumed = true) 也拿到了同一次按下 ——
+                    // 一根手指既拉线又拖卡（真机反馈「拉线的同时也会拉动卡片本身」）。
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    down.consume()
+                    var pointer = originState.value + down.position
+                    var started = false
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) {
+                            if (started) pinDropCb.value?.invoke(pointer)
+                            change.consume()
+                            break
+                        }
+                        if (!started) {
+                            // 与卡片拖动同一套：相对**按下点**判阈值，慢速拖动也能触发。
+                            val travelled = change.position - down.position
+                            val dist = kotlin.math.hypot(travelled.x.toDouble(), travelled.y.toDouble()).toFloat()
+                            if (dist > slop) {
+                                started = true
+                                change.consume()
+                                pointer = originState.value + change.position
+                                pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
+                            }
+                        } else {
+                            change.consume()
+                            // 上报**绝对窗口坐标**（针脚窗口原点 + 局部坐标），不做增量累加。
+                            pointer = originState.value + change.position
+                            pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
+                        }
+                    }
                 }
             },
         contentAlignment = Alignment.Center,

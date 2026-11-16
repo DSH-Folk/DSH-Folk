@@ -477,9 +477,11 @@ internal fun WorkflowEditorSurface(
     val context = LocalContext.current
 
     val patchLines: List<WorkflowPatch> = remember(def) { workflowDiff(baseline, def) }
-    val errors: List<String> = remember(def) {
-        WorkflowValidator.validate(def, DshNativeBridge.Cap.entries.map { it.id }.toSet()).errors
-    }
+    // 编辑期**不再**把校验结果浮在界面上：
+    //
+    // 对齐点击助手 —— 编辑画布上没有"流程不合法"这种东西。没接上的卡片就是这次不参与，
+    // 参数没填完是写到一半，都不该在用户摆卡片的时候跳出来。真正的错误在**运行前**由
+    // 引擎与桥再判一次（那时才有明确的对象和上下文）。
     // 防抖落盘：draft 每变一次就重置计时器，只有停下来 400ms 才真写。
     // 连续打字会一路重置 —— 逐字符写盘既费 IO，也会让 saveIfRevision 撞自己的 revision。
     LaunchedEffect(def) {
@@ -924,6 +926,10 @@ internal fun WorkflowEditorSurface(
                             if (node != null) {
                                 dragFrom = Triple(id, windowX, windowY)
                                 dragNodeStart = node.posX.toFloat() to node.posY.toFloat()
+                                // 拖动即选中：参考实现进入 TOUCH_DRAG_CARD 时
+                                // cleanSelectedCards() + addSelectedCard(touchedCard)。
+                                // 否则拖动过程中没有任何"我在动哪张卡"的反馈，松手才发现动错了。
+                                selected = id
                             }
                         },
                         onNodeDrag = { id, windowX, windowY ->
@@ -1072,36 +1078,7 @@ internal fun WorkflowEditorSurface(
 
             }
 
-            // ── 定义不合法时，底栏上方浮一条红条 ──
-            //
-            // 为什么不塞进底栏胶囊：胶囊里全是图标，塞一段中文会把胶囊撑成一整行（上一版
-            // 就是这么被挤成一列竖排、把底栏撑到满屏高的）。单独一条浮在上面，既能读全，
-            // 又不影响底栏的紧凑形态。运行状态因此可以一眼看见，不必点开任何东西。
-            if (errors.isNotEmpty()) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(bottom = 84.dp, start = 16.dp, end = 16.dp),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        tonalElevation = 6.dp,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.dsh_workflow_editor_errors) + " " + errors.size,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    }
-                }
-            }
+            // （编辑期不再显示「流程不合法」红条：对齐点击助手，见上方 errors 处的说明。）
 
             // ── 悬浮底栏（居中、浮在画布之上，不占布局高度）──
             //

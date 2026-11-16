@@ -203,13 +203,14 @@ internal object WorkflowValidator {
             errors += validateConfig(n)
         }
 
-        // ── 入口 ──
+        // ── 入口：开始卡片 ──
+        //
+        // 对齐点击助手：一个任务可以有多张「开始卡片」，每张都是入口，执行从其中一张开始
+        // （见 WorkflowEngine.start，取第一张）。所以不再要求"必须且只能有一个"。
+        // 只保留最低限度：有节点时至少有一张开始卡片，否则无从开始。
         val triggers = def.nodes.filter { it.type == WorkflowNodeType.TRIGGER }
-        if (triggers.size != 1) {
-            errors += "必须且只能有一个 trigger 节点（现在 ${triggers.size} 个）"
-        }
-        if (def.nodes.none { it.type != WorkflowNodeType.TRIGGER }) {
-            errors += "除了 trigger 之外没有任何节点：这个工作流什么都不做"
+        if (def.nodes.isNotEmpty() && triggers.isEmpty()) {
+            errors += "没有开始卡片（trigger）：这个流程没有入口"
         }
 
         // ── 边：控制流与数据边分开查 ──
@@ -248,30 +249,16 @@ internal object WorkflowValidator {
                 }
             }
         }
-        for (n in def.nodes) {
-            if (branchingNode(n)) {
-                val out = def.outgoing(n.id)
-                val labelled = out.count { it.whenExpr == "true" || it.whenExpr == "false" }
-                // condition / logic 必须有成对分支；trigger 只在「画了分支」时才要求成对 ——
-                // 没画分支的 trigger（requireDsh 起不来）就是整个运行失败，这是合法写法。
-                val mustPair = n.type == WorkflowNodeType.CONDITION ||
-                    n.type == WorkflowNodeType.LOGIC ||
-                    labelled > 0
-                if (mustPair && (out.none { it.whenExpr == "true" } || out.none { it.whenExpr == "false" })) {
-                    errors += "节点 ${n.id} 是判断节点，必须各有 true / false 一条出边"
-                }
-            }
-        }
+        // 分支不再要求成对：对齐点击助手 —— 没配齐的分支就是那条路走不下去，
+        // 执行期 nextNode 返回 null 自然停住，不需要在编辑期把它报成"不合法"。
 
-        // ── 结构：无环 + 从 trigger 可达 ──
-        if (triggers.size == 1 && errors.none { it.startsWith("节点 id") }) {
-            val entry = triggers.first().id
-            if (def.edges.any { it.to == entry }) errors += "trigger 节点不能有入边（${entry}）"
+        // ── 结构：只查环 ──
+        //
+        // 对齐点击助手：不要求"所有节点都从入口可达" —— 没接上的卡片就是这次不参与，
+        // 不该被报成错误；开始卡片也不禁止有入边。成环仍然禁止：执行器按拓扑推进，
+        // 环会让它死循环，这是执行安全，不是"流程规不规范"。
+        if (errors.none { it.startsWith("节点 id") }) {
             errors += findCycle(def)
-            val reachable = reachableFrom(def, entry)
-            for (n in def.nodes) {
-                if (n.id !in reachable) errors += "节点 ${n.id} 从 trigger 出发到不了（顶层断链）"
-            }
         }
 
         // ── 能力声明 ──
