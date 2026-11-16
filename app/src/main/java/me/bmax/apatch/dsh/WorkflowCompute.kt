@@ -57,11 +57,14 @@ internal object WorkflowCompute {
     private fun p(key: String, labelRes: Int, kind: Kind = Kind.TEXT, default: String = "") =
         Param(key, labelRes, kind, default)
 
-    // ── 分组标题（复用执行类已有的一组文案）──
+    // ── 分组标题：与动作目录共用同一套一级分类（对齐点击助手的15类）──
     private val G_NUMBER = R.string.dsh_wf_cat_number
     private val G_TEXT = R.string.dsh_wf_cat_text
-    private val G_DATA = R.string.dsh_wf_cat_data_ops
-    private val G_BOOL = R.string.dsh_wf_cat_bool
+    // 比较/与或非这类"下结论"的算子归「条件判断」：用户找它们时想的是"判断一下"，
+    // 而不是"算个数"（数值那一类里已经有 num_eq/num_lt/num_gt 三条比较算子）。
+    private val G_CONDITION = R.string.dsh_wf_cat_condition
+    private val G_LIST = R.string.dsh_wf_cat_list
+    private val G_DICT = R.string.dsh_wf_cat_dict
 
     val ALL: List<Compute> = listOf(
         // ── 数值 ──
@@ -122,32 +125,32 @@ internal object WorkflowCompute {
         Compute("str_decode", G_TEXT, R.string.dsh_wf_compute_str_decode, R.string.dsh_wf_compute_str_decode_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_a))),
 
-        // ── 布尔 ──
-        Compute("bool_and", G_BOOL, R.string.dsh_wf_compute_bool_and, R.string.dsh_wf_compute_bool_and_desc,
+        // ── 布尔：与/或/非（归「条件判断」）──
+        Compute("bool_and", G_CONDITION, R.string.dsh_wf_compute_bool_and, R.string.dsh_wf_compute_bool_and_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_a), p("b", R.string.dsh_wf_field_compute_b))),
-        Compute("bool_or", G_BOOL, R.string.dsh_wf_compute_bool_or, R.string.dsh_wf_compute_bool_or_desc,
+        Compute("bool_or", G_CONDITION, R.string.dsh_wf_compute_bool_or, R.string.dsh_wf_compute_bool_or_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_a), p("b", R.string.dsh_wf_field_compute_b))),
-        Compute("bool_not", G_BOOL, R.string.dsh_wf_compute_bool_not, R.string.dsh_wf_compute_bool_not_desc,
+        Compute("bool_not", G_CONDITION, R.string.dsh_wf_compute_bool_not, R.string.dsh_wf_compute_bool_not_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_a))),
 
         // ── JSON ──
-        Compute("json_get", G_DATA, R.string.dsh_wf_compute_json_get, R.string.dsh_wf_compute_json_get_desc,
+        Compute("json_get", G_DICT, R.string.dsh_wf_compute_json_get, R.string.dsh_wf_compute_json_get_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_json, Kind.MULTILINE), p("path", R.string.dsh_wf_field_compute_json_path, default = ""))),
-        Compute("json_keys", G_DATA, R.string.dsh_wf_compute_json_keys, R.string.dsh_wf_compute_json_keys_desc,
+        Compute("json_keys", G_DICT, R.string.dsh_wf_compute_json_keys, R.string.dsh_wf_compute_json_keys_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_json, Kind.MULTILINE))),
 
         // ── 列表（序列化形式：JSON 数组字符串）──
-        Compute("list_make", G_DATA, R.string.dsh_wf_compute_list_make, R.string.dsh_wf_compute_list_make_desc,
+        Compute("list_make", G_LIST, R.string.dsh_wf_compute_list_make, R.string.dsh_wf_compute_list_make_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_a), p("b", R.string.dsh_wf_field_compute_b))),
-        Compute("list_size", G_DATA, R.string.dsh_wf_compute_list_size, R.string.dsh_wf_compute_list_size_desc,
+        Compute("list_size", G_LIST, R.string.dsh_wf_compute_list_size, R.string.dsh_wf_compute_list_size_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_list))),
-        Compute("list_get", G_DATA, R.string.dsh_wf_compute_list_get, R.string.dsh_wf_compute_list_get_desc,
+        Compute("list_get", G_LIST, R.string.dsh_wf_compute_list_get, R.string.dsh_wf_compute_list_get_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_list), p("index", R.string.dsh_wf_field_compute_index, Kind.NUMBER, "0"))),
-        Compute("list_add", G_DATA, R.string.dsh_wf_compute_list_add, R.string.dsh_wf_compute_list_add_desc,
+        Compute("list_add", G_LIST, R.string.dsh_wf_compute_list_add, R.string.dsh_wf_compute_list_add_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_list), p("b", R.string.dsh_wf_field_compute_a))),
-        Compute("list_contains", G_DATA, R.string.dsh_wf_compute_list_contains, R.string.dsh_wf_compute_list_contains_desc,
+        Compute("list_contains", G_LIST, R.string.dsh_wf_compute_list_contains, R.string.dsh_wf_compute_list_contains_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_list), p("b", R.string.dsh_wf_field_compute_a))),
-        Compute("list_join", G_DATA, R.string.dsh_wf_compute_list_join, R.string.dsh_wf_compute_list_join_desc,
+        Compute("list_join", G_LIST, R.string.dsh_wf_compute_list_join, R.string.dsh_wf_compute_list_join_desc,
             listOf(p("a", R.string.dsh_wf_field_compute_list), p("sep", R.string.dsh_wf_field_compute_sep, default = ","))),
     )
 

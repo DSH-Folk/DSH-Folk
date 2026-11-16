@@ -61,14 +61,9 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.DshRuntime
-import me.bmax.apatch.dsh.WorkflowActionType
 import me.bmax.apatch.dsh.WorkflowApprovals
 import me.bmax.apatch.dsh.WorkflowDefinition
-import me.bmax.apatch.dsh.WorkflowEdge
 import me.bmax.apatch.dsh.WorkflowEngine
-import me.bmax.apatch.dsh.WorkflowNode
-import me.bmax.apatch.dsh.WorkflowNodeType
-import me.bmax.apatch.dsh.WorkflowOnError
 import me.bmax.apatch.dsh.WorkflowPermissions
 import me.bmax.apatch.dsh.WorkflowRun
 import me.bmax.apatch.dsh.WorkflowRunState
@@ -79,7 +74,6 @@ import me.bmax.apatch.dsh.toJson
 import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
 import me.bmax.apatch.ui.component.WorkflowDetailDialog
 import me.bmax.apatch.ui.component.WorkflowGraphPreview
-import me.bmax.apatch.ui.component.defaultConfigFor
 import org.json.JSONObject
 
 /**
@@ -400,51 +394,38 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
 }
 
 /**
- * 用户自建流程的起点：入口 + 一条 shell 命令，已经是**合法**定义（能直接跑）。
+ * 用户自建流程的起点：**空定义**（一个节点、一条连线都没有）。
  *
- * ## 为什么不能再在这里手写 config
+ * ## 为什么不再预置「入口 + 一条 shell 命令」
  *
- * 上一版这里直接手写了两份 config（action/cmd 与 requireDsh），而「加节点」走的是
- * [defaultConfigFor] 那条路径 ——
- * 两条路径各写一份默认值，于是**预设卡片和加出来的卡片不一样**：
- * 预设缺 `autostartDsh`、缺 `name`，卡片上就少几行参数、标题也不同。
+ * 对齐点击助手：新建出来的画布就是一张白纸，用户从选择面板里自己摆第一张卡。预置两个节点
+ * 的代价是把「我们想让你这么做」写进了每一次新建 ——
+ *  - 用户想做的第一件事多半不是跑 shell，得先删掉那张卡；
+ *  - 预置的两张卡还是**已经连好**的，想换个入口还得先把边拆掉；
+ *  - 预置的 config 是第二份默认值，字段表一改，旧流程文件里就躺着一份旧写法（历史上
+ *    出过「预设卡片缺 autostartDsh」那种不一致）。
  *
- * 现在两个节点都从**同一张字段表**取初值（[defaultConfigFor]），预设与加节点
- * 只差"摆在哪、连给谁"，不再差"里面有什么"。加新参数时也只需要改字段表一处。
+ * ## 空模板必须配的那一半：开始卡片要能加得进来
+ *
+ * 校验器要求「有节点就要有开始卡片」，所以空画布下用户的第一张卡必须是入口。
+ * 选择面板的第一组因此是「触发器」里的开始卡片（见 EDITOR_NODE_CATALOG 的第一项）；
+ * 少了它，用户加什么都会得到一份跑不起来的流程 —— 这两件事必须同批改。
+ *
+ * ## 代价说在明处
+ *
+ * 空定义过不了校验：新建后还没加卡片的流程，在列表里会标「不合法」、运行按钮点不动。
+ * 这是真话而不是缺陷 —— 它确实跑不起来；等用户加上第一张卡就自动恢复。
  */
 internal fun starter(name: String): WorkflowDefinition =
-    run {
-        val triggerConfig = defaultConfigFor(WorkflowNodeType.TRIGGER, null)
-        val stepConfig = defaultConfigFor(WorkflowNodeType.EXECUTE, WorkflowActionType.SHELL)
-        WorkflowDefinition(
-            id = WorkflowStore.newId(),
-            name = name,
-            description = "",
-            declaredCaps = emptyList(),
-            nodes = listOf(
-                WorkflowNode(
-                    id = "trigger",
-                    type = WorkflowNodeType.TRIGGER,
-                    name = "trigger",
-                    posX = 16,
-                    posY = 16,
-                    timeoutMs = 60_000L,
-                    onError = WorkflowOnError.STOP,
-                    config = triggerConfig,
-                ),
-                WorkflowNode(
-                    id = "step1",
-                    type = WorkflowNodeType.EXECUTE,
-                    name = "step1",
-                    posX = 16,
-                    posY = 72,
-                    onError = WorkflowOnError.STOP,
-                    config = stepConfig + ("name" to "step1"),
-                ),
-            ),
-            edges = listOf(WorkflowEdge("trigger", "step1", "")),
-        )
-    }
+    WorkflowDefinition(
+        id = WorkflowStore.newId(),
+        name = name,
+        description = "",
+        declaredCaps = emptyList(),
+        // 空模板：节点与连线都由用户在画布上自己加（第一张通常是开始卡片）。
+        nodes = emptyList(),
+        edges = emptyList(),
+    )
 
 /**
  * 列表里的一行流程。

@@ -2152,6 +2152,22 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_wf_cat_text">Text</string>
     <string name="dsh_wf_cat_data_ops">Data</string>
     <string name="dsh_wf_cat_bool">Booleans</string>
+    <!-- 节点选择面板的15类一级分类（对齐点击助手的分类顺序）。
+         顺序即左栏顺序，见 WorkflowEditorSurface 的 EDITOR_CATEGORY_ORDER。 -->
+    <string name="dsh_wf_cat_trigger">Trigger</string>
+    <string name="dsh_wf_cat_logic">Flow control</string>
+    <string name="dsh_wf_cat_general">General</string>
+    <string name="dsh_wf_cat_dsh">Apps</string>
+    <string name="dsh_wf_cat_system">System</string>
+    <string name="dsh_wf_cat_condition">Conditions</string>
+    <string name="dsh_wf_cat_widget">Widgets</string>
+    <string name="dsh_wf_cat_image">Images</string>
+    <string name="dsh_wf_cat_color">Colors</string>
+    <string name="dsh_wf_cat_region">Regions</string>
+    <string name="dsh_wf_cat_position">Position</string>
+    <string name="dsh_wf_cat_list">Lists</string>
+    <string name="dsh_wf_cat_dict">Dictionaries</string>
+    <string name="dsh_workflow_kind_trigger_desc">Start card: check whether APP is ready, then go on</string>
     <string name="dsh_wf_field_compute_a">Value</string>
     <string name="dsh_wf_field_compute_b">Other value</string>
     <string name="dsh_wf_field_compute_min">Min</string>

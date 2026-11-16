@@ -2122,10 +2122,26 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_workflow_kind_extract_desc">从上一步的输出里取出一个值，存进流程变量</string>
     <string name="dsh_workflow_kind_wait_desc">等一段时间，或者等 DSH 起来/停掉再继续</string>
     <string name="dsh_workflow_kind_logic_desc">把几个判断的结论按与/或/非合起来，再决定走哪条路</string>
-    <string name="dsh_wf_cat_number">数值</string>
-    <string name="dsh_wf_cat_text">文本</string>
+    <string name="dsh_wf_cat_number">数值计算</string>
+    <string name="dsh_wf_cat_text">文本处理</string>
     <string name="dsh_wf_cat_data_ops">数据</string>
     <string name="dsh_wf_cat_bool">布尔</string>
+    <!-- 节点选择面板的15类一级分类（对齐点击助手的分类顺序）。
+         顺序即左栏顺序，见 WorkflowEditorSurface 的 EDITOR_CATEGORY_ORDER。 -->
+    <string name="dsh_wf_cat_trigger">触发器</string>
+    <string name="dsh_wf_cat_logic">逻辑控制</string>
+    <string name="dsh_wf_cat_general">通用</string>
+    <string name="dsh_wf_cat_dsh">应用管理</string>
+    <string name="dsh_wf_cat_system">系统操作</string>
+    <string name="dsh_wf_cat_condition">条件判断</string>
+    <string name="dsh_wf_cat_widget">控件操作</string>
+    <string name="dsh_wf_cat_image">图像处理</string>
+    <string name="dsh_wf_cat_color">颜色处理</string>
+    <string name="dsh_wf_cat_region">区域操作</string>
+    <string name="dsh_wf_cat_position">位置操作</string>
+    <string name="dsh_wf_cat_list">列表操作</string>
+    <string name="dsh_wf_cat_dict">字典操作</string>
+    <string name="dsh_workflow_kind_trigger_desc">流程的开始卡片：先检查 APP 是否就绪，再往下走</string>
     <string name="dsh_wf_field_compute_a">值</string>
     <string name="dsh_wf_field_compute_b">另一个值</string>
     <string name="dsh_wf_field_compute_min">最小</string>

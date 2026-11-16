@@ -1539,16 +1539,19 @@ console.log("\u2500 #17 用户自己也能建/改流程");
   ok(/WorkflowApprovals\.stopEditing\(request\.id, edited\.toJson\(\)\.toString\(\)\)/.test(SRC.dialogs), "审批路径保存回待批状态");
   ok(/WorkflowStore\.saveIfRevision\(ctx, edited, initial\.revision\)/.test(SRC.editorScreen),
   "编辑页保存走带 revision 前置条件的落盘（不会静默覆盖别处的改动）");
-  ok(/internal fun starter\(/.test(SRC.screen) && /WorkflowStore\.newId\(\)/.test(SRC.screen),
-    "有「新建流程」的合法起点（不是空定义）");
-  // 起点必须**走字段表的默认值**，不能手写一份 config。
+  // 起点改成**空模板**（对齐点击助手：新建出来是一张白纸，第一张卡由用户从面板加）。
   //
-  // 这条原先断言的是"写死了 mapOf(\"action\" to \"shell\", \"cmd\" to \"echo hello\")"，
-  // 但那正是预设卡片与加节点卡片长得不一样的根因：两条路径各写一份默认值，
-  // 手写的那份缺 autostartDsh / 缺 name。断言改为要求"两边同源"。
-  ok(/defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.screen) &&
-    /defaultConfigFor\(WorkflowNodeType\.EXECUTE, WorkflowActionType\.SHELL\)/.test(SRC.screen),
-    "起点与加节点共用字段表默认值（不再手写 config，否则预设卡片缺参数）");
+  // 这条断言原先钉的是反面（"有合法起点（不是空定义）"）：当时空定义是跑不起来的，
+  // 所以预置了「入口 + 一条 shell 命令」。代价是把"我们想让你这么做"写进了每次新建，
+  // 而且预置的 config 还是第二份默认值（历史上出过"预设卡片缺 autostartDsh"）。
+  // 现在反过来钉：起点必须什么节点都没有 —— 换成预置节点这条立刻红。
+  const starterSrc = (SRC.screen.match(/internal fun starter\([\s\S]*?\n    \)/) || [""])[0];
+  ok(starterSrc.length > 0, "能定位到 starter()");
+  ok(/WorkflowStore\.newId\(\)/.test(starterSrc), "起点用 WorkflowStore.newId() 造 id");
+  ok(/nodes = emptyList\(\)/.test(starterSrc) && /edges = emptyList\(\)/.test(starterSrc),
+    "起点是空模板：nodes / edges 都是 emptyList()（对齐点击助手的白纸）");
+  ok(!/WorkflowNode\(/.test(starterSrc) && !/defaultConfigFor\(/.test(starterSrc),
+    "起点里不再预置节点、也不再写第二份默认 config（那是历史不一致的根因）");
   ok(!/mapOf\("action" to "shell"/.test(SRC.screen),
     "起点里不再有手写的 action/cmd（手写就等于第二份默认值）");
   ok(/WorkflowValidator\.validate\(def, DshNativeBridge\.Cap\.entries/.test(SRC.screen), "列表就地校验");
@@ -1565,6 +1568,129 @@ ok(SRC.screen.includes("invalid_run") && !SRC.editorSurface.includes("editor_err
     "有一键重启 DSH 并说明为什么需要重启");
   ok(/plugin\.isFile && plugin\.length\(\) > 0L/.test(SRC.screen) && /patchHasEntry/.test(SRC.screen),
     "自检真的去看插件文件与 cordis 挂载项");
+}
+
+console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前提）");
+{
+  // ── 为什么这两件事必须**同批**改 ──
+  //
+  // 新建流程改成空模板（点击助手的"白纸"）之后，画布上一张卡都没有；而校验器要求
+  // "有节点就要有开始卡片"。所以选择面板里必须有「触发器 / 开始卡片」这一项，
+  // 否则用户加任何卡都会得到一份**跑不起来**的流程 —— 只做一半等于把用户关在死胡同里。
+  // 下面 1 与 2 就是这两半。
+
+  // 资源前缀不能手打：本仓里目录名与资源前缀长得一样、字节不同（打错一个字节就落空）。
+  // 所以从中英两个字符串文件里派生，顺带保证"这两个文件真的是同一套键"。
+  // APPTOK 同理：分类名里那个 app 与资源前缀是同一个字节序列，直接写字面量会被本机的
+  // 显示层改写成另一个同形串 —— 派生出来最稳。
+  const APPTOK = String.fromCharCode(100, 115, 104);
+  const resDir = "app/src/main/res";
+  const stringsFileIn = (dir) => path.join(resDir, dir, fs.readdirSync(path.join(resDir, dir)).find((n) => /_strings\.xml$/.test(n)));
+  const stringsEn = read(stringsFileIn("values"));
+  const stringsZh = read(stringsFileIn("values-zh-rCN"));
+  const CP = (stringsEn.match(/name="([^"]+)wf_cat_number"/) || [])[1] || "";
+  ok(CP.length > 0, "能从字符串文件里认出分类资源的前缀");
+
+  // java/ 下的目录名同样不能手打：按文件名找。
+  const walkKt = (d, acc) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walkKt(f, acc);
+      else if (f.endsWith(".kt")) acc.push(f);
+    }
+    return acc;
+  };
+  const ktFiles = walkKt("app/src/main/java", []);
+  const byName = (n) => read(ktFiles.find((f) => f.endsWith("/" + n)));
+  const catalogSrc = byName("WorkflowActionCatalog.kt");
+  const computeSrc = byName("WorkflowCompute.kt");
+
+  // ── 1. 开始卡片必须能被加进来 ──
+  ok(/EditorNodeKind\(WorkflowNodeType\.TRIGGER, R\.string\.\w+workflow_kind_trigger, R\.string\.\w+wf_cat_trigger, defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.editorSurface),
+    "面板里有「开始卡片」（TRIGGER），落在触发器分类、走字段表默认值");
+  ok(/data class EditorNodeKind\([\s\S]{0,900}?val catTitleRes: Int,/.test(SRC.editorSurface),
+    "目录项自带一级分类（catTitleRes）：分类写在数据里，不按节点类型硬猜");
+
+  // ── 2. 新建流程是空模板（细节见 #17）──
+  ok(/nodes = emptyList\(\)/.test(SRC.screen) && /edges = emptyList\(\)/.test(SRC.screen),
+    "新建流程是空模板（没有预置节点/连线）");
+
+  // ── 3. 分类与顺序照抄点击助手的 15 类 ──
+  //
+  // 钉的是**顺序**（左栏从上到下）与**集合**（15 类一个不少），不是某种布局控件：
+  // 用户抱怨的是"找不到"，而找不到的直接成因就是分类与顺序不是他熟悉的那个。
+  const TAXONOMY = ["trigger", "logic", "general", APPTOK, "system", "number", "text",
+    "condition", "widget", "image", "color", "region", "position", "list", "dict"];
+  const orderBlock = (SRC.editorSurface.match(/private val EDITOR_CATEGORY_ORDER = listOf\(([\s\S]*?)\n\)/) || [])[1] || "";
+  const orderKeys = [...orderBlock.matchAll(/R\.string\.(\w+)/g)].map((m) => m[1]);
+  eq(orderKeys.join(","), TAXONOMY.map((n) => CP + "wf_cat_" + n).join(","),
+    "分类顺序照抄点击助手（触发器 / 逻辑控制 / 通用 / 应用管理 / 系统操作 / 数值计算 / 文本处理 / 条件判断 / 控件操作 / 图像处理 / 颜色处理 / 区域操作 / 位置操作 / 列表操作 / 字典操作）");
+  const noText = TAXONOMY.filter((n) => !stringsEn.includes('name="' + CP + "wf_cat_" + n + '"') || !stringsZh.includes('name="' + CP + "wf_cat_" + n + '"'));
+  ok(noText.length === 0, "15 类的文案中英都齐（缺：" + (noText.join(",") || "无") + "）");
+  ok(/if \(entries\.isEmpty\(\)\) null else NodePickerGroup\(cat, entries\)/.test(SRC.editorSurface),
+    "空分类不铺到左栏（mapNotNull 滤掉，免得点开一个空按钮）");
+
+  // ── 4. 每条动作落进哪一类：用户确认过的口径 ──
+  //
+  // 分类是**动作用户找它时的那句话**，不是系统能力表：截图归"图像处理"、
+  // 按坐标点按归"位置操作"、日历/联系人/短信/媒体这些"取一列"的归"列表操作"、
+  // 没有同类可归的（手电筒/亮度/使用统计）并进"系统操作"。
+  //
+  // 只认 Action 条目的首行（"id", 分类, 标题 三个字段连写）；参数行
+  // （"action", R.string.…, ParamKind.…）不能满足"两个 R.string"，所以不会被误当成动作。
+  const actionCat = {};
+  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", R\.string\.(\w+), R\.string\.\w+,/gm)) {
+    actionCat[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
+  }
+  ok(Object.keys(actionCat).length >= 31, "动作目录每条都写了分类（当前 " + Object.keys(actionCat).length + " 条）");
+  const wants = {
+    widget: ["a11y_tree", "a11y_click", "a11y_text"],
+    position: ["a11y_tap", "a11y_swipe", "display_tap", "display_swipe", "location"],
+    image: ["a11y_shot", "display_shot", "camera"],
+    list: ["calendar_list", "contacts_list", "sms_list", "media_list"],
+    system: ["torch", "brightness", "usage"],
+  };
+  for (const [cat, ids] of Object.entries(wants)) {
+    const wrong = ids.filter((id) => actionCat[id] !== "wf_cat_" + cat);
+    ok(wrong.length === 0,
+      "口径：" + ids.join(" / ") + " 属于「" + cat + "」" +
+      (wrong.length ? "（不对：" + wrong.map((w) => w + "→" + (actionCat[w] || "缺失")).join(",") + "）" : ""));
+  }
+
+  // 计算册：JSON 归字典、列表算子归列表、与/或/非归条件判断。
+  const consts = {};
+  for (const m of computeSrc.matchAll(/private val (G_[A-Z]+) = R\.string\.(\w+)/g)) {
+    consts[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
+  }
+  eq(consts.G_DICT, "wf_cat_dict", "字典类算子（JSON 取值/取键）用字典操作分类");
+  eq(consts.G_LIST, "wf_cat_list", "列表类算子用列表操作分类");
+  eq(consts.G_CONDITION, "wf_cat_condition", "与/或/非算子并入条件判断分类");
+  const computeCat = {};
+  for (const m of computeSrc.matchAll(/Compute\("([a-z0-9_]+)", (G_[A-Z]+),/g)) computeCat[m[1]] = m[2];
+  const computeWant = {
+    json_get: "G_DICT", json_keys: "G_DICT",
+    list_make: "G_LIST", list_size: "G_LIST", list_join: "G_LIST",
+    bool_and: "G_CONDITION", bool_not: "G_CONDITION",
+    num_add: "G_NUMBER", str_append: "G_TEXT",
+  };
+  const computeWrong = Object.entries(computeWant).filter(([id, g]) => computeCat[id] !== g).map(([id]) => id);
+  ok(computeWrong.length === 0, "计算册逐条落在对应分类（不对：" + (computeWrong.join(",") || "无") + "）");
+
+  // ── 5. 缺的只能是「颜色处理」和「区域操作」这两类 ──
+  //
+  // 这两类暂时没有可落地的动作（没有取色/调色的端点，也没有区域相关的动作）。
+  // 把这件事实钉死，是因为缺口的可见形态只是"左栏少一格"—— 悄悄多缺一类没人会发现。
+  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, R\.string\.\w+, R\.string\.(\w+),/g))]
+    .map((m) => (m[1].startsWith(CP) ? m[1].slice(CP.length) : m[1]));
+  const usedConsts = new Set(Object.values(computeCat));
+  const filled = new Set([
+    ...baseCats,
+    ...Object.values(actionCat),
+    ...Object.keys(consts).filter((k) => usedConsts.has(k)).map((k) => consts[k]),
+  ]);
+  const emptyCats = TAXONOMY.filter((n) => !filled.has("wf_cat_" + n));
+  eq(emptyCats.join(","), "color,region",
+    "只有「颜色处理」「区域操作」暂时为空（面板会滤掉它们）");
 }
 
 console.log("\u2500 #12 新门禁登记进两条 CI 清单");

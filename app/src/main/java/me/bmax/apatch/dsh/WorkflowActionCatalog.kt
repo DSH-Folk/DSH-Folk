@@ -83,22 +83,24 @@ internal object WorkflowActionCatalog {
     /**
      * 全部动作。
      *
-     * **顺序即界面顺序**。每个 path 都必须在 [DshNativeBridge] 的 dispatch 里真实存在 ——
+     * **同一分类内的顺序即卡片顺序**（分类之间的先后由面板的 EDITOR_CATEGORY_ORDER 决定）。
+     * 每个 path 都必须在 [DshNativeBridge] 的 dispatch 里真实存在 ——
      * 这不是注释约定，是门禁在核对。
      */
+    // 这是一张**平表**：分类由每条的 groupTitleRes 决定。新增动作时把它插到同类动作附近，
+    // 面板里它就会跟着那一类出现（跨类顺序见 WorkflowEditorSurface 的 EDITOR_CATEGORY_ORDER）。
     val ACTIONS: List<Action> = listOf(
-        // ── 屏幕操作：无障碍 ──
         Action(
-            "a11y_tree", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_tree,
+            "a11y_tree", R.string.dsh_wf_cat_widget, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_tree,
             DshNativeBridge.Cap.A11Y, "GET", "/native/a11y/tree",
         ),
         Action(
-            "a11y_click", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_click,
+            "a11y_click", R.string.dsh_wf_cat_widget, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_click,
             DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/click",
             listOf(p("text", R.string.dsh_wf_param_text, required = true)),
         ),
         Action(
-            "a11y_tap", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_tap,
+            "a11y_tap", R.string.dsh_wf_cat_position, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_tap,
             DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/tap",
             listOf(
                 p("x", R.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
@@ -106,7 +108,7 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "a11y_swipe", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_swipe,
+            "a11y_swipe", R.string.dsh_wf_cat_position, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_swipe,
             DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/swipe",
             listOf(
                 p("x1", R.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
@@ -117,12 +119,12 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "a11y_text", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_text,
+            "a11y_text", R.string.dsh_wf_cat_widget, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_text,
             DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/text",
             listOf(p("text", R.string.dsh_wf_param_text, required = true)),
         ),
         Action(
-            "a11y_global", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_global,
+            "a11y_global", R.string.dsh_wf_cat_system, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_global,
             DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/global",
             listOf(
                 p(
@@ -132,16 +134,15 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "a11y_shot", R.string.dsh_wf_grp_screen, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_shot,
+            "a11y_shot", R.string.dsh_wf_cat_image, R.string.dsh_cap_a11y_title, R.string.dsh_wf_act_a11y_shot,
             DshNativeBridge.Cap.A11Y, "GET", "/native/a11y/screenshot",
         ),
-        // ── 屏幕操作：虚拟屏 ──
         Action(
-            "display_shot", R.string.dsh_wf_grp_screen, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_shot,
+            "display_shot", R.string.dsh_wf_cat_image, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_shot,
             DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/screenshot",
         ),
         Action(
-            "display_tap", R.string.dsh_wf_grp_screen, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_tap,
+            "display_tap", R.string.dsh_wf_cat_position, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_tap,
             DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/tap",
             listOf(
                 p("x", R.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
@@ -149,7 +150,7 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "display_swipe", R.string.dsh_wf_grp_screen, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_swipe,
+            "display_swipe", R.string.dsh_wf_cat_position, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_swipe,
             DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/swipe",
             listOf(
                 p("x1", R.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
@@ -159,46 +160,44 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "display_key", R.string.dsh_wf_grp_screen, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_key,
+            "display_key", R.string.dsh_wf_cat_system, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_key,
             DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/key",
             listOf(p("key", R.string.dsh_wf_param_key, required = true)),
         ),
         Action(
-            "display_stop", R.string.dsh_wf_grp_screen, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_stop,
+            "display_stop", R.string.dsh_wf_cat_system, R.string.dsh_cap_display_title, R.string.dsh_wf_act_display_stop,
             DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/stop",
         ),
-        // ── 提醒 ──
         Action(
-            "toast", R.string.dsh_wf_grp_alert, R.string.dsh_cap_toast_title, R.string.dsh_wf_act_toast,
+            "toast", R.string.dsh_wf_cat_system, R.string.dsh_cap_toast_title, R.string.dsh_wf_act_toast,
             DshNativeBridge.Cap.TOAST, "POST", "/native/toast",
             listOf(p("text", R.string.dsh_wf_param_text, required = true)),
         ),
         Action(
-            "vibrate", R.string.dsh_wf_grp_alert, R.string.dsh_cap_vibrate_title, R.string.dsh_wf_act_vibrate,
+            "vibrate", R.string.dsh_wf_cat_system, R.string.dsh_cap_vibrate_title, R.string.dsh_wf_act_vibrate,
             DshNativeBridge.Cap.VIBRATE, "POST", "/native/vibrate",
             listOf(p("ms", R.string.dsh_wf_param_ms, ParamKind.NUMBER, default = "300")),
         ),
         Action(
-            "notify_full", R.string.dsh_wf_grp_alert, R.string.dsh_cap_fullscreens_title, R.string.dsh_wf_act_notify_full,
+            "notify_full", R.string.dsh_wf_cat_system, R.string.dsh_cap_fullscreens_title, R.string.dsh_wf_act_notify_full,
             DshNativeBridge.Cap.FULL_SCREEN_NOTIFY, "POST", "/native/notify/full-screen",
             listOf(
                 p("title", R.string.dsh_wf_param_notify_title, required = true),
                 p("body", R.string.dsh_wf_param_notify_body),
             ),
         ),
-        // ── 设备 ──
         Action(
-            "clip_set", R.string.dsh_wf_grp_device, R.string.dsh_cap_clip_title, R.string.dsh_wf_act_clip_set,
+            "clip_set", R.string.dsh_wf_cat_system, R.string.dsh_cap_clip_title, R.string.dsh_wf_act_clip_set,
             DshNativeBridge.Cap.CLIPBOARD, "POST", "/native/clipboard",
             listOf(p("text", R.string.dsh_wf_param_text, required = true)),
         ),
         Action(
-            "torch", R.string.dsh_wf_grp_device, R.string.dsh_cap_torch_title, R.string.dsh_wf_act_torch,
+            "torch", R.string.dsh_wf_cat_system, R.string.dsh_cap_torch_title, R.string.dsh_wf_act_torch,
             DshNativeBridge.Cap.TORCH, "POST", "/native/torch",
             listOf(p("on", R.string.dsh_wf_param_on, ParamKind.CHOICE, choices = listOf("on", "off"))),
         ),
         Action(
-            "volume", R.string.dsh_wf_grp_device, R.string.dsh_cap_volume_title, R.string.dsh_wf_act_volume,
+            "volume", R.string.dsh_wf_cat_system, R.string.dsh_cap_volume_title, R.string.dsh_wf_act_volume,
             DshNativeBridge.Cap.VOLUME, "POST", "/native/volume",
             listOf(
                 p("level", R.string.dsh_wf_param_level, ParamKind.NUMBER, required = true),
@@ -209,7 +208,7 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "ringer", R.string.dsh_wf_grp_device, R.string.dsh_cap_volume_title, R.string.dsh_wf_act_ringer,
+            "ringer", R.string.dsh_wf_cat_system, R.string.dsh_cap_volume_title, R.string.dsh_wf_act_ringer,
             DshNativeBridge.Cap.VOLUME, "POST", "/native/ringer",
             listOf(
                 p(
@@ -219,69 +218,66 @@ internal object WorkflowActionCatalog {
             ),
         ),
         Action(
-            "brightness", R.string.dsh_wf_grp_device, R.string.dsh_cap_settings_title, R.string.dsh_wf_act_brightness,
+            "brightness", R.string.dsh_wf_cat_system, R.string.dsh_cap_settings_title, R.string.dsh_wf_act_brightness,
             DshNativeBridge.Cap.SETTINGS, "POST", "/native/settings/brightness",
             listOf(p("value", R.string.dsh_wf_param_value, ParamKind.NUMBER, required = true)),
         ),
         Action(
-            "rotation", R.string.dsh_wf_grp_device, R.string.dsh_cap_settings_title, R.string.dsh_wf_act_rotation,
+            "rotation", R.string.dsh_wf_cat_system, R.string.dsh_cap_settings_title, R.string.dsh_wf_act_rotation,
             DshNativeBridge.Cap.SETTINGS, "POST", "/native/settings/rotation",
             listOf(p("locked", R.string.dsh_wf_param_locked, ParamKind.CHOICE, choices = listOf("0", "1"))),
         ),
-        // ── 媒体 ──
         Action(
-            "camera", R.string.dsh_wf_grp_media, R.string.dsh_cap_camera_title, R.string.dsh_wf_act_camera,
+            "camera", R.string.dsh_wf_cat_image, R.string.dsh_cap_camera_title, R.string.dsh_wf_act_camera,
             DshNativeBridge.Cap.CAMERA, "POST", "/native/camera/photo",
             listOf(p("facing", R.string.dsh_wf_param_facing, ParamKind.CHOICE, default = "back", choices = listOf("back", "front"))),
         ),
         Action(
-            "tts", R.string.dsh_wf_grp_media, R.string.dsh_cap_tts_title, R.string.dsh_wf_act_tts,
+            "tts", R.string.dsh_wf_cat_system, R.string.dsh_cap_tts_title, R.string.dsh_wf_act_tts,
             DshNativeBridge.Cap.TTS, "POST", "/native/tts/speak",
             listOf(p("text", R.string.dsh_wf_param_text, required = true)),
         ),
         Action(
-            "media_list", R.string.dsh_wf_grp_media, R.string.dsh_cap_media_title, R.string.dsh_wf_act_media_list,
+            "media_list", R.string.dsh_wf_cat_list, R.string.dsh_cap_media_title, R.string.dsh_wf_act_media_list,
             DshNativeBridge.Cap.MEDIA, "GET", "/native/media/list",
             listOf(
                 p("type", R.string.dsh_wf_param_type, ParamKind.CHOICE, default = "image", choices = listOf("image", "video", "audio")),
                 p("limit", R.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10"),
             ),
         ),
-        // ── 感知 ──
         Action(
-            "sensors_read", R.string.dsh_wf_grp_sense, R.string.dsh_cap_sensors_title, R.string.dsh_wf_act_sensors_read,
+            "sensors_read", R.string.dsh_wf_cat_system, R.string.dsh_cap_sensors_title, R.string.dsh_wf_act_sensors_read,
             DshNativeBridge.Cap.SENSORS, "GET", "/native/sensors/read",
             listOf(p("id", R.string.dsh_wf_param_id, required = true)),
         ),
         Action(
-            "network", R.string.dsh_wf_grp_sense, R.string.dsh_cap_network_title, R.string.dsh_wf_act_network,
+            "network", R.string.dsh_wf_cat_system, R.string.dsh_cap_network_title, R.string.dsh_wf_act_network,
             DshNativeBridge.Cap.NETWORK, "GET", "/native/network",
         ),
         Action(
-            "usage", R.string.dsh_wf_grp_sense, R.string.dsh_cap_usage_title, R.string.dsh_wf_act_usage,
+            "usage", R.string.dsh_wf_cat_system, R.string.dsh_cap_usage_title, R.string.dsh_wf_act_usage,
             DshNativeBridge.Cap.USAGE, "GET", "/native/usage/list",
             listOf(
                 p("days", R.string.dsh_wf_param_days, ParamKind.NUMBER, default = "1"),
                 p("limit", R.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10"),
             ),
         ),
-        // ── 数据 ──
         Action(
-            "calendar_list", R.string.dsh_wf_grp_data, R.string.dsh_cap_calendar_title, R.string.dsh_wf_act_calendar_list,
+            "calendar_list", R.string.dsh_wf_cat_list, R.string.dsh_cap_calendar_title, R.string.dsh_wf_act_calendar_list,
             DshNativeBridge.Cap.CALENDAR, "GET", "/native/calendar/list",
             listOf(p("days", R.string.dsh_wf_param_days, ParamKind.NUMBER, default = "7")),
         ),
         Action(
-            "contacts_list", R.string.dsh_wf_grp_data, R.string.dsh_cap_contacts_title, R.string.dsh_wf_act_contacts_list,
+            "contacts_list", R.string.dsh_wf_cat_list, R.string.dsh_cap_contacts_title, R.string.dsh_wf_act_contacts_list,
             DshNativeBridge.Cap.CONTACTS, "GET", "/native/contacts/list",
             listOf(p("limit", R.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "20")),
         ),
         Action(
-            "location", R.string.dsh_wf_grp_data, R.string.dsh_cap_location_title, R.string.dsh_wf_act_location,
+            "location", R.string.dsh_wf_cat_position, R.string.dsh_cap_location_title, R.string.dsh_wf_act_location,
             DshNativeBridge.Cap.LOCATION, "GET", "/native/location",
         ),
         Action(
-            "sms_list", R.string.dsh_wf_grp_data, R.string.dsh_cap_sms_title, R.string.dsh_wf_act_sms_list,
+            "sms_list", R.string.dsh_wf_cat_list, R.string.dsh_cap_sms_title, R.string.dsh_wf_act_sms_list,
             DshNativeBridge.Cap.SMS, "GET", "/native/sms/list",
             listOf(p("limit", R.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10")),
         ),

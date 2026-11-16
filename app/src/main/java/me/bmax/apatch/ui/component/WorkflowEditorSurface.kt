@@ -119,6 +119,15 @@ private fun editorConfigForAction(action: WorkflowActionType): Map<String, Strin
 private data class EditorNodeKind(
     val type: WorkflowNodeType,
     val labelRes: Int,
+    /**
+     * 一级分类（选择面板左栏的那一格）。写在数据里、而不是按 [type] 推：
+     * [WorkflowNodeType.EXECUTE] 无法区分「执行命令」（通用）与「执行命令但要求 APP 已运行」
+     * （应用管理），而用户找它们时想的是后者那句话。
+     *
+     * 值必须是 [EDITOR_CATEGORY_ORDER] 里出现过的那几个资源；门禁会逐条核对，
+     * 写错一个（比如拼成另一个分类）会让那张卡从面板里**静默消失**。
+     */
+    val catTitleRes: Int,
     val defaults: Map<String, String>,
     /**
      * 基础节点的一句说明。动作目录里的节点用 [bridge] 自带的 descRes，用不到这个。
@@ -138,28 +147,37 @@ private data class EditorNodeKind(
     val bridge: WorkflowActionCatalog.Action? = null,
 )
 
-private val EDITOR_NODE_CATALOG = listOf(
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_shell, editorConfigForAction(WorkflowActionType.SHELL), R.string.dsh_workflow_kind_shell_desc),
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, editorConfigForAction(WorkflowActionType.DSH), R.string.dsh_workflow_kind_dsh_desc),
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_notify, editorConfigForAction(WorkflowActionType.NOTIFY), R.string.dsh_workflow_kind_notify_desc),
-    EditorNodeKind(WorkflowNodeType.CONDITION, R.string.dsh_workflow_kind_condition, mapOf("source" to "exitCode", "op" to "equals", "value" to "0"), R.string.dsh_workflow_kind_condition_desc),
-    EditorNodeKind(WorkflowNodeType.EXTRACT, R.string.dsh_workflow_kind_extract, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value"), R.string.dsh_workflow_kind_extract_desc),
-    EditorNodeKind(WorkflowNodeType.WAIT, R.string.dsh_workflow_kind_wait, mapOf("ms" to "1000"), R.string.dsh_workflow_kind_wait_desc),
-    EditorNodeKind(WorkflowNodeType.LOGIC, R.string.dsh_workflow_kind_logic, mapOf("op" to "and", "sources" to ""), R.string.dsh_workflow_kind_logic_desc),
-)
-
 /**
- * 节点目录：基础节点一组，原生能力由 [WorkflowActionCatalog] 提供。
+ * 节点目录：基础节点 + 原生能力 + 计算动作，三册合一，只在**选择面板**里合并展示。
  *
  * ## 为什么基础节点与原生能力分开存
- * 基础节点是「控制流/执行」的固定几项，原生能力是「具体能做什么」的二十多项。
+ * 基础节点是「控制流/执行」的固定几项，原生能力是「具体能做什么」的三十多项。
  * 混在一个列表里既看不出层次，也无法让能力项自带命令骨架。
  *
- * ## 分类按「用户想干什么」切，不按代码里的枚举切
- * 基础节点在代码里是 EXECUTE / CONDITION / WAIT …，但用户找的是「让它跑一条命令」
- * 还是「让它等一下」。所以「执行」与「控制流」分开，前者是"做什么"，
- * 后者是"什么时候做、做几次"。
+ * ## 分类不按代码里的枚举切
+ * 基础节点在代码里是 EXECUTE / CONDITION / WAIT …，但用户找的是「让它截图」
+ * 「让它等一下」。分类见 [EDITOR_CATEGORY_ORDER]（对齐点击助手的15类）。
  */
+private val EDITOR_NODE_CATALOG = listOf(
+    // ── 触发器 ──
+    //
+    // 这张是**空模板下的第一张卡**（见 WorkflowScreen.starter）：新建出来的画布是白的，
+    // 而校验器要求「有节点就要有开始卡片」。没有这一项，用户加什么都会得到一份跑不起来的流程。
+    EditorNodeKind(WorkflowNodeType.TRIGGER, R.string.dsh_workflow_kind_trigger, R.string.dsh_wf_cat_trigger, defaultConfigFor(WorkflowNodeType.TRIGGER, null), R.string.dsh_workflow_kind_trigger_desc),
+    // ── 通用 ──
+    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_shell, R.string.dsh_wf_cat_general, editorConfigForAction(WorkflowActionType.SHELL), R.string.dsh_workflow_kind_shell_desc),
+    EditorNodeKind(WorkflowNodeType.EXTRACT, R.string.dsh_workflow_kind_extract, R.string.dsh_wf_cat_general, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value"), R.string.dsh_workflow_kind_extract_desc),
+    // ── 应用管理 ──
+    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, R.string.dsh_wf_cat_dsh, editorConfigForAction(WorkflowActionType.APP), R.string.dsh_workflow_kind_dsh_desc),
+    // ── 系统操作 ──
+    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_notify, R.string.dsh_wf_cat_system, editorConfigForAction(WorkflowActionType.NOTIFY), R.string.dsh_workflow_kind_notify_desc),
+    // ── 逻辑控制 ──
+    EditorNodeKind(WorkflowNodeType.WAIT, R.string.dsh_workflow_kind_wait, R.string.dsh_wf_cat_logic, mapOf("ms" to "1000"), R.string.dsh_workflow_kind_wait_desc),
+    EditorNodeKind(WorkflowNodeType.LOGIC, R.string.dsh_workflow_kind_logic, R.string.dsh_wf_cat_logic, mapOf("op" to "and", "sources" to ""), R.string.dsh_workflow_kind_logic_desc),
+    // ── 条件判断 ──
+    EditorNodeKind(WorkflowNodeType.CONDITION, R.string.dsh_workflow_kind_condition, R.string.dsh_wf_cat_condition, mapOf("source" to "exitCode", "op" to "equals", "value" to "0"), R.string.dsh_workflow_kind_condition_desc),
+)
+
 /** 取某一级分组（按标题资源）对应的动作节点。 */
 private fun actionKindsOf(groupTitleRes: Int): List<EditorNodeKind> {
     // 一个分组里的节点来自**两册**：能力动作（要权限、走桥）与计算动作（纯本地算）。
@@ -179,22 +197,66 @@ private fun actionKindsOf(groupTitleRes: Int): List<EditorNodeKind> {
 }
 
 /**
- * 把编辑器节点目录翻译成 [WorkflowNodePicker] 的分组数据。
+ * 选择面板的**一级分类与顺序**：对齐点击助手的15类。
  *
- * 一级分组 = 用户想干什么（执行 / 控制流 / 提醒 / 设备 / …）；
- * 二级分组 = 该组内部再细分的类别。
+ * ## 为什么分类要单独成表
  *
- * 为什么二级对基础节点也给一个分类：面板版式是「一级 chip + 二级 chip + 列表」，
- * 若某个一级分组只有一个二级分组，用户会看到一排只有一个按钮的空壳 —— 观感很差。
+ * 之前分类是「按 [WorkflowNodeType] 分组」再硬编两条 shell 组：面板里的格子由代码结构
+ * 决定，而不是由「用户想干什么」决定。用户要截个图，得先猜到它落在「屏幕操作」里；
+ * 想判断一下，得去「布尔」那一格 —— 那是计算册的内部分类，不是用户的语言。
+ *
+ * ## 为什么15类都写出来、哪怕其中两类暂时是空的
+ *
+ * 写全了，「缺哪一类」才是可被门禁核对的事实（现在缺颜色处理与区域操作：既没有取色/
+ * 调色的端点，也没有区域相关的动作）。只写「有内容的13类」的话，缺的那两类会变成
+ * 没人记得的空白；而把空分类铺到左栏又会让用户点开一个空按钮 —— 所以由
+ * [editorPickerGroups] 把空分类滤掉。
  */
-// 这里**刻意不用 @Composable**，也不用 workflowNodeAccent。
-//
-// 教训：数据构建一旦依赖主题色，排队等着的是连锁的 @Composable 传染 ——
-// 外层函数要标、内层局部函数要标、包它的 remember 又不算 Composable 上下文。
-// 三处报错修完还会因为新加的局部函数再次红。
-//
-// 色点只是列表里 8dp 的辅助标记，不需要跟随主题语义色。
-// 用固定色即可：构建纯数据、可在任何上下文调用，也不会再被 remember 包坏。
+private val EDITOR_CATEGORY_ORDER = listOf(
+    // 触发器：新建流程后要加的第一张卡（开始卡片）。
+    R.string.dsh_wf_cat_trigger,
+    // 逻辑控制：等待、逻辑组合 —— 「什么时候做、按什么结论走」。
+    R.string.dsh_wf_cat_logic,
+    // 通用：执行命令、从上游取值这类每个流程都要用的节点。
+    R.string.dsh_wf_cat_general,
+    // 应用管理：要求 APP 已运行的执行节点。
+    R.string.dsh_wf_cat_dsh,
+    // 系统操作：通知、手电筒、亮度、音量、剪贴板、全局操作、传感器、网络、使用统计……
+    R.string.dsh_wf_cat_system,
+    // 数值计算：四则、取整、最大最小、随机数。
+    R.string.dsh_wf_cat_number,
+    // 文本处理：拼接、截取、替换、正则、大小写、编解码。
+    R.string.dsh_wf_cat_text,
+    // 条件判断：判断节点本身，以及把几个结论与/或/非起来的算子。
+    R.string.dsh_wf_cat_condition,
+    // 控件操作：读控件树、按文本点控件、往控件里填文本。
+    R.string.dsh_wf_cat_widget,
+    // 图像处理：无障碍截图、虚拟屏截图、拍照。
+    R.string.dsh_wf_cat_image,
+    // 颜色处理：暂无可落地的动作（面板会把这个空分类滤掉）。
+    R.string.dsh_wf_cat_color,
+    // 区域操作：暂无可落地的动作（同上）。
+    R.string.dsh_wf_cat_region,
+    // 位置操作：按坐标点按/滑动（无障碍与虚拟屏两套），以及取当前位置。
+    R.string.dsh_wf_cat_position,
+    // 列表操作：列表算子，以及日历/联系人/短信/媒体这些「取一列」的动作。
+    R.string.dsh_wf_cat_list,
+    // 字典操作：JSON 取值与取键。
+    R.string.dsh_wf_cat_dict,
+)
+
+/**
+ * 把三册节点目录翻译成 [WorkflowNodePicker] 的分组数据。
+ *
+ * 一级分组 = 用户想干什么（控件操作 / 图像处理 / 列表操作 / …），就是 [EDITOR_CATEGORY_ORDER]；
+ * 组内直接摆卡片，不再套第二层同名分组 —— 我们的数据本来只有两层，套第二层的结果是每个
+ * 分类里都塞一个和它同名的空壳。
+ *
+ * ## 这里刻意不用 @Composable、也不用 workflowNodeAccent
+ * 教训：数据构建一旦依赖主题色，排队等着的是连锁的 @Composable 传染 —— 外层函数要标、
+ * 内层局部函数要标、包它的 remember 又不算 Composable 上下文；三处报错修完还会因为
+ * 新加的局部函数再次红。色点只是列表里 8dp 的辅助标记，固定色就够（见 [editorPickerAccent]）。
+ */
 private fun editorPickerGroups(): List<NodePickerGroup> {
     // ── 「这个节点能不能接上那颗源针脚」──
     //
@@ -255,14 +317,6 @@ private fun editorPickerGroups(): List<NodePickerGroup> {
         acceptsPin = accepts(kind),
     )
 
-    val exec = EDITOR_NODE_CATALOG.filter { it.type == WorkflowNodeType.EXECUTE }
-    val control = EDITOR_NODE_CATALOG.filter {
-        it.type == WorkflowNodeType.CONDITION ||
-            it.type == WorkflowNodeType.WAIT ||
-            it.type == WorkflowNodeType.LOGIC ||
-            it.type == WorkflowNodeType.EXTRACT
-    }
-
     fun actionEntries(groupTitleRes: Int): List<NodePickerEntry> =
         actionKindsOf(groupTitleRes).map { kind ->
             // key 用**动作 id**而不是下标：同一个面板里两类节点混排，
@@ -274,29 +328,18 @@ private fun editorPickerGroups(): List<NodePickerGroup> {
             entry("act_" + keyId, kind)
         }
 
-    // 每个分组**直接**就是「左栏一个分类 + 右栏一屏卡片」，不再套一层同名子分类。
-    return listOf(
-        NodePickerGroup(
-            R.string.dsh_wf_cat_exec,
-            exec.mapIndexed { i, k -> entry("exec_" + i, k) },
-        ),
-        NodePickerGroup(
-            R.string.dsh_wf_cat_control,
-            control.mapIndexed { i, k -> entry("ctl_" + i, k) },
-        ),
-        NodePickerGroup(R.string.dsh_wf_grp_alert, actionEntries(R.string.dsh_wf_grp_alert)),
-        NodePickerGroup(R.string.dsh_wf_grp_device, actionEntries(R.string.dsh_wf_grp_device)),
-        NodePickerGroup(R.string.dsh_wf_grp_media, actionEntries(R.string.dsh_wf_grp_media)),
-        NodePickerGroup(R.string.dsh_wf_grp_data, actionEntries(R.string.dsh_wf_grp_data)),
-        NodePickerGroup(R.string.dsh_wf_grp_sense, actionEntries(R.string.dsh_wf_grp_sense)),
-        NodePickerGroup(R.string.dsh_wf_grp_screen, actionEntries(R.string.dsh_wf_grp_screen)),
-        // 计算类：不需要权限、不走桥，纯本地算。单列成组是因为用户找它们时的问法不同 ——
-        // "我要把这几个值算一下"，而不是"我要用某个系统能力"。
-        NodePickerGroup(R.string.dsh_wf_cat_number, actionEntries(R.string.dsh_wf_cat_number)),
-        NodePickerGroup(R.string.dsh_wf_cat_text, actionEntries(R.string.dsh_wf_cat_text)),
-        NodePickerGroup(R.string.dsh_wf_cat_bool, actionEntries(R.string.dsh_wf_cat_bool)),
-        NodePickerGroup(R.string.dsh_wf_cat_data_ops, actionEntries(R.string.dsh_wf_cat_data_ops)),
-    )
+    // 分类顺序来自 [EDITOR_CATEGORY_ORDER]；每个节点按自己的 catTitleRes 落进对应那一类。
+    //
+    // 空分类不铺：左栏多一格、点开是空的按钮，只会让用户以为「这里本来该有东西」。
+    // 现在真正为空的只有颜色处理与区域操作 —— 那是事实（没有取色/调色的端点，也没有
+    // 区域相关的动作），门禁会把「缺的恰好是这两类」钉住，免得以后悄悄多缺一类。
+    return EDITOR_CATEGORY_ORDER.mapNotNull { cat ->
+        val base = EDITOR_NODE_CATALOG
+            .filter { it.catTitleRes == cat }
+            .mapIndexed { i, k -> entry("base_" + cat + "_" + i, k) }
+        val entries = base + actionEntries(cat)
+        if (entries.isEmpty()) null else NodePickerGroup(cat, entries)
+    }
 }
 
 /**
@@ -331,6 +374,8 @@ private fun appStringRaw(resId: Int): String = me.bmax.apatch.apApp.resources.ge
 private fun editorKindOf(action: WorkflowActionCatalog.Action): EditorNodeKind = EditorNodeKind(
     type = WorkflowNodeType.EXECUTE,
     labelRes = action.titleRes,
+    // 分类取动作目录那条：目录才是「这条动作属于哪一类」的唯一出处。
+    catTitleRes = action.groupTitleRes,
     defaults = mapOf("action" to "native", "bridge" to action.id) +
         action.params.associate { action.configKey(it) to it.default },
     bridge = action,
@@ -346,6 +391,7 @@ private fun editorKindOf(action: WorkflowActionCatalog.Action): EditorNodeKind =
 private fun editorKindOfCompute(action: WorkflowCompute.Compute): EditorNodeKind = EditorNodeKind(
     type = WorkflowNodeType.EXECUTE,
     labelRes = action.titleRes,
+    catTitleRes = action.groupTitleRes,
     defaults = mapOf("action" to "compute", "bridge" to action.id) +
         action.params.associate { it.key to it.default },
     descRes = action.descRes,
