@@ -168,7 +168,7 @@ private val EDITOR_NODE_CATALOG = listOf(
     EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_shell, R.string.dsh_wf_cat_general, editorConfigForAction(WorkflowActionType.SHELL), R.string.dsh_workflow_kind_shell_desc),
     EditorNodeKind(WorkflowNodeType.EXTRACT, R.string.dsh_workflow_kind_extract, R.string.dsh_wf_cat_general, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value"), R.string.dsh_workflow_kind_extract_desc),
     // ── 应用管理 ──
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, R.string.dsh_wf_cat_dsh, editorConfigForAction(WorkflowActionType.APP), R.string.dsh_workflow_kind_dsh_desc),
+    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, R.string.dsh_wf_cat_dsh, editorConfigForAction(WorkflowActionType.DSH), R.string.dsh_workflow_kind_dsh_desc),
     // ── 系统操作 ──
     EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_notify, R.string.dsh_wf_cat_system, editorConfigForAction(WorkflowActionType.NOTIFY), R.string.dsh_workflow_kind_notify_desc),
     // ── 逻辑控制 ──
