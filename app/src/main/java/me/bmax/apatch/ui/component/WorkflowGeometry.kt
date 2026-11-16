@@ -56,18 +56,6 @@ internal data class WorkflowViewport(
         )
     }
 
-    /**
-     * 拖动位移（**内容层局部像素**）→ 世界 dp 增量。
-     *
-     * 这里**不除缩放**，原因是 Compose 的命中测试会先过 `graphicsLayer`：内容层带着
-     * scale/translation 时，子节点收到的指针坐标与拖动增量**已经**是反变换后的局部值
-     * （缩到 2 倍时点 (200,200) 得到的是 (100,100)）。再除一次 scale，缩放后拖动就会
-     * 只有一半跟手。真正需要逆变换的是**窗口坐标**（拉线落点、针脚矩形），见 [toWorldDp]。
-     */
-    fun dragDeltaDp(dxPx: Float, dyPx: Float, density: Float): Offset {
-        val safeDensity = if (density > 0f) density else 1f
-        return Offset(dxPx / safeDensity, dyPx / safeDensity)
-    }
 
     /**
      * 以 [centroid]（内容层局部像素）为中心缩放后的新 pan。

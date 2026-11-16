@@ -243,15 +243,33 @@ private fun roundCorners(points: List<Offset>, radius: Float): Path {
         val prev = points[i - 1]
         val cur = points[i]
         val next = points[i + 1]
-        // 切入/切出点：沿两条边各退 radius，但不能退过整段的一半，
-        // 否则短段会来回折返（这是 CornerPathEffect 也必须处理的同一件事）。
-        val inX = cur.x + (prev.x - cur.x).coerceIn(-radius, radius) 
-        val inY = cur.y + (prev.y - cur.y).coerceIn(-radius, radius)
-        val outX = cur.x + (next.x - cur.x).coerceIn(-radius, radius)
-        val outY = cur.y + (next.y - cur.y).coerceIn(-radius, radius)
-        path.lineTo(inX, inY)
+        val inLen = kotlin.math.sqrt(
+            (prev.x - cur.x) * (prev.x - cur.x) + (prev.y - cur.y) * (prev.y - cur.y),
+        )
+        val outLen = kotlin.math.sqrt(
+            (next.x - cur.x) * (next.x - cur.x) + (next.y - cur.y) * (next.y - cur.y),
+        )
+        // 圆角半径按 CornerPathEffect 的语义夹住：不能超过相邻两条边各自的一半。
+        //
+        // 上一版只把**分量**夹到 ±radius，看着像"不超半径"，其实没有按边长远近夹。
+        // 两个拐点挨得近时（融合阈值 5px 之外、但小于 2×radius），前一个拐角的切出点
+        // 会越过后一个拐角的切入点，二次曲线于是向外鼓一个小包 —— 真机截图里
+        // "拉线有时候会露出交接点"就是这个包。参考实现的 CornerPathEffect 正是靠这条
+        // 半段夹取来避免它，所以这里必须照做。
+        val r = min(radius, min(inLen / 2f, outLen / 2f))
+        val inPt = if (inLen > 0f) {
+            Offset(cur.x + (prev.x - cur.x) / inLen * r, cur.y + (prev.y - cur.y) / inLen * r)
+        } else {
+            cur
+        }
+        val outPt = if (outLen > 0f) {
+            Offset(cur.x + (next.x - cur.x) / outLen * r, cur.y + (next.y - cur.y) / outLen * r)
+        } else {
+            cur
+        }
+        path.lineTo(inPt.x, inPt.y)
         // 用二次曲线穿过拐点，控制点就是拐点本身 —— 这就是"倒圆"。
-        path.quadraticTo(cur.x, cur.y, outX, outY)
+        path.quadraticTo(cur.x, cur.y, outPt.x, outPt.y)
     }
     val last = points[points.size - 1]
     path.lineTo(last.x, last.y)

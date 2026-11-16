@@ -80,8 +80,10 @@ internal fun WorkflowBlueprintCanvas(
     /** 卡上「锁」按钮：冻结这张卡（不能拖/不能选/不能删）。 */
     onNodeToggleLock: ((nodeId: String) -> Unit)? = null,
     onNodeClick: ((String) -> Unit)? = null,
-    onNodeDrag: ((id: String, dxPx: Float, dyPx: Float) -> Unit)? = null,
-    onNodeDragStart: ((id: String) -> Unit)? = null,
+    /** 拖动中：参数是手指此刻的**绝对窗口坐标**（不是位移）。对齐点击助手在父容器里用绝对坐标算整格位移。 */
+    onNodeDrag: ((id: String, windowX: Float, windowY: Float) -> Unit)? = null,
+    /** 开始拖动：按下时的绝对窗口坐标，作为整格位移的基准。 */
+    onNodeDragStart: ((id: String, windowX: Float, windowY: Float) -> Unit)? = null,
     onNodeDragEnd: ((id: String) -> Unit)? = null,
     /** 卡上「复制」按钮（对齐参考实现 ActionCard.initCopy）。 */
     onNodeCopy: ((id: String) -> Unit)? = null,
@@ -351,8 +353,9 @@ internal fun WorkflowBlueprintCanvas(
                     modifier = Modifier.offset(x = pos.x.dp, y = pos.y.dp),
                     onTap = { if (!node.locked) onNodeClick?.invoke(node.id) },
                     // 锁定的卡不接拖动（锁定 = 不能拖动，见 WorkflowNode.locked）。
-                    onDrag = if (node.locked) null else ({ dx: Float, dy: Float -> onNodeDrag?.invoke(node.id, dx, dy) }),
-                    onDragStart = if (node.locked) null else ({ onNodeDragStart?.invoke(node.id) }),
+                    // 绝对窗口坐标直接透传：整格位移由宿主按起点算，画布不插值、不累加。
+                    onDrag = if (node.locked) null else ({ wx: Float, wy: Float -> onNodeDrag?.invoke(node.id, wx, wy) }),
+                    onDragStart = if (node.locked) null else ({ wx: Float, wy: Float -> onNodeDragStart?.invoke(node.id, wx, wy) }),
                     onDragEnd = if (node.locked) null else ({ onNodeDragEnd?.invoke(node.id) }),
                     // 卡上直接改参数：只在编辑态开放（预览/详情传 null，输入框自动 disabled）。
                     onParamChange = onNodeParamChange?.let { cb -> { key, value -> cb(node.id, key, value) } },

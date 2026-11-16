@@ -183,11 +183,19 @@ internal fun WorkflowNodeCard(
     selected: Boolean = false,
     /** 点一下（选中/编辑）。 */
     onTap: (() -> Unit)? = null,
-    /** 拖动卡片：参数是**本卡片坐标系**里的像素位移（自己接手势就不会算错命中）。 */
-    onDrag: ((dxPx: Float, dyPx: Float) -> Unit)? = null,
-    /** 开始拖这张卡（宿主用它记录起点、累加未吸附的位移）。 */
-    onDragStart: (() -> Unit)? = null,
-    /** 拖动结束（宿主在这里吸附网格并落盘）。 */
+    /**
+     * 拖动卡片：参数是**手指在本卡片里的像素位置**（不是位移量）。
+     *
+     * 为什么不能传位移：卡片自己会跟着手指移动，于是下一次事件里的局部坐标几乎没变，
+     * 位移量算出来接近 0 —— 累加它只会得到"越拖越慢、来回抖"。
+     * 参考实现（CardLayoutView.onTouchEvent）是在**固定的父容器坐标**里用绝对位置算的：
+     * `dx = (int)((x - offsetX - realLastX) / gridSize)`。这里照样上报绝对位置，
+     * 由画布换算成世界坐标后复制同一套整格推进。
+     */
+    onDrag: ((xPx: Float, yPx: Float) -> Unit)? = null,
+    /** 开始拖这张卡：参数同样是指针在本卡片里的像素位置。 */
+    onDragStart: ((xPx: Float, yPx: Float) -> Unit)? = null,
+    /** 拖动结束（宿主在这里收尾；位置在拖动过程中已按整格写入模型）。 */
     onDragEnd: (() -> Unit)? = null,
     /** 上报某个引脚在窗口里的矩形（按**引脚种类**，第三方调用点只需这一种）。 */
     onPinBounds: ((pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)? = null,
@@ -287,6 +295,12 @@ internal fun WorkflowNodeCard(
     // 卡片**自己**接手势（点击助手的 View 也是各自 onTouchEvent）：
     // 命中不需要算 —— 手指按在这张卡上，事件就到这张卡，不存在「坐标系比错」的可能。
     var windowOrigin by remember { mutableStateOf(Offset.Zero) }
+    // 卡片自己的布局坐标：把**卡片局部坐标**换成窗口坐标要用它。
+    //
+    // 不能拿 positionInWindow + 局部坐标直接相加：卡片在带缩放的 graphicsLayer 里，
+    // positionInWindow 是缩放后的窗口像素，而指针事件给的是未缩放的局部像素，
+    // 只有 scale=1 时两者才同单位。localToWindow 一次做完逆变换，缩放拖动才不跑偏。
+    val cardCoords = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
     val originState = rememberUpdatedState(windowOrigin)
     val sizeState = rememberUpdatedState(cardSize)
@@ -303,6 +317,7 @@ internal fun WorkflowNodeCard(
     val base = modifier
         .width(WorkflowNodeCardWidth)
         .onGloballyPositioned { coords ->
+            cardCoords.value = coords
             windowOrigin = coords.positionInWindow()
             cardSize = coords.size
             onBounds?.invoke(coords.boundsInWindow())
@@ -336,7 +351,18 @@ internal fun WorkflowNodeCard(
                 val slop = viewConfiguration.touchSlop
                 var pastSlop = false
                 val pointer = down.id
-                var lastPosition = down.position
+                // 上报**绝对窗口坐标**：卡片原点(窗口) + 本次事件在本卡里的局部坐标。
+                //
+                // 为什么不能用「本帧位移」：卡片自己跟着手指移动，下一帧的局部坐标几乎没变，
+                // 位移算出来接近 0 —— 累加它必然「越拖越慢 + 来回抖」。
+                // 参考实现的拖动在**固定不动的父容器**里算绝对坐标：
+                //   dx = (int)((x - offsetX - realLastX) / gridSize)
+                // 卡片原点与局部坐标此消彼长，和值恒等于手指在屏幕上的真实位置，所以不会漂移。
+                //
+                // 按下点的绝对窗口坐标，一次算好 —— 整格位移以它为基准，中途不改。
+                // 用 localToWindow 而不是「窗口原点 + 局部坐标」直接相加：卡片在带缩放的
+                // graphicsLayer 里，两种坐标不同单位，相加只在 scale=1 时对（放大后拖动会跑偏）。
+                val pressWindow = cardCoords.value?.localToWindow(down.position) ?: down.position
                 while (true) {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull { it.id == pointer } ?: break
@@ -346,11 +372,6 @@ internal fun WorkflowNodeCard(
                         change.consume()
                         break
                     }
-                    // 位移 = 本帧位置 - 上帧位置。用 position 直接相减，
-                    // 不依赖 positionChange() 那个扩展（它的可见性/重载在各版本间有差异，
-                    // 已在 CI 上报过 'positionChange' of type 'Boolean' cannot be invoked）。
-                    val delta = change.position - lastPosition
-                    lastPosition = change.position
                     if (!pastSlop) {
                         // 判阈值用相对**按下点**的累计位移：单帧位移可能很小（慢速拖动），
                         // 用单帧判会导致很慢的拖动永远不触发。
@@ -359,12 +380,15 @@ internal fun WorkflowNodeCard(
                         val dist = kotlin.math.hypot(travelled.x.toDouble(), travelled.y.toDouble()).toFloat()
                         if (dist > slop) {
                             pastSlop = true
-                            dragStartCb.value?.invoke()
+                            dragStartCb.value?.invoke(pressWindow.x, pressWindow.y)
                         }
                     }
                     if (pastSlop) {
                         change.consume()
-                        dragCb.value?.invoke(delta.x, delta.y)
+                        // 同样走 localToWindow：上报的是**手指此刻的绝对窗口坐标**，
+                        // 不是位移量 —— 卡片跟着动也不影响这个值。
+                        val w = cardCoords.value?.localToWindow(change.position) ?: change.position
+                        dragCb.value?.invoke(w.x, w.y)
                     }
                 }
                 if (pastSlop) dragEndCb.value?.invoke()

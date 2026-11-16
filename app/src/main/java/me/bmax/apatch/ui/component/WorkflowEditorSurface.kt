@@ -460,11 +460,18 @@ internal fun WorkflowEditorSurface(
     // 落点/拖动全部经它的逆变换，见 [WorkflowViewport]。
     var viewport by remember { mutableStateOf(WorkflowViewport()) }
     var viewportInit by remember { mutableStateOf(false) }
-    // 拖动卡片：起点 + **未吸附**的累加位移（每帧吸附会让小位移被吞掉 → 原地颤抖），
-    // 松手时才吸附网格落盘。
-    var dragFrom by remember { mutableStateOf<Triple<String, Float, Float>?>(null) }
-    var dragAcc by remember { mutableStateOf(Offset.Zero) }
-    var dragPreview by remember { mutableStateOf<Pair<String, Offset>?>(null) }
+    // 拖动卡片：对齐点击助手 CardLayoutView.onTouchEvent —— 只记「起点」，不累加位移。
+    //
+    // 参考实现每帧用**绝对坐标**算：
+    //   dx = (int)((x - offsetX - realLastX) / gridSize);  pos.x += dx;
+    //   realLastX += dx * gridSize;
+    // 位置永远是网格整数，不足一格的余量留在 realLastX 里、不进模型。
+    // 这里同样：拖动中就直接写模型（整数网格），卡片始终落在格点上，不会与布局互相追赶。
+    var dragFrom by remember {
+        mutableStateOf<Triple<String, Float, Float>?>(null) // id, 起点窗口 x, 起点窗口 y
+    }
+    // 起点时该节点的网格坐标（dp），整格位移都以它为基准。
+    var dragNodeStart by remember { mutableStateOf<Pair<Float, Float>?>(null) }
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     // 连边被拒（成环）时给一次即时反馈：编辑期就要说，不能等到保存才报。
     val context = LocalContext.current
@@ -868,7 +875,7 @@ internal fun WorkflowEditorSurface(
                     val placed = editorLayoutFor(def)
                         .associate { it.first to Offset(it.second, it.third) }
                         .toMutableMap()
-                        .apply { dragPreview?.let { (id, p) -> this[id] = p } }
+                        // 位置在拖动过程中已按整格写进 draft，这里不再叠加预览。
                     WorkflowBlueprintCanvas(
                         definition = def,
                         positions = placed,
@@ -912,46 +919,48 @@ internal fun WorkflowEditorSurface(
                             )
                         },
                         onNodeClick = { id -> selected = if (selected == id) null else id },
-                        onNodeDragStart = { id ->
+                        onNodeDragStart = { id, windowX, windowY ->
                             val node = def.nodes.firstOrNull { it.id == id }
                             if (node != null) {
-                                dragFrom = Triple(id, node.posX.toFloat(), node.posY.toFloat())
-                                dragAcc = Offset.Zero
-                                dragPreview = id to Offset(node.posX.toFloat(), node.posY.toFloat())
+                                dragFrom = Triple(id, windowX, windowY)
+                                dragNodeStart = node.posX.toFloat() to node.posY.toFloat()
                             }
                         },
-                        onNodeDrag = { id, dxPx, dyPx ->
+                        onNodeDrag = { id, windowX, windowY ->
                             val from = dragFrom
-                            if (from != null && from.first == id) {
-                                // 累加**未吸附**位移：拖动过程中 1:1 跟手，松手时再吸附。
-                                // 位移要经视口换算：缩放后手指走 100px，节点只能走 100/(scale·density) dp。
-                                dragAcc += viewport.dragDeltaDp(dxPx, dyPx, density)
+                            val start = dragNodeStart
+                            if (from != null && start != null && from.first == id) {
+                                // 对齐点击助手 CardLayoutView.onTouchEvent：
+                                //   dx = (int)((x - offsetX - realLastX) / gridSize);  pos.x += dx;
+                                // 位置**永远是网格整数**，不足一格的余量留在累加器里、不进模型。
+                                // 这里用等价的绝对式：总格数 = (当前世界坐标 - 起点世界坐标) / 网格，
+                                // 截断取整后乘回网格 —— 与参考实现逐帧推进的结果一致，但没有累加误差。
+                                val worldStart = viewport.toWorldDp(
+                                    Offset(from.second, from.third),
+                                    canvasOrigin,
+                                    density,
+                                )
+                                val worldNow = viewport.toWorldDp(Offset(windowX, windowY), canvasOrigin, density)
+                                val cellsX = ((worldNow.x - worldStart.x) / WorkflowGeometry.GRID_DP).toInt()
+                                val cellsY = ((worldNow.y - worldStart.y) / WorkflowGeometry.GRID_DP).toInt()
                                 // 坐标**不夹紧**：画布是无限网格，卡片要能拖到负坐标。
-                                //
-                                // 上一版夹在 [0, 2000]：一旦手往左/往上拖过头，卡片就停住不动，
-                                // 看起来像"画布左边到头了"。参考实现直接把位置存成 Int
-                                // （setPos((int)((x - offsetX) / gridSize))），负数照存，
-                                // 所以它那边没有这个边界。
-                                dragPreview = id to Offset(
-                                    from.second + dragAcc.x,
-                                    from.third + dragAcc.y,
-                                )
+                                // 参考实现 setPos((int)((x - offsetX) / gridSize)) 也是 Int 直存负数。
+                                val nx = start.first + cellsX * WorkflowGeometry.GRID_DP
+                                val ny = start.second + cellsY * WorkflowGeometry.GRID_DP
+                                val cur = def.nodes.firstOrNull { it.id == id }
+                                if (cur != null && (cur.posX != nx.toInt() || cur.posY != ny.toInt())) {
+                                    draft = def.copy(
+                                        nodes = def.nodes.map {
+                                            if (it.id == id) it.copy(posX = nx.toInt(), posY = ny.toInt()) else it
+                                        },
+                                    )
+                                }
                             }
                         },
-                        onNodeDragEnd = { id ->
-                            val from = dragFrom
-                            val preview = dragPreview
-                            if (from != null && preview != null && from.first == id) {
-                                // 同样不夹紧：落盘坐标允许负值（参考实现也是 Int 直存）。
-                                val nx = WorkflowGeometry.snapToGridDp(preview.second.x)
-                                val ny = WorkflowGeometry.snapToGridDp(preview.second.y)
-                                draft = def.copy(
-                                    nodes = def.nodes.map { if (it.id == id) it.copy(posX = nx, posY = ny) else it },
-                                )
-                            }
+                        onNodeDragEnd = { _ ->
+                            // 位置在拖动过程中已按整格写进 draft，松手无需再落盘。
                             dragFrom = null
-                            dragAcc = Offset.Zero
-                            dragPreview = null
+                            dragNodeStart = null
                         },
                         onWireDrop = { fromId, fromPin, toId, pointer, targetPin ->
                             if (toId != null) {

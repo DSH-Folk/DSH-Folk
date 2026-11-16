@@ -315,12 +315,12 @@ ok(/onOpenWorkflow = \{ navigator\.navigate\(WorkflowScreenDestination\)( \{ lau
 // 阶段 2.4b：旧的画布/节点卡自绘已删除，画布与卡片只剩新组件这一份实现。
 ok(/WorkflowBlueprintCanvas\(/.test(SRC.dialogs) && !/private fun NodeCard\(/.test(SRC.dialogs),
   "编辑页/预览用同一块画布，旧的自绘节点卡已删除（不是一列输入框）");
-// 编辑页的画布已换成 WorkflowBlueprintCanvas（与预览同一套）；拖动回调的手势量是像素，
-// 先在密度里换算成 dp 再吸附 12dp 网格，最后写回 posX/posY。
-ok(/onNodeDrag = \{ id, dxPx, dyPx ->[\s\S]{0,700}?dragAcc \+= viewport\.dragDeltaDp\(/.test(SRC.editorSurface) &&
-    /onNodeDragEnd = \{ id ->[\s\S]{0,700}?WorkflowGeometry\.snapToGridDp\(preview\.second\.x\)/.test(SRC.editorSurface) &&
-    /it\.copy\(posX = nx, posY = ny\)/.test(SRC.editorSurface),
-  "拖动把坐标写回定义（像素→dp→吸附网格，摆位不落盘下次打开就会自己跳）");
+// 编辑页的画布已换成 WorkflowBlueprintCanvas（与预览同一套）；拖动回调给的是**绝对窗口坐标**，
+// 宿主按点击助手的整格推进直接写回 posX/posY（整数网格），不累加位移、不落小数。
+ok(/onNodeDrag = \{ id, windowX, windowY ->/.test(SRC.editorSurface) &&
+    /cellsX = \(\(worldNow\.x - worldStart\.x\) \/ WorkflowGeometry\.GRID_DP\)/.test(SRC.editorSurface) &&
+    /it\.copy\(posX = nx\.toInt\(\), posY = ny\.toInt\(\)\)/.test(SRC.editorSurface),
+  "拖动用绝对坐标算整格位移并写回定义（位置永远是网格整数，摆位不落盘下次打开就会自己跳）");
 ok(/WorkflowBlueprintCanvas\(/.test(SRC.editorSurface) &&
   /onWireDrop/.test(SRC.canvas) && !/hitTest\(/.test(SRC.canvas),
   "编辑页用同一块画布；手势由卡片自己接（画布不再手算命中）");
@@ -632,6 +632,16 @@ console.log("\u2500 #16d 蓝图节点卡与画布（阶段 2）");
   // 照抄参考的 1.0 会得到 24dp 圆角，是参考的两倍。
   ok(/CORNER_ROUND\s*=\s*0\.5f/.test(linkPath),
     "折线圆角半径是走廊的 0.5（等效参考的「半径 = 一个网格」）");
+  // 圆角半径必须按 CornerPathEffect 的语义夹到「相邻较短边的一半」。
+  //
+  // 只把分量 coerceIn(-radius, radius) 是不够的：两个拐点间距小于 2×radius 时，
+  // 前一个拐角的切出点会越过后一个的切入点，二次曲线向外鼓出一个小包 ——
+  // 真机截图"拉线有时候会露出交接点"就是这个。
+  const roundBody = linkPath.slice(linkPath.indexOf("private fun roundCorners"));
+  ok(/min\(radius, min\(inLen \/ 2f, outLen \/ 2f\)\)/.test(roundBody),
+    "折线圆角半径夹到相邻较短边的一半（等价 CornerPathEffect，杜绝交接点鼓包）");
+  ok(!/coerceIn\(-radius, radius\)/.test(roundBody),
+    "圆角不再只夹分量（那种写法挡不住短边鼓包）");
   // nodeTypeIcon 的 when 必须**覆盖真实枚举**，且不能带 else。
   //
   // 这条是补的：上一版我写了 `WorkflowNodeType.LOG`，而枚举里根本没有 LOG ——
@@ -749,9 +759,11 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
   const snap = (dp) => Math.round(dp / 12) * 12;
   ok(Math.abs(pxToDp(110, 2.75) - 40) < 1e-6, "110px / 2.75 = 40dp（1:1 换算）");
   ok(snap(pxToDp(110, 2.75)) === 36, "40dp 吸附到 12dp 网格 = 36dp");
-  // 宿主：写回只经几何对象，不再出现裸除密度。
-  ok(/viewport\.dragDeltaDp\(dxPx, dyPx, density\)/.test(SRC.editorSurface) &&
-    /WorkflowGeometry\.snapToGridDp\(/.test(SRC.editorSurface), "编辑页写回走视口逆变换 + snapToGridDp");
+  // 宿主：起点与当前位置都经视口逆变换（toWorldDp），整格数只在这里算一次。
+  ok(/viewport\.toWorldDp\(/.test(SRC.editorSurface) &&
+    /val cellsX = \(\(worldNow\.x - worldStart\.x\) \/ WorkflowGeometry\.GRID_DP\)\.toInt\(\)/.test(SRC.editorSurface) &&
+    /val cellsY = \(\(worldNow\.y - worldStart\.y\) \/ WorkflowGeometry\.GRID_DP\)\.toInt\(\)/.test(SRC.editorSurface),
+    "编辑页拖动走视口逆变换 + 整格位移（dx 截断取整，不是逐帧累加）");
   ok(!/dxPx \/ density/.test(SRC.editorSurface), "编辑页不再裸除密度（截断/加速的来源）");
   // 手势新模型（对齐点击助手）：卡片各自 onTouchEvent，画布只接空白处。
   ok(/detectDragGestures/.test(SRC.card) && /clickable/.test(SRC.card),
@@ -1030,12 +1042,15 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   const e = SRC.editorSurface;
   const c = SRC.card;
   const cv = SRC.canvas;
-  // ① 原地颤抖：拖动过程中每帧吸附会把小位移吞掉；现在累加未吸附位移，松手才吸附。
-  ok(/dragAcc \+= viewport\.dragDeltaDp\(/.test(e) && /dragPreview = id to Offset\(/.test(e) &&
-    /onNodeDragEnd = \{ id ->/.test(e) && /snapToGridDp\(preview\.second\.x\)/.test(e),
-    "拖动过程中不吸附（累加未吸附位移），松手才吸附网格");
-  ok(/dragPreview\?\.let \{ \(id, p\) -> this\[id\] = p \}/.test(e),
-    "拖动中画布用预览位置（1:1 跟手，右不抖）");
+  // ① 抖动：对齐点击助手——拖动时直接用**绝对坐标**算整格位移并即时写模型，
+  //    位置永远是网格整数，不存在「布局跟着手指连续走、再互相回写」的抖动来源。
+  ok(/onNodeDragStart = \{ id, windowX, windowY ->/.test(e) && /dragNodeStart = node\.posX\.toFloat\(\) to node\.posY\.toFloat\(\)/.test(e) &&
+    /dragFrom = Triple\(id, windowX, windowY\)/.test(e),
+    "拖动只记起点绝对坐标与该点的网格位置（不做逐帧累加）");
+  ok(/val cellsX = \(\(worldNow\.x - worldStart\.x\) \/ WorkflowGeometry\.GRID_DP\)\.toInt\(\)/.test(e) &&
+    /val nx = start\.first \+ cellsX \* WorkflowGeometry\.GRID_DP/.test(e) &&
+    !/dragAcc/.test(e) && !/dragPreview/.test(e),
+    "位置按整格推进、始终是网格整数，且不再有累加器/预览位置");
   // ② 拉线：手势挂在针脚自己身上，线头就是这颗粒子；局部坐标的基准也是粒子。
   ok(/private fun LinkablePinDot\(/.test(c) && /pointerInput\(Unit\)/.test(c),
     "拉线手势挂在针脚粒子自己身上（不是整列，命中范围=看得见的点）");
@@ -1116,8 +1131,8 @@ console.log("\u2500 #16l 手势回调的闭包新鲜度（第二次拖动跳回�
     /val dragStartCb = rememberUpdatedState\(onDragStart\)/.test(c) &&
     /val dragEndCb = rememberUpdatedState\(onDragEnd\)/.test(c),
     "卡片拖动回调经 rememberUpdatedState（key 不变的手势块不会重启，否则用的是旧闭包）");
-  ok(/dragCb\.value\?\.invoke\(delta\.x, delta\.y\)/.test(c) && /dragStartCb\.value\?\.invoke\(\)/.test(c),
-    "手势块里读的是 .value（最新回调），不是捕获的旧闭包");
+  ok(/dragCb\.value\?\.invoke\(w\.x, w\.y\)/.test(c) && /dragStartCb\.value\?\.invoke\(pressWindow\.x, pressWindow\.y\)/.test(c),
+    "手势块里读的是 .value（最新回调），且上报的是绝对窗口坐标");
   ok(/val pinDragCb = rememberUpdatedState\(onPinDrag\)/.test(c) &&
     /val blankTapCb = rememberUpdatedState\(onBlankTap\)/.test(cv),
     "拉线与空白点击回调同样保持最新");
@@ -1957,9 +1972,10 @@ console.log("\u2500 #16k 卡片可编辑 / 悬浮层定位 / 虚线框跟着选�
         return !t.startsWith("//") && !t.startsWith("*") && !t.startsWith("import ");
       })
       .join("\n");
-    ok(/val delta = change\.position - lastPosition/.test(bodyCode) &&
+    ok(/cardCoords\.value\?\.localToWindow\(change\.position\)/.test(bodyCode) &&
+      /cardCoords\.value\?\.localToWindow\(down\.position\)/.test(bodyCode) &&
       !/positionChange\(\)/.test(bodyCode),
-      "位移用 position 相减（positionChange() 那个扩展在 CI 上不可用）");
+      "坐标走 localToWindow 换算（缩放安全；positionChange() 那个扩展在 CI 上不可用）");
     // 标题区不能再挂第二处拖动，否则同一次手势被两处消费、位移翻倍。
     // 例外：LinkablePinDot 里的 detectDragGestures 是**拉线**用的（命中那颗小圆点），
     // 必须保留；它不抢输入框，也不参与卡片拖动。所以只检查 PinDot 之前那段主体。
