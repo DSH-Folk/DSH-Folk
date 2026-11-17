@@ -479,7 +479,11 @@ console.log("\n── 工作流注入（自由文本输入必须走 env） ─�
 console.log("\n── README ──");
 {
   const rd = fs.readFileSync(path.join(ROOT, "docs/dev-notes.md"), "utf8");
-  ok(/接受测试版更新/.test(rd), "README 写了那个开关的位置");
+  // 开关已从「接收测试版更新」改名为「更新通道」（三态之后布尔表达不了）。
+  // 断言必须跟着改，否则门禁会把旧名字当成规范 —— 谁按新结构改文档谁红。
+  ok(/更新通道/.test(rd), "dev-notes 写了那个开关的位置（已改名「更新通道」）");
+  ok(/Alpha/.test(rd) && /Beta/.test(rd) && /正式版/.test(rd),
+    "dev-notes 写清了三档通道（改名后不能只剩「测试版」一个概念）");
   ok(/release 变体/.test(rd), "README 说明测试版为什么不用 debug 包");
   ok(/401/.test(rd), "README 记下 artifact 下载要认证这个事实（否则下一个人会再试一次）");
   ok(/PagedInfoDialog/.test(rd), "README 说明两个对话框共用一个壳");

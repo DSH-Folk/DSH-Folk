@@ -316,6 +316,71 @@ fun pinWorldRect(key: String, panNow: Offset, scaleNow: Float): Rect? {
    天然切断「布局 → 回调 → 改状态 → 重组 → 布局」的反馈循环；比值反而每次都要重算，
    等于把循环又接回去。
 
+### 6.6c `boundsInWindow()` 默认**会裁剪**，卡片出视野就取不到真实位置
+
+6.6b 修完之后仍有残留：**视野内正常，卡片一拖出画布边界，线头就被拽向边界**。
+
+前两轮一直在查 `pan`/`scale` 的换算公式，方向错了 —— **公式是对的，输入被裁剪过了**。
+
+```kotlin
+// ✗ boundsInWindow() 内部是 localBoundingBoxOf(this, clipBounds = true)
+//   clipBounds 默认 true：任何祖先的裁剪都会**夹住**返回的矩形
+val rect = coords.boundsInWindow()
+```
+
+画布根节点有 `.clip(RoundedCornerShape(12.dp))`，于是卡片一旦超出可视区：
+
+- 它返回的矩形被夹到**画布边缘**上，不再是卡片的真实位置；
+- 用它算出来的世界坐标自然错，线头贴着边界走而不是跟着卡片。
+
+官方文档原话：「If true, any clipping that occurs between this layout and the window will
+affect the returned bounds, **and can even result in an empty rectangle** if clipped regions
+do not overlap.」
+
+```kotlin
+// ✓ 官方本来就有这个开关
+val rect = coords.boundsInWindow(clipBounds = false)
+```
+
+**为什么是"超出边界才偏"**：裁剪只在出界时才起作用。这就是为什么前两轮在视野内怎么测
+都测不出来 —— 那个场景下 `clipBounds = true` 和 `false` 结果完全一样。
+
+**不要自己拿 `localToWindow` 算两个角代替**：那样在旋转/缩放时得到的不是外接矩形，
+官方实现会正确处理。
+
+### 6.6d 虚线框：矩形不能在组合期算好再被 draw lambda 捕获
+
+同一轮里另一个 bug —— 而且是我修 6.6b 时**自己引入**的。
+
+```kotlin
+// ✗ 组合期算好，被 lambda 捕获
+val rect = nodeWorldRect(framed, pan, scale)
+Canvas(Modifier.fillMaxSize()) {
+    drawRect(topLeft = Offset(rect.left, rect.top), ...)   // rect 永远是按下时的旧值
+}
+```
+
+拖动卡片只改 `Modifier.offset`，**不重新布局、不改 `boundsCoords` 这个 State**，
+组合根本不会重跑 —— 捕获的 `rect` 一直是旧值。现象：框停在原地，卡走了。
+
+```kotlin
+// ✓ 在 draw lambda 内部现取
+key(boundsCoords[framed]) {            // 显式建立重组依赖，见下
+    Canvas(Modifier.fillMaxSize()) {
+        val rect = nodeWorldRect(framed, pan, scale) ?: return@Canvas
+        drawRect(...)
+    }
+}
+```
+
+**为什么还要 `key(coords)`**：draw lambda 里读 State **不登记快照依赖**。没有它的话
+"卡片高度变了"（展开参数、换状态）只更新 `boundsCoords` 而不触发重绘，框会停在旧高度。
+用 `key()` 把 Canvas 包起来，coords 换了就重建节点，显式重新组合一次。
+
+**配套的第三个坑**：`onBounds` 必须有 `===` 判等（与 `putPinCoords` 同纪律）。
+我上一轮给针脚那侧写了判等，卡片这侧写成了无条件赋值 —— 每次布局都写状态 → 触发重组 →
+再布局，形成反馈循环。这本身就是"框不跟手"的一半原因。
+
 > 门禁教训：一开始只钉了形参名（`fun pinWorldRect(key, panNow, scaleNow)`），
 > 于是「形参叫 panNow、函数体仍读外层 pan」这种半吊子改法能蒙混过关 ——
 > 而那正是 bug 的形状。补了一条**取函数体**、断言它真的用了 `panNow, scaleNow` 的检查。

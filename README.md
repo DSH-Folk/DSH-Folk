@@ -105,8 +105,10 @@ root / Shizuku / 无线 ADB 都是**可选**的，并且**默认不启用**。DS
 也可以到 [Actions](https://github.com/DSH-Folk/DSH-Folk/actions/workflows/build.yml) 取开发构建：
 选一次成功的运行，下载 `dsh-folk-debug-*` 或 `dsh-folk-release-*` 工件。
 
-**测试版通道**：应用测试版在 **设置 → 常规 → 接受测试版更新** 打开后才会连预发布版一起看（默认关闭）；
-容器运行时的测试版是独立开关（**设置 → 功能 → 运行时 → 接受测试版运行时更新**），两者互不影响。
+**更新通道**：应用侧在 **设置 → 常规 → 更新通道** 里选 Alpha / Beta / 正式版（默认正式版）。
+Beta 额外收 CI 预发布构建，Alpha 什么都收 —— 切到 Alpha 需要手输确认，因为它可能打不开或丢数据。
+存量测试版用户升级时会自动迁移到 Beta 通道，不会掉回正式版。
+容器运行时是独立的通道（**版本菜单 → 更新通道**），与应用侧互不影响。
 测试版 / 正式版怎么发布、为什么这么发（release 变体、versionCode 约定、不用 Actions artifact 等），见
 [构建与发布内幕](docs/dev-notes.md)。
 
@@ -144,6 +146,7 @@ root / Shizuku / 无线 ADB 都是**可选**的，并且**默认不启用**。DS
 - [它是怎么跑起来的](docs/architecture.md) —— proot/proroot、rootfs、link2symlink、pnpm、ELF 闭包等运行链细节
 - [构建与发布内幕](docs/dev-notes.md) —— 应用/运行时的发布工作流、测试版通道机制、更新说明为什么是本地资源
 - [自动化工作流：踩坑指南](docs/workflow-pitfalls.md) —— 四层跨进程契约、审批 TTL、分支跳过、Compose 画布手势与坐标的七次返工、Kotlin 运行期陷阱（**CC BY 4.0**）
+- [三项调研：功耗 / 省电模式 / 无障碍保活](docs/research-power-and-a11y.md) —— proroot 与 proot 的机制与实测方法、DSHA 省电四层设计拆解、无障碍保活的能力边界与提高方向
 - [附件上传：Android / proroot 下的落盘踩坑](docs/attachment-upload-pitfalls.md) —— 为什么「有的文件能传、新的不能」：`--link2symlink` 的锚点组、上游 link→unlink→chmod 发布流程、取证方法与本机探针（**CC BY 4.0**）
 
 ## 项目结构

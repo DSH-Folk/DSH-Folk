@@ -294,6 +294,114 @@ dot centre, finger = dot origin + local coordinates, **all in window coordinates
 Existing connections must also start from the **real pin** (each card reports `boundsInWindow()`
 per pin), otherwise every wire leaves from the card's top-right corner and looks disconnected.
 
+### 6.6b Never cache a **conversion result**; cache the **coordinate source**
+
+After 6.6 was fixed a residue remained: the wire endpoint lags by a fixed amount as soon as a
+card leaves the visible area.
+
+The cause is not the formula — it is **storing the conversion result in state**:
+
+```kotlin
+// ✗ Wrong: stores "the world rect computed with the pan of that instant"
+onPinBounds = { _, rect ->
+    putPinRect(key, toWorldRect(rect, origin, pan, scale))
+}
+```
+
+`world = (window − origin − pan) / scale` — the `pan` in that expression is **the one at
+measurement time**. Panning only changes `graphicsLayer` and **does not relayout**, so
+`onGloballyPositioned` never fires again and the cache keeps the old pan forever. Once a card
+leaves the viewport Compose will not relayout it at all, giving "fine inside the viewport,
+offsets the moment it crosses the edge" — by exactly the pan applied afterwards.
+
+```kotlin
+// ✓ Right: store LayoutCoordinates only; compute the world rect at use time
+var pinCoords by remember { mutableStateOf<Map<String, LayoutCoordinates>>(emptyMap()) }
+
+fun pinWorldRect(key: String, panNow: Offset, scaleNow: Float): Rect? {
+    val c = pinCoords[key] ?: return null
+    if (!c.isAttached) return null
+    return toWorldRect(c.unclippedBoundsInWindow(), origin, panNow, scaleNow)
+}
+```
+
+Two details that must go with it:
+
+1. Pass `pan`/`scale` **explicitly**. These functions are called inside a `Canvas` draw
+   lambda — the draw phase. Reading state there registers no snapshot dependency, so panning
+   neither invalidates the draw nor guarantees a fresh value.
+2. Compare **coords identity** (`===`), not the rect value. The same coords object is stable
+   while panning, which breaks the layout ↔ state feedback loop; comparing values re-creates it.
+
+### 6.6c `boundsInWindow()` **clips by default** — off-screen cards lose their real position
+
+After 6.6b another residue remained: **fine inside the viewport, but the wire is pulled toward
+the edge once the card crosses the canvas boundary.**
+
+Two rounds were spent on `pan`/`scale` formulas. Wrong direction — **the formula was right,
+the input was clipped.**
+
+```kotlin
+// ✗ boundsInWindow() is localBoundingBoxOf(this, clipBounds = true)
+//   clipBounds defaults to true: any ancestor clip will clamp the returned rect
+val rect = coords.boundsInWindow()
+```
+
+The canvas root has `.clip(RoundedCornerShape(12.dp))`, so once a card goes off-screen its
+returned rect is clamped to the **canvas edge** instead of its real position — and the world
+rect computed from it is wrong, dragging the wire along the border.
+
+Official docs: "If true, any clipping that occurs between this layout and the window will
+affect the returned bounds, **and can even result in an empty rectangle** if clipped regions do
+not overlap."
+
+```kotlin
+// ✓ The official API already has the switch
+val rect = coords.boundsInWindow(clipBounds = false)
+```
+
+**Why only past the edge**: clipping only takes effect out of bounds — which is exactly why two
+rounds of in-viewport testing could never reproduce it.
+
+Do not hand-roll two `localToWindow` corners instead: under rotation/scaling that is not the
+bounding rect, while the official implementation handles it.
+
+### 6.6d Dashed frame: the rect must not be computed in composition and captured by the draw lambda
+
+Another bug from the same round — **introduced while fixing 6.6b**.
+
+```kotlin
+// ✗ computed in composition, captured by the lambda
+val rect = nodeWorldRect(framed, pan, scale)
+Canvas(Modifier.fillMaxSize()) {
+    drawRect(topLeft = Offset(rect.left, rect.top), ...)   // rect stays at press-time value
+}
+```
+
+Dragging a card only changes `Modifier.offset` — **no relayout, no change to the
+`boundsCoords` state** — so composition never re-runs and the captured `rect` is stale. The
+frame stays put while the card moves.
+
+```kotlin
+// ✓ compute inside the draw lambda
+key(boundsCoords[framed]) {            // explicit recomposition dependency, see below
+    Canvas(Modifier.fillMaxSize()) {
+        val rect = nodeWorldRect(framed, pan, scale) ?: return@Canvas
+        drawRect(...)
+    }
+}
+```
+
+**Why `key(coords)` too**: reading state inside a draw lambda registers no snapshot dependency.
+Without it, "the card changed height" (expanded params, new state) only updates
+`boundsCoords` without invalidating the draw, leaving the frame at the old height. `key()`
+rebuilds the node when coords change, forcing one explicit recomposition.
+
+**The third pitfall that goes with it**: `onBounds` needs a `===` guard (same discipline as
+`putPinCoords`). I added the guard on the pin side last round but wrote an unconditional
+assignment on the card side — every layout wrote state → recomposition → layout, a feedback
+loop. That alone accounts for half of "the frame does not follow".
+
 ### 6.7 Drop positions must follow the release point
 
 Three drag-and-drop paths **must share one conversion**:
