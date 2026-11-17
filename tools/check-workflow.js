@@ -1057,10 +1057,30 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   // ② 拉线：手势挂在针脚自己身上，线头就是这颗粒子；局部坐标的基准也是粒子。
   ok(/private fun LinkablePinDot\(/.test(c) && /pointerInput\(Unit\)/.test(c),
     "拉线手势挂在针脚粒子自己身上（不是整列，命中范围=看得见的点）");
-ok(c.includes("originState.value + change.position") && c.includes("originState.value + down.position") && c.includes("o.x + s.width / 2f"),
-  "手指与线头都在窗口坐标里算（针脚窗口原点 + 指针局部坐标）");
+  // 指针坐标必须经 **localToWindow** 换算，不能拿「窗口原点 + 局部坐标」相加。
+  //
+  // 这条断言原先钉的正是那个错写法（originState.value + change.position）—— 它把 bug
+  // 当成了规格，于是修好之后反而变红。两个症状都由它引起：
+  //   1. positionInWindow() 只在 onGloballyPositioned 里更新，而平移画布只改
+  //      graphicsLayer、**不触发重新布局** → 窗口原点是平移前的陈旧值，线头落后 pan
+  //      那么多（用户报的「拉线不跟手」）。
+  //   2. 卡片在带缩放的 graphicsLayer 里，positionInWindow 是缩放后像素、指针局部坐标是
+  //      未缩放像素，只有 scale=1 时同单位 → 缩小后偏移被放大，卡越靠右越明显
+  //      （用户报的「卡片在画布外时线向左偏，但卡片相对位置没变」）。
+  // 卡片本体早就用 localToWindow 修对了（cardCoords.localToWindow），针脚这里漏改。
+  ok(c.includes("coordsState.value?.localToWindow(change.position)") &&
+    c.includes("coordsState.value?.localToWindow(down.position)") &&
+    c.includes("c.localToWindow(Offset(s.width / 2f, s.height / 2f))"),
+    "针脚指针坐标经 localToWindow 换算（平移/缩放都跟手）");
+  ok(!c.includes("originState.value + change.position") && !c.includes("originState.value + down.position"),
+    "针脚不再用「窗口原点 + 局部坐标」相加（那是平移不跟手、缩放后线偏的根因）");
   ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\.boundsInWindow\(\)\)/.test(c),
     "针脚上报窗口矩形（含引脚类型），已连的线也从真针脚画出去");
+  // bounds 存世界坐标、wirePointer 是窗口坐标 —— 直接 contains 会在平移/缩放后错位，
+  // 表现是「压在卡片上但接不上」的高亮亮在错误的卡上（或该亮时不亮）。
+  ok(/toWorldPoint\(wirePointer, origin, pan, scale\)/.test(cv) &&
+    /rect\.contains\(pointerWorld\)/.test(cv),
+    "画布判「压在卡片上」前先把窗口坐标换算成世界坐标");
   // 从针脚矩形起画，且**先逆变换回世界坐标**（窗口→内容层局部，再除以缩放）。
   //
   // 锚点要**按针脚方向**取，不能一律取某一条边：

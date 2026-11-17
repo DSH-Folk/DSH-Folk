@@ -835,9 +835,21 @@ private fun LinkablePinDot(
     /** 这颗针脚是否已接线（决定填充实色还是空心）。 */
     linked: Boolean = false,
 ) {
-    var dotOrigin by remember { mutableStateOf(Offset.Zero) }
+    // ── 指针坐标必须经 localToWindow 换算，不能拿「窗口原点 + 局部坐标」相加 ──
+    //
+    // 这是「拉线不跟手」与「卡片移出画布后线向左偏」两个 bug 的共同根因：
+    //
+    //   1. positionInWindow() 只在 **onGloballyPositioned** 里更新，而平移画布只改
+    //      graphicsLayer、**不会重新布局** —— 于是 dotOrigin 一直是平移前的陈旧值，
+    //      每平移一次，线头就落后 pan 那么多（"不跟手"）。
+    //   2. 卡片在带缩放的 graphicsLayer 里，positionInWindow 是**缩放后**的窗口像素，
+    //      而指针事件给的是**未缩放**的局部像素，只有 scale=1 时两者同单位。
+    //      缩小后相加，偏移量被放大，卡越靠右越明显（"卡片在画布外时线向左偏"）。
+    //
+    // 卡片本体早就改对了（见 cardCoords.localToWindow），针脚这里漏改。现在统一。
+    val dotCoords = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    val coordsState = rememberUpdatedState(dotCoords.value)
     var dotSize by remember { mutableStateOf(IntSize.Zero) }
-    val originState = rememberUpdatedState(dotOrigin)
     val sizeState = rememberUpdatedState(dotSize)
     val pinDragCb = rememberUpdatedState(onPinDrag)
     val pinDropCb = rememberUpdatedState(onPinDrop)
@@ -846,17 +858,21 @@ private fun LinkablePinDot(
             // 触摸目标比视觉圆点大一圈：手指头比 7dp 的点大得多（点击助手的命中区也放大）。
             .size(22.dp)
             .onGloballyPositioned { coords ->
-                dotOrigin = coords.positionInWindow()
+                // 存 coords 本身而不是 positionInWindow()：平移/缩放不重新布局，
+                // 只有每次换算时现取才拿得到**当前**的变换（见上面的说明）。
+                dotCoords.value = coords
                 dotSize = coords.size
                 onPinBounds?.invoke(pin.kind.name, coords.boundsInWindow())
                 onPinIdBounds?.invoke(pin.id, pin.kind.name, coords.boundsInWindow())
             }
             .pointerInput(Unit) {
                 val slop = viewConfiguration.touchSlop
+                // 针脚中心 = 本粒子**局部**坐标的中心，经 localToWindow 换成窗口坐标。
+                // 直接取 size/2 是因为这颗粒子就是 22dp 的 Box，视觉圆点居中。
                 fun anchorWindow(): Offset {
-                    val o = originState.value
+                    val c = coordsState.value ?: return Offset.Zero
                     val s = sizeState.value
-                    return Offset(o.x + s.width / 2f, o.y + s.height / 2f)
+                    return c.localToWindow(Offset(s.width / 2f, s.height / 2f))
                 }
                 awaitEachGesture {
                     // 按下就**认领**这次手势：参考实现的 ACTION_DOWN 顺序是
@@ -868,7 +884,8 @@ private fun LinkablePinDot(
                     // 一根手指既拉线又拖卡（真机反馈「拉线的同时也会拉动卡片本身」）。
                     val down = awaitFirstDown(requireUnconsumed = false)
                     down.consume()
-                    var pointer = originState.value + down.position
+                    // 指针的**绝对窗口坐标**：必须 localToWindow，理由同 anchorWindow。
+                    var pointer = coordsState.value?.localToWindow(down.position) ?: down.position
                     var started = false
                     while (true) {
                         val event = awaitPointerEvent()
@@ -885,13 +902,13 @@ private fun LinkablePinDot(
                             if (dist > slop) {
                                 started = true
                                 change.consume()
-                                pointer = originState.value + change.position
+                                pointer = coordsState.value?.localToWindow(change.position) ?: change.position
                                 pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
                             }
                         } else {
                             change.consume()
-                            // 上报**绝对窗口坐标**（针脚窗口原点 + 局部坐标），不做增量累加。
-                            pointer = originState.value + change.position
+                            // 上报**绝对窗口坐标**（经 localToWindow），不做增量累加。
+                            pointer = coordsState.value?.localToWindow(change.position) ?: change.position
                             pinDragCb.value?.invoke(pin.kind.name, anchorWindow(), pointer)
                         }
                     }
