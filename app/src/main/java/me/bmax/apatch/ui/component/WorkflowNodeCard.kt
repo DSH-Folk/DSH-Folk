@@ -119,9 +119,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -197,7 +196,7 @@ internal fun WorkflowNodeCard(
     /** 拖动结束（宿主在这里收尾；位置在拖动过程中已按整格写入模型）。 */
     onDragEnd: (() -> Unit)? = null,
     /** 上报某个引脚在窗口里的矩形（按**引脚种类**，第三方调用点只需这一种）。 */
-    onPinBounds: ((pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)? = null,
+    onPinBounds: ((pinKind: String, coords: LayoutCoordinates) -> Unit)? = null,
     /**
      * 同上，但按**引脚 id** 报（`result` / `var` / `p_x` 各自一份）。
      *
@@ -205,9 +204,9 @@ internal fun WorkflowNodeCard(
      * 原生动作用的四五个 `p_*`），只按种类建索引会互相覆盖 —— 于是"线从哪颗点出去"
      * 与"落在哪个参数上"都只能靠猜。种类索引留给老调用点，id 索引给画布精确画线用。
      */
-    onPinIdBounds: ((pinId: String, pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)? = null,
+    onPinIdBounds: ((pinId: String, pinKind: String, coords: LayoutCoordinates) -> Unit)? = null,
     /** 把自己的窗口矩形报给画布：拉线落点判定只在窗口坐标里比。 */
-    onBounds: ((androidx.compose.ui.geometry.Rect) -> Unit)? = null,
+    onBounds: ((LayoutCoordinates) -> Unit)? = null,
     /** 从某个引脚拉线：anchor 是线头（窗口坐标），pointer 是手指（窗口坐标）。 */
     onPinDrag: ((pinKind: String, anchorWindow: Offset, pointerWindow: Offset) -> Unit)? = null,
     /** 拉线松手（窗口坐标）；连到哪由画布判定。 */
@@ -293,16 +292,12 @@ internal fun WorkflowNodeCard(
     val copiedPinValue by copiedCardPinValue
     // 卡片**自己**接手势（点击助手的 View 也是各自 onTouchEvent）：
     // 命中不需要算 —— 手指按在这张卡上，事件就到这张卡，不存在「坐标系比错」的可能。
-    var windowOrigin by remember { mutableStateOf(Offset.Zero) }
     // 卡片自己的布局坐标：把**卡片局部坐标**换成窗口坐标要用它。
     //
     // 不能拿 positionInWindow + 局部坐标直接相加：卡片在带缩放的 graphicsLayer 里，
     // positionInWindow 是缩放后的窗口像素，而指针事件给的是未缩放的局部像素，
     // 只有 scale=1 时两者才同单位。localToWindow 一次做完逆变换，缩放拖动才不跑偏。
-    val cardCoords = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
-    val originState = rememberUpdatedState(windowOrigin)
-    val sizeState = rememberUpdatedState(cardSize)
+    val cardCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
     // 手势块（pointerInput(node.id) / pointerInput(Unit)）的 key 不会因为回调变化而重启，
     // 所以回调必须经 rememberUpdatedState 读取最新值 —— 否则第二次拖动拿到的是第一次组合时的
     // 闭包，会读到最初的坐标（真机表现：第二次拖动一下跳回原位）。
@@ -317,9 +312,7 @@ internal fun WorkflowNodeCard(
         .width(WorkflowNodeCardWidth)
         .onGloballyPositioned { coords ->
             cardCoords.value = coords
-            windowOrigin = coords.positionInWindow()
-            cardSize = coords.size
-            onBounds?.invoke(coords.boundsInWindow())
+            onBounds?.invoke(coords)
         }
         .focusable()
         .semantics { contentDescription = node.name.ifBlank { workflowNodeLabel(node) } }
@@ -826,8 +819,8 @@ private fun PinDot(
 @Composable
 private fun LinkablePinDot(
     pin: WorkflowPinSpec,
-    onPinBounds: ((pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)?,
-    onPinIdBounds: ((pinId: String, pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)?,
+    onPinBounds: ((pinKind: String, coords: LayoutCoordinates) -> Unit)?,
+    onPinIdBounds: ((pinId: String, pinKind: String, coords: LayoutCoordinates) -> Unit)?,
     onPinDrag: ((pinKind: String, anchorWindow: Offset, pointerWindow: Offset) -> Unit)?,
     onPinDrop: ((pointerWindow: Offset) -> Unit)?,
     /** 这颗针脚此刻是否被拉线悬停（命中可接）。只影响外观。 */
@@ -847,7 +840,7 @@ private fun LinkablePinDot(
     //      缩小后相加，偏移量被放大，卡越靠右越明显（"卡片在画布外时线向左偏"）。
     //
     // 卡片本体早就改对了（见 cardCoords.localToWindow），针脚这里漏改。现在统一。
-    val dotCoords = remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    val dotCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
     val coordsState = rememberUpdatedState(dotCoords.value)
     var dotSize by remember { mutableStateOf(IntSize.Zero) }
     val sizeState = rememberUpdatedState(dotSize)
@@ -862,8 +855,9 @@ private fun LinkablePinDot(
                 // 只有每次换算时现取才拿得到**当前**的变换（见上面的说明）。
                 dotCoords.value = coords
                 dotSize = coords.size
-                onPinBounds?.invoke(pin.kind.name, coords.boundsInWindow())
-                onPinIdBounds?.invoke(pin.id, pin.kind.name, coords.boundsInWindow())
+                // 只上报 coords，不算矩形：世界坐标要在**用的那一刻**现算（见画布里的说明）。
+                onPinBounds?.invoke(pin.kind.name, coords)
+                onPinIdBounds?.invoke(pin.id, pin.kind.name, coords)
             }
             .pointerInput(Unit) {
                 val slop = viewConfiguration.touchSlop
@@ -1177,8 +1171,8 @@ private fun CardParamRow(
     copiedValue: Pair<WorkflowNodeFields.Kind, String>?,
     onCopyValue: (WorkflowNodeFields.Kind, String?) -> Unit,
     onEdit: ((key: String, value: String) -> Unit)?,
-    onPinBounds: ((pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)?,
-    onPinIdBounds: ((pinId: String, pinKind: String, rect: androidx.compose.ui.geometry.Rect) -> Unit)?,
+    onPinBounds: ((pinKind: String, coords: LayoutCoordinates) -> Unit)?,
+    onPinIdBounds: ((pinId: String, pinKind: String, coords: LayoutCoordinates) -> Unit)?,
     onPinDrag: ((pinKind: String, anchorWindow: Offset, pointerWindow: Offset) -> Unit)?,
     onPinDrop: ((pointerWindow: Offset) -> Unit)?,
     /** 拉线时被悬停的针脚 id（见 [WorkflowNodeCard] 的 hoveredPinId）。 */

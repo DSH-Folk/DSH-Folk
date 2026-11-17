@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.dp
@@ -149,7 +150,21 @@ internal fun WorkflowBlueprintCanvas(
     // 画布在窗口里的位置：连线端点要把窗口坐标换算回画布局部坐标。
     var origin by remember { mutableStateOf(Offset.Zero) }
     // 卡片窗口矩形（卡片自己报上来）：拉线落点只在这里比，坐标口径唯一。
-    var bounds by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
+    // 卡片矩形同理：存 coords、用时现取（理由见 pinCoords 那段）。
+    var boundsCoords by remember {
+        mutableStateOf<Map<String, LayoutCoordinates>>(emptyMap())
+    }
+    /** 某张卡**此刻**的世界矩形（理由同 [pinWorldRect]：变换由调用方传入）。 */
+    fun nodeWorldRect(id: String, panNow: Offset, scaleNow: Float): Rect? {
+        val c = boundsCoords[id] ?: return null
+        if (!c.isAttached) return null
+        return toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow)
+    }
+    /** 全部卡片此刻的世界矩形（落点判定用）。 */
+    fun nodeWorldRects(panNow: Offset, scaleNow: Float): Map<String, Rect> =
+        boundsCoords.mapNotNull { (id, c) ->
+            if (c.isAttached) id to toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow) else null
+        }.toMap()
     // 画布的空白点击与拉线回调也要最新值（手势块的 key 不会因回调变化而重启）。
     val blankTapCb = rememberUpdatedState(onBlankTap)
     val wireDropCb = rememberUpdatedState(onWireDrop)
@@ -169,16 +184,43 @@ internal fun WorkflowBlueprintCanvas(
     //  - "<节点id>:<引脚id>"（p_x / cmd / result / var）—— 数据边与数据落点用。
     // 一张卡上常有好几个同种类的数据针脚，只按种类建索引会互相覆盖，
     // 于是"线从哪颗点出去"和"落在哪个参数上"都只能靠猜。
-    var pinRects by remember { mutableStateOf<Map<String, Rect>>(emptyMap()) }
-    // ── 只在**值真的变了**时才写回 ──
+    // ── 存 LayoutCoordinates，**不存换算后的矩形** ──
     //
-    // onGloballyPositioned 在每次布局后都会触发，而布局本身会被 pinRects 的变化触发，
-    // 无条件赋值就形成一个反馈循环：布局 → 回调 → 改状态 → 重组 → 布局 …
-    // 真机表现是卡片发抖、拖动不跟手（用户报的）。
-    // 加一道相等判断即可切断：值没变就不写，状态不变就不重组。
-    fun putPinRect(key: String, rect: Rect) {
-        if (pinRects[key] == rect) return
-        pinRects = pinRects + (key to rect)
+    // 这里踩过一个很隐蔽的坑：原先在 onGloballyPositioned 里当场把窗口矩形逆变换成
+    // 「世界坐标」再存起来。看着合理，实则错在**存的是换算结果**：
+    //
+    //   世界 = (窗口 - origin - pan) / scale
+    //
+    // 而平移画布只改 graphicsLayer、**不会重新布局** → onGloballyPositioned 不再触发 →
+    // 存下来的那个世界坐标是用**旧 pan** 算的。平移之后绘制仍用这个旧值，线头就固定
+    // 落后平移量那么多。卡片一旦移出可视区，Compose 更不会为它重跑布局，于是
+    // "只超出边界就偏、在视口内还好"—— 用户报的正是这个形态。
+    //
+    // 正确做法：存 coords 本身，**用的时候现取**。boundsInWindow() 是查询式 API，
+    // 每次调用都会套用**当前**的 graphicsLayer 变换，所以平移/缩放后拿到的永远是对的。
+    var pinCoords by remember {
+        mutableStateOf<Map<String, LayoutCoordinates>>(emptyMap())
+    }
+    // 只在**对象真的换了**时才写回：onGloballyPositioned 每次布局都触发，而写状态又会
+    // 触发重组 → 布局，无条件赋值就是一个反馈循环（真机表现：卡片发抖）。
+    // 用 === 比身份而不是比值：同一个 coords 对象在平移期间不会变，天然切断循环。
+    fun putPinCoords(key: String, c: LayoutCoordinates) {
+        if (pinCoords[key] === c) return
+        pinCoords = pinCoords + (key to c)
+    }
+
+    /**
+     * 某颗针脚**此刻**的世界矩形。取不到（未附加/未测量）返回 null。
+     *
+     * pan/scale 必须**由调用方传进来**（而不是在这里读外层的状态）：
+     * 这个函数会在 Canvas 的 draw lambda 里被调用，那是**绘制阶段**，
+     * 读状态不会登记成快照依赖 —— 平移时既不会触发重绘，拿到的也可能是过期值。
+     * 传参则保证「绘制用的变换」与「换算用的变换」是同一份。
+     */
+    fun pinWorldRect(key: String, panNow: Offset, scaleNow: Float): Rect? {
+        val c = pinCoords[key] ?: return null
+        if (!c.isAttached) return null
+        return toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow)
     }
 
     Box(
@@ -242,7 +284,7 @@ internal fun WorkflowBlueprintCanvas(
                 //
                 // 上一版把高度写死成 96dp：卡片还只有"名称+一个主参数"时正好相等，于是肉眼看不出问题；
                 // 现在卡片带参数行、会变高，写死的框就比卡片小一截（真机截图里框只包住上半张卡）。
-                val rect = bounds[framed]
+                val rect = nodeWorldRect(framed, pan, scale)
                 if (rect != null) {
                     Canvas(Modifier.fillMaxSize()) {
                         val pad = 8.dp.toPx()
@@ -328,7 +370,7 @@ internal fun WorkflowBlueprintCanvas(
                 drawBlueprintEdges(
                     definition = definition,
                     positions = positions,
-                    pinRects = pinRects,
+                    pinWorldRect = { key -> pinWorldRect(key, pan, scale) },
                     origin = origin,
                     pan = pan,
                     scale = scale,
@@ -373,32 +415,18 @@ internal fun WorkflowBlueprintCanvas(
                     hoveredPinId = wireHoverPin
                         ?.takeIf { it.substringBefore(':') == node.id }
                         ?.substringAfter(':'),
-                    // 卡片矩形同样**当场**换算成世界坐标：它与 pinRects 是同一个坑 ——
-                    // 平移不重新布局，boundsInWindow 不会刷新，绘制时再用新 pan 逆变换就偏了。
-                    onBounds = { rect ->
-                        // 同样只在变化时写回：否则会与布局形成反馈循环（卡片发抖）。
-                        val world = toWorldRect(rect, origin, pan, scale)
-                        if (bounds[node.id] != world) bounds = bounds + (node.id to world)
-                    },
-                    // ── 针脚矩形一律**当场换算成世界坐标**再存 ──
+                    // 卡片与针脚一律**只上报 LayoutCoordinates**，世界矩形在用的那一刻现算。
                     //
-                    // boundsInWindow() 给的是**窗口**坐标，已经含了当前 graphicsLayer 的
-                    // 平移+缩放。存下来再在绘制时用**新的** pan 去逆变换，就错位了：
-                    // 平移画布只改 graphicsLayer，**不会重新布局**，onGloballyPositioned
-                    // 不会再次触发 —— 于是 pinRects 里还是平移前的窗口坐标，
-                    // 而绘制用的是平移后的 pan，线头偏移量正好等于平移距离。
-                    //
-                    // 用户报的"只移动画布、没动卡片，连线却偏了"就是这个。
-                    // 解决办法：在**测到的这一刻**就用当时的 pan/scale 逆变换回世界坐标，
-                    // 之后无论怎么平移缩放，这个值都稳定 —— 与卡片落点用的是同一套坐标。
-                    onPinBounds = { pinKind, rect ->
-                        putPinRect("${node.id}:$pinKind", toWorldRect(rect, origin, pan, scale))
-                    },
+                    // 曾经在这里当场逆变换成世界坐标再存 —— 那正是"卡片移出边界后线就偏"的
+                    // 根因：平移只改 graphicsLayer、不重新布局，onGloballyPositioned 不再触发，
+                    // 存下的是**旧 pan 算出来的**世界坐标；卡片越出视口后 Compose 更不会为它
+                    // 重跑布局，缓存值永远停在旧 pan 上。存 coords 则每次查询都会套用当前变换。
+                    onBounds = { c -> boundsCoords = boundsCoords + (node.id to c) },
+                    onPinBounds = { pinKind, c -> putPinCoords("${node.id}:$pinKind", c) },
                     // 同时按引脚 id 登记：数据边与落点判定要精确到"哪一颗"。
-                    onPinIdBounds = { pinId, pinKind, rect ->
-                        val world = toWorldRect(rect, origin, pan, scale)
-                        putPinRect("${node.id}:$pinId", world)
-                        putPinRect("${node.id}:$pinKind", world)
+                    onPinIdBounds = { pinId, pinKind, c ->
+                        putPinCoords("${node.id}:$pinId", c)
+                        putPinCoords("${node.id}:$pinKind", c)
                     },
                     onPinDrag = { pinKind, anchor, pointer ->
                         wireFrom = node.id
@@ -413,9 +441,9 @@ internal fun WorkflowBlueprintCanvas(
                         //
                         // 判定用 WorkflowPinSpec.canLinkFrom（参考实现 Pin.linkAble 的等价物）：
                         // 控制流只接控制流、数据只看类型互通，规则仍然只有那一处。
-                        // pointer 是窗口坐标，pinRects 是世界坐标 —— 先换算，否则拖拽中
+                        // pointer 是窗口坐标，针脚矩形是世界坐标 —— 先换算，否则拖拽中
                         // 的"可接针脚"判定会随平移整体偏移。
-                        val hit = hitPinAt(toWorldPoint(pointer, origin, pan, scale), node.id, definition, pinRects)
+                        val hit = hitPinAt(toWorldPoint(pointer, origin, pan, scale), node.id, definition, pinCoords.keys) { key -> pinWorldRect(key, pan, scale) }
                         val targetSpec = hit?.let { h ->
                             WorkflowSchema.pinsOf(definition, h.nodeId).firstOrNull { it.id == h.pinId }
                         }
@@ -451,10 +479,10 @@ internal fun WorkflowBlueprintCanvas(
                             // 命中判定与拖拽中的高亮**共用同一个函数**：两处各写一遍的话，
                             // 会出现「高亮说能接、松手却接不上」——那比没有高亮更让人困惑。
                             val pointerWorld = toWorldPoint(pointer, origin, pan, scale)
-                            val hit = hitPinAt(pointerWorld, from, definition, pinRects)
+                            val hit = hitPinAt(pointerWorld, from, definition, pinCoords.keys) { key -> pinWorldRect(key, pan, scale) }
                             val targetPin = hit?.pinId
                             val target = hit?.nodeId
-                                ?: bounds.entries.firstOrNull { (id, rect) -> id != from && rect.contains(pointerWorld) }?.key
+                                ?: nodeWorldRects(pan, scale).entries.firstOrNull { (id, rect) -> id != from && rect.contains(pointerWorld) }?.key
                             wireDropCb.value?.invoke(from, fromPin, target, pointer, targetPin)
                         }
                     },
@@ -486,7 +514,7 @@ internal fun WorkflowBlueprintCanvas(
                 // 之前直接拿窗口坐标去 contains 世界矩形：画布一平移/缩放，两个坐标系就错开，
                 // "压在卡片上但接不上"的高亮会在错误的卡片上亮起（或该亮时不亮）。
                 val pointerWorld = toWorldPoint(wirePointer, origin, pan, scale)
-                val hoveringCardButNotLinkable = wireHoverPin == null && bounds.entries.any { (id, rect) ->
+                val hoveringCardButNotLinkable = wireHoverPin == null && nodeWorldRects(pan, scale).entries.any { (id, rect) ->
                     id != wireFrom && rect.contains(pointerWorld)
                 }
                 val preview = when {
@@ -508,7 +536,7 @@ internal fun WorkflowBlueprintCanvas(
  * 平移只改 graphicsLayer、不重新布局，所以"测量的那一刻"与"绘制的此刻"可能不同。
  */
 /**
- * 窗口坐标的点 → 世界坐标。命中判定用（指针是窗口坐标，pinRects/bounds 是世界坐标）。
+ * 窗口坐标的点 → 世界坐标。命中判定用（指针是窗口坐标，针脚/卡片矩形是世界坐标）。
  */
 private fun toWorldPoint(point: Offset, origin: Offset, pan: Offset, scale: Float): Offset {
     val s = if (scale > 0f) scale else 1f
@@ -538,9 +566,11 @@ private fun hitPinAt(
     pointer: Offset,
     fromNodeId: String,
     definition: WorkflowDefinition,
-    pinRects: Map<String, Rect>,
+    pinKeys: Collection<String>,
+    rectOf: (String) -> Rect?,
 ): PinHit? {
-    for ((key, rect) in pinRects) {
+    for (key in pinKeys) {
+        val rect = rectOf(key) ?: continue
         if (!rect.contains(pointer)) continue
         val owner = key.substringBefore(':')
         if (owner == fromNodeId) continue
@@ -647,7 +677,7 @@ private fun DrawScope.drawBlueprintGrid(color: Color, pan: Offset, scale: Float)
 private fun DrawScope.drawBlueprintEdges(
     definition: WorkflowDefinition,
     positions: Map<String, Offset>,
-    pinRects: Map<String, Rect>,
+    pinWorldRect: (String) -> Rect?,
     origin: Offset,
     pan: Offset,
     scale: Float,
@@ -690,13 +720,12 @@ private fun DrawScope.drawBlueprintEdges(
         // 针脚报的是**窗口**矩形，而这一层画在已被 graphicsLayer 缩放+平移过的内容层里 ——
         // 所以要先经逆变换回到世界坐标，否则一旦缩放，线头就会离针脚越来越远。
         val safeScale = if (scale > 0f) scale else 1f
-        // pinRects 里存的**已经是世界坐标**（在 onPinBounds/onPinIdBounds 那一刻换算好的，
-        // 见 toWorldRect 的说明）。这里不能再逆变换一次 —— 那会把偏移算两遍，
-        // 表现就是"平移画布后线头越跑越远"。
+        // pinWorldRect 每次调用都现取 boundsInWindow() 再用**当前** pan/scale 换算，
+        // 所以拿到的一定是此刻的世界坐标。不能再逆变换一次 —— 那会把偏移算两遍。
         // 保留 worldX/worldY 两个名字只为可读性：这条绘制链路上的坐标一律是世界坐标。
         fun worldX(x: Float) = x
         fun worldY(y: Float) = y
-        val pinned = pinRects["${edge.from}:$pinKey"]
+        val pinned = pinWorldRect("${edge.from}:$pinKey")
         // 起点锚点：**按针脚方向分开取**，不是一律取某一条边。
         //
         // 参考实现的 `PinView.getSlotPosInLayout`：
@@ -724,7 +753,7 @@ private fun DrawScope.drawBlueprintEdges(
         // 与起点同一套规则、方向相反：控制流入口在**顶边中点**，数据入口在**左边中点**。
         // 目标是接收方，所以控制流取 `top`、数据取 `left`（不是 center）——
         // 线要停在针脚的外沿，压到针脚身上会把它盖住。
-        val toPinned = pinRects["${edge.to}:${if (isData) edge.toPin else WorkflowPinKind.EXEC_IN.name}"]
+        val toPinned = pinWorldRect("${edge.to}:${if (isData) edge.toPin else WorkflowPinKind.EXEC_IN.name}")
         val endX = if (toPinned != null) {
             worldX(if (isData) toPinned.left else toPinned.center.x)
         } else {

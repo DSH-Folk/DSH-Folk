@@ -770,8 +770,8 @@ console.log("\u2500 #16h 坐标换算与手势结构（拖动 1:1 的契约）")
   ok(!/dxPx \/ density/.test(SRC.editorSurface), "编辑页不再裸除密度（截断/加速的来源）");
   // 手势新模型（对齐点击助手）：卡片各自 onTouchEvent，画布只接空白处。
 ok(SRC.card.includes("pointerInput(node.id)") && SRC.card.includes("awaitEachGesture"), "卡片自己接点/拖手势（命中不需要手算，也就不会比错坐标系）");
-  ok(/boundsInWindow/.test(SRC.card) && /onPinDrag/.test(SRC.card),
-    "卡片把自己的窗口矩形与拉线事件报给画布（窗口坐标对窗口坐标）");
+  ok(/onBounds\?\.invoke\(coords\)/.test(SRC.card) && /onPinDrag/.test(SRC.card),
+    "卡片把 LayoutCoordinates 与拉线事件报给画布（不自己换算矩形）");
   ok(!/hitTest/.test(SRC.canvas) && !/CARD_H_FALLBACK_DP/.test(SRC.canvas),
     "画布不再手算命中（删掉了固定高度兜底那套）");
   ok(/pointerInput\(Unit\)/.test(SRC.card), "卡片手势 key 是 Unit（拖动中位置变化不会重启检测器）");
@@ -1074,8 +1074,8 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
     "针脚指针坐标经 localToWindow 换算（平移/缩放都跟手）");
   ok(!c.includes("originState.value + change.position") && !c.includes("originState.value + down.position"),
     "针脚不再用「窗口原点 + 局部坐标」相加（那是平移不跟手、缩放后线偏的根因）");
-  ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\.boundsInWindow\(\)\)/.test(c),
-    "针脚上报窗口矩形（含引脚类型），已连的线也从真针脚画出去");
+  ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\)/.test(c),
+    "针脚上报 LayoutCoordinates（含引脚类型），已连的线也从真针脚画出去");
   // bounds 存世界坐标、wirePointer 是窗口坐标 —— 直接 contains 会在平移/缩放后错位，
   // 表现是「压在卡片上但接不上」的高亮亮在错误的卡上（或该亮时不亮）。
   ok(/toWorldPoint\(wirePointer, origin, pan, scale\)/.test(cv) &&
@@ -1091,7 +1091,7 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   // 这条断言原来钉的是 `worldX(if (isData) pinned.left else pinned.right)` —— 那是**错的**：
   // 控制流针脚取右边中点，线就从五边形右侧弹出、贴着卡右缘走，与底尖错开半个针脚宽。
   // 用户真机反馈的「连线没对齐」正是它，所以断言必须改成钉正确的行为，而不是钉住那个 bug。
-  ok(/val pinned = pinRects\[/.test(cv) &&
+  ok(/val pinned = pinWorldRect\(/.test(cv) &&
     /worldX\(if \(startVertical\) pinned\.center\.x else pinned\.right\)/.test(cv) &&
     /worldY\(if \(startVertical\) pinned\.bottom else pinned\.center\.y\)/.test(cv),
     "已连线从针脚矩形起画，且锚点按针脚方向取（控制流底边中点 / 数据右边中点）");
@@ -1100,18 +1100,39 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   // 平移画布只改 graphicsLayer，**不会重新布局**，所以 onGloballyPositioned 不再触发：
   // pinRects 里还是平移前的窗口坐标，而绘制用的是平移后的 pan，偏移量正好等于平移距离。
   // 用户报的"只移动画布、没动卡片，连线却偏了"就是这个。
-  ok(/toWorldRect\(rect, origin, pan, scale\)/.test(cv),
-    "针脚矩形在**测量那一刻**就换算成世界坐标（平移后不再错位）");
-  ok(/val world = toWorldRect\(rect, origin, pan, scale\)[\s\S]{0,120}bounds = bounds \+ \(node\.id to world\)/.test(cv),
-    "卡片矩形同样换算成世界坐标（选中框、落点判定同一套坐标）");
+  //
+  // ⚠ 这条断言原先钉的是"测量那一刻就换算成世界坐标再缓存"。那**正是 bug 本身**：
+  // 缓存的是换算结果，而平移不重新布局 → 缓存停留在旧 pan 上；卡片越出视口后
+  // Compose 更不会为它重跑布局，于是"只超出边界就偏"。
+  // 现在钉的是反面：**存 coords、用时现取**，且 pan/scale 必须由调用方传入
+  // （在 draw lambda 里读状态不会登记快照依赖，平移不会重绘）。
+  ok(/fun pinWorldRect\(key: String, panNow: Offset, scaleNow: Float\): Rect\?/.test(cv) &&
+    /c\.boundsInWindow\(\), origin, panNow, scaleNow/.test(cv),
+    "针脚世界矩形**用时现算**（boundsInWindow 每次套用当前变换，平移后不再错位）");
+  // 形参名字对了不算数：函数体必须真的用传进来的 panNow/scaleNow。
+  // 曾经只钉形参名，于是「形参叫 panNow、函数体仍读外层 pan」这种半吊子改法能蒙过去 ——
+  // 而那正是 bug 的形状（draw 阶段读外层状态，平移不重绘）。
+  {
+    // 取函数体：从签名起，到下一个「4 空格缩进的右花括号」为止（函数体只有一层缩进）。
+    const at = cv.indexOf("fun pinWorldRect(");
+    const body = at >= 0 ? cv.slice(at, cv.indexOf("\n    }", at) + 6) : "";
+    ok(body.length > 0 &&
+      /toWorldRect\(c\.boundsInWindow\(\), origin, panNow, scaleNow\)/.test(body),
+      "pinWorldRect 函数体真的用传进来的 panNow/scaleNow（不是读外层状态）");
+  }
+  ok(/fun nodeWorldRect\(id: String, panNow: Offset, scaleNow: Float\): Rect\?/.test(cv) &&
+    /fun nodeWorldRects\(panNow: Offset, scaleNow: Float\): Map<String, Rect>/.test(cv),
+    "卡片矩形同样用时现算（选中框、落点判定同一套坐标）");
+  ok(!/toWorldRect\(rect, origin, pan, scale\)/.test(cv),
+    "不再把换算结果缓存进状态（那是「卡片出界后线偏」的根因）");
   // ── 状态写回必须判等，否则与布局形成反馈循环 ──
   //
   // onGloballyPositioned 每次布局都会触发，而布局又会被 pinRects 的变化触发。
   // 无条件赋值 = 布局 → 回调 → 改状态 → 重组 → 布局…，真机表现为卡片发抖、拖动不跟手。
-  ok(/if \(pinRects\[key\] == rect\) return/.test(cv),
-    "针脚矩形只在变化时写回（切断布局↔状态的反馈循环）");
-  ok(/if \(bounds\[node\.id\] != world\) bounds = bounds \+ /.test(cv),
-    "卡片矩形同样只在变化时写回");
+  // 判等仍然必须有，但比的是 **coords 身份**（===）而不是矩形值：
+  // 同一个 coords 对象在平移期间不变，天然切断循环；比值则每次都要重算，反而制造循环。
+  ok(/if \(pinCoords\[key\] === c\) return/.test(cv),
+    "针脚坐标只在 coords 换对象时写回（切断布局↔状态的反馈循环）");
   // 绘制期不得再逆变换一次：那会把偏移算两遍。
   ok(!/\(x - origin\.x - pan\.x\) \/ safeScale/.test(cv),
     "绘制期不再对已是世界坐标的矩形做逆变换（否则偏移算两遍）");
@@ -1980,8 +2001,8 @@ async function checkCli() {
   ok(/border\(1\.dp, row\.color, CircleShape\)/.test(card),
     "空值参数画空心椭圆，而不是留白");
   // 引脚上报是拉线的基础，改卡片时最容易被顺手删掉。
-  ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\.boundsInWindow\(\)\)/.test(card),
-    "卡片仍然上报输出引脚的真实窗口矩形（拉线端点依赖它）");
+  ok(/onPinBounds\?\.invoke\(pin\.kind\.name, coords\)/.test(card),
+    "卡片仍然上报输出引脚的 LayoutCoordinates（拉线端点依赖它）");
 
   // ── 控制流针脚是**五边形**（上圆角 4dp / 下切角 8.5dp）──
   //
@@ -2186,7 +2207,7 @@ console.log("\u2500 #16k 卡片可编辑 / 悬浮层定位 / 虚线框跟着选�
     "「更多」菜单锚在按钮所在的 Box 里（否则弹到左下角）");
 
   // 虚线框用实测矩形，且跟着选中态而不是拖动。
-  ok(/val rect = bounds\[framed\]/.test(SRC.canvas), "虚线框用卡片实测矩形（不写死高度）");
+  ok(/val rect = nodeWorldRect\(framed, pan, scale\)/.test(SRC.canvas), "虚线框用卡片实测矩形（不写死高度）");
   ok(/val framed = selectedNodeId/.test(SRC.canvas), "虚线框跟选中态（松手后不消失）");
   ok(!/draggingNodeId/.test(SRC.canvas), "不再有 draggingNodeId 这一路状态");
 }
