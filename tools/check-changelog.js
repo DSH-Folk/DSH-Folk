@@ -274,33 +274,74 @@ for (const name of ["WelcomeGuideDialog", "ChangelogDialog"]) {
 
 // ── 5. 测试版通道 ──
 console.log("\n── 测试版通道 ──");
-ok(/KEY_ACCEPT_BETA = "([a-z_]+)"/.test(checker), "UpdateChecker 里有 KEY_ACCEPT_BETA 常量");
-{
-  // 键必须只有一处字面量：开关写一个键、检查读另一个键，界面看起来完全正常
-  const key = checker.match(/KEY_ACCEPT_BETA = "([a-z_]+)"/);
-  if (key) {
-    const settings = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt"));
-    const main = code(read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt"));
-    for (const [label, src] of [["GeneralSettings", settings], ["MainActivity", main]]) {
-      ok(src.includes("KEY_ACCEPT_BETA") && !src.includes(`"${key[1]}"`),
-        `${label} 用常量而不是重写字面量 "${key[1]}"`);
-    }
-  }
+// 通道从「一个布尔」升级成「三态枚举」之后，这一节钉的东西也跟着换了。
+// 旧断言钉的是 acceptBeta 这个布尔（check(acceptBeta = false)、if (!acceptBeta && isBeta(...))），
+// 那些写法在加了 Alpha 之后**表达不了三态**，所以断言必须改成钉新语义 ——
+// 否则门禁会把旧实现当成规范，谁改谁红。
+const channel = code(read("app/src/main/java/me/bmax/apatch/util/UpdateChannel.kt"));
+ok(/enum class UpdateChannel/.test(channel), "有 UpdateChannel 三态枚举");
+for (const id of ["stable", "beta", "alpha"]) {
+  ok(channel.includes('"' + id + '"'), `通道 ${id} 有落盘 id`);
 }
-ok(/suspend fun check\(acceptBeta: Boolean = false\)/.test(checker),
-  "check() 的 acceptBeta 默认 false（这条通道必须由用户明确打开）");
-ok(/if \(acceptBeta\) listOf\(LIST_PATH, LATEST_PATH\)/.test(checker),
-  "开着测试版时先查列表：releases/latest 定义上跳过 prerelease，先问它会让开关失效");
+ok(/fun allows\(other: UpdateChannel\): Boolean = other\.ordinal <= this\.ordinal/.test(channel),
+  "通道是「上限」语义：选 Alpha 时同时收 Beta/Stable（按后缀精确匹配会让 Alpha 用户看不到正式版）");
+// 旧布尔键必须继续被读：直接换新键会让存量测试版用户静默掉回正式版
+ok(/LEGACY_KEY_ACCEPT_BETA/.test(channel) && /getBoolean\(LEGACY_KEY_ACCEPT_BETA, false\)/.test(channel),
+  "旧布尔键仍作迁移来源（否则存量测试版用户会静默掉回正式版）");
+ok(/if \(stored != null\) return fromId\(stored\)/.test(channel),
+  "迁移只在新键不存在时发生一次（之后用户的选择是唯一事实）");
+// 通道读写必须与设置页同一份 prefs：写一份读另一份 = 界面显示开了、检查读到关
+ok(/app\.sharedPreferences/.test(channel) && /is APApplication/.test(channel),
+  "通道读写复用 APApplication.sharedPreferences（与设置页同源）");
+
+ok(/suspend fun check\(channel: UpdateChannel = UpdateChannel\.STABLE\)/.test(checker),
+  "check() 的通道默认 STABLE（与历史行为一致：旧布尔缺省 false 就是只收正式版）");
+ok(/if \(channel == UpdateChannel\.STABLE\) \{[\s\S]{0,120}LIST_PATH, LATEST_PATH/.test(checker),
+  "非 Stable 通道先查列表：releases/latest 定义上跳过 prerelease，先问它会让通道失效");
 ok(/private fun isBeta\(/.test(checker), "有 isBeta 判据");
 {
+  // 取到**下一个 4 空格缩进的声明**为止，而不是固定 400 字符、也不是找 "\n    }" ——
+  // isBeta 是表达式函数体（"= release.optBoolean(...) || ..."），根本没有右花括号，
+  // 找花括号会一路吃到下一个函数里去，让断言在无关改动下假绿。
   const at = checker.indexOf("private fun isBeta(");
-  const body = checker.slice(at, at + 400);
-  ok(/optBoolean\("prerelease"\)/.test(body) && /substringAfter\('-'/.test(body),
+  const rest = at >= 0 ? checker.slice(at + 1) : "";
+  const nextDecl = rest.search(/\n    (private |fun |val |internal |@)/);
+  const body = at >= 0 ? checker.slice(at, nextDecl >= 0 ? at + 1 + nextDecl : checker.length) : "";
+  ok(/optBoolean\("prerelease"\)/.test(body) && /substringAfter\('-',/.test(body),
     "isBeta 两道判断都在（prerelease 标记 + tag 的预发布后缀）");
 }
-ok(/if \(!acceptBeta && isBeta\(/.test(checker), "不接受测试版时把它排除掉");
-ok((checker.match(/if \(!acceptBeta && isBeta\(/g) || []).length >= 2,
-  "列表与 latest 两条路径都过滤（只过滤一条 = 另一条把测试版推给所有人）");
+// 过滤必须走 channelOf + allows，且列表与 latest 两条路径都做
+ok(/if \(!channel\.allows\(channelOf\(o, tag\)\)\) continue/.test(checker),
+  "列表路径按通道过滤");
+ok(/if \(!channel\.allows\(channelOf\(o, tag\)\)\) return null/.test(checker),
+  "latest 路径同样按通道过滤（只过滤一条 = 另一条把不该给的版本推给所有人）");
+// 强制过渡版本：漏了这条，用户会跳过数据迁移直接升到最新，数据停在旧结构上
+ok(/private fun isMandatoryBridge\(/.test(checker), "有强制过渡版本判据");
+ok(/BRIDGE_MARKER/.test(checker) && /equals\(BRIDGE_MARKER, ignoreCase = true\)/.test(checker),
+  "过渡标记按整行精确匹配（子串匹配会让正文里随口提到该词的发布被误判）");
+ok(/private fun pickWithMandatoryBridge\(/.test(checker),
+  "候选里优先挑过渡版本（否则直接跳到最新版 = 跳过数据迁移）");
+ok(/val isMandatoryBridge: Boolean = false/.test(checker),
+  "Status 带 isMandatoryBridge，UI 才能禁掉「跳过此版本」");
+{
+  // 强制过渡版本必须有**实际约束**，不能只是数据类上有个字段。
+  // 只加字段不加约束 = 用户照旧可以关掉对话框、跳过迁移，那个字段就成了装饰。
+  const ud = code(read("app/src/main/java/me/bmax/apatch/ui/component/UpdateDialog.kt"));
+  ok(/val mandatoryBridge = status\?\.isMandatoryBridge == true/.test(ud),
+    "对话框读 isMandatoryBridge");
+  ok(/onDismissRequest = \{ if \(!busy && !mandatoryBridge\) onDismiss\(\) \}/.test(ud),
+    "强制过渡时挡掉返回键/外部点击（否则点一下外面就跳过了）");
+  ok(/dismissOnBackPress = !busy && !mandatoryBridge/.test(ud),
+    "强制过渡时挡掉返回键");
+  ok(/if \(!mandatoryBridge\) \{[\s\S]{0,160}TextButton\(onClick = onDismiss/.test(ud),
+    "强制过渡时「关闭」整个不渲染（灰着的按钮会被反复点，不如不给）");
+  // 光出现字符串不够：把它绑到别的 Text 上、或者渲染成空串，字符串依然"出现过"。
+  // 必须钉住「bridgeNotice 被渲染进 Text 的 text 参数」这条绑定。
+  ok(/val bridgeNotice = if \(mandatoryBridge\) \{[\s\S]{0,120}update_mandatory_bridge_notice/.test(ud),
+    "对话框读强制过渡说明文案");
+  ok(/text = bridgeNotice,/.test(ud),
+    "说明文案真的被渲染出来（只说「必须更新」像强迫，说清数据迁移才是知情选择）");
+}
 ok(/val isPrerelease: Boolean = false/.test(checker),
   "Status 带 isPrerelease，界面才能把测试版标出来");
 {

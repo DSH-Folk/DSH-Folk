@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,8 +17,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,6 +33,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.Visibility
@@ -38,6 +44,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +67,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -152,6 +160,16 @@ private val PLUGIN_PAGES = listOf(
 fun DshPluginScreen(navigator: DestinationsNavigator) {
     val viewModel = viewModel<DshPluginViewModel>()
     val snackBarHost = LocalSnackbarHost.current
+    // ── 应用更新检查（并入「管理扩展」页）──
+    //
+    // 为什么放在这里而不是只留在设置里：用户在「管理扩展」页做的事（装插件、装扩展）和
+    // 「宿主本身该不该升」是同一个心智模型下的两件事 —— 都是"我这套东西是不是最新的"。
+    // 原先更新入口只在设置里，用户装了插件之后不会想到再去设置里点一次。
+    //
+    // 状态放页级而不是塞进菜单：检查要几秒，结果可能弹对话框，都活在菜单项的生命周期之外。
+    var appUpdateChecking by remember { mutableStateOf(false) }
+    var appUpdateStatus by remember { mutableStateOf<me.bmax.apatch.util.UpdateChecker.Status?>(null) }
+    var showAppUpdateDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -257,6 +275,51 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     if (group == GROUP_PLUGINS) {
                         IconButton(onClick = { viewModel.refresh() }) {
                             Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
+                        }
+                    }
+                    // 检查**应用本体**的更新（与上面那颗只管"重读插件列表"的刷新不同）。
+                    //
+                    // 三页都显示：宿主版本与当前在哪一页无关，把它藏进某一组里等于让用户在
+                    // 另外两组时找不到。放在最前，与"刷新列表"相邻但语义不同，所以用不同图标
+                    // （SystemUpdate vs Refresh）并且在提示文案里说清是"应用更新"。
+                    IconButton(
+                        enabled = !appUpdateChecking,
+                        onClick = {
+                            if (appUpdateChecking) return@IconButton
+                            appUpdateChecking = true
+                            scope.launch {
+                                // 通道从持久化读，不在这里猜：Alpha/Beta/Stable 决定能看到哪些版本
+                                val st = me.bmax.apatch.util.UpdateChecker.checkManually(
+                                    channel = me.bmax.apatch.util.UpdateChannel.read(context),
+                                )
+                                appUpdateChecking = false
+                                appUpdateStatus = st
+                                when {
+                                    // 查不到与"已是最新"必须分开说 —— 前者是失败，后者是结论。
+                                    // 混成一句"已是最新"就是拿错误结论骗用户（UpdateChecker 的
+                                    // KDoc 里记着这个坑）。
+                                    st.failure != null ->
+                                        snackBarHost.showSnackbar(
+                                            context.getString(R.string.dsh_plugins_update_check_failed),
+                                        )
+                                    st.hasUpdate -> showAppUpdateDialog = true
+                                    else -> snackBarHost.showSnackbar(
+                                        context.getString(R.string.dsh_plugins_update_up_to_date),
+                                    )
+                                }
+                            }
+                        },
+                    ) {
+                        if (appUpdateChecking) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(
+                                Icons.Outlined.SystemUpdate,
+                                contentDescription = stringResource(R.string.dsh_plugins_check_app_update),
+                            )
                         }
                     }
                     // 隐藏内置脚本：只作用于脚本组那份列表（hideBuiltins 传给 UserscriptsContent），
@@ -409,6 +472,22 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                 }
             }
         }
+    }
+
+    // 应用更新对话框。挂在这一页而不是复用设置页那个 —— 两者状态各自独立，
+    // 共用一份状态会让"在设置里检查完、切到插件页又弹一次"。
+    //
+    // 「更新」这一下的去向照设置页：应用内更新走 AppUpdater（UpdateDialog 自己处理），
+    // 拿不到可直装的包时退回浏览器 —— 这条分支在 UpdateDialog 内部。
+    if (showAppUpdateDialog) {
+        me.bmax.apatch.ui.component.UpdateDialog(
+            onDismiss = { showAppUpdateDialog = false },
+            onUpdate = {
+                showAppUpdateDialog = false
+                me.bmax.apatch.util.UpdateChecker.openUpdateUrl(context)
+            },
+            status = appUpdateStatus,
+        )
     }
 
     // 「从链接安装」（插件页的 ＋ 里那一颗）：与脚本那套一样，粘 owner/name 或仓库地址即可。
@@ -789,6 +868,12 @@ private fun ExtensionsPane(
     var detailId by remember { mutableStateOf<String?>(null) }
     val detailRecord = records.firstOrNull { it.id == detailId }
         ?: (allRecords.firstOrNull { it.id == detailId })
+    // 配置面板：与 detailId 同一套纪律 —— 只存 id，实体每次现取。
+    // 面板内容本身**不能**存进状态：它是扩展 dex 里的 lambda，存进 remember 会在扩展
+    // 卸载之后继续持有一个指向已卸载类加载器的闭包。
+    var configId by remember { mutableStateOf<String?>(null) }
+    val configRecord = records.firstOrNull { it.id == configId }
+        ?: (allRecords.firstOrNull { it.id == configId })
 
     // 「移除」的二次确认态：存扩展 id，同一时刻最多一项是红的。
     // 范式与下方插件列表的 pendingUninstall 完全一致（第一下只变红、第二下才执行，
@@ -874,6 +959,11 @@ private fun ExtensionsPane(
                         record = record,
                         removeArmed = pendingUninstall == record.id,
                         onClick = { detailId = record.id },
+                        onConfigClick = {
+                            // 点「配置」= 明确的「我要看这一个」，顺手把红色移除态撤掉
+                            pendingUninstall = null
+                            configId = record.id
+                        },
                         onToggle = { checked ->
                             pendingUninstall = null
                             val appCtx = context.applicationContext
@@ -918,6 +1008,14 @@ private fun ExtensionsPane(
         ExtensionDetailSheet(
             record = rec,
             onDismiss = { detailId = null },
+        )
+    }
+
+    // 配置面板：入口在卡片左下角。面板内容归扩展，壳（标题 / 空态 / 接管说明）归宿主。
+    configRecord?.let { rec ->
+        ExtensionConfigSheet(
+            record = rec,
+            onDismiss = { configId = null },
         )
     }
 
@@ -1042,10 +1140,14 @@ private fun ExtensionSafeModeBanner(
 }
 
 /**
- * 单个扩展卡片：名字 + 版本 + 能力标签 + 说明 + 启用开关 + 移除。
+ * 单个扩展卡片：名字 + 版本 + 能力标签 + 说明 + 启用开关 + 配置入口 + 移除。
  *
  * 能力（declaredCaps）最多显示三个，逗号分隔：这是扩展**自己声明的**东西，卡片上给一眼
  * 扫过的量就够了；要逐条核对就去看它的 manifest.json，别把列表撑成一面墙。
+ *
+ * 底部那一行左右分居：「配置」靠左、「移除」靠右。为什么不并排挤在右边 —— 配置是
+ * 这一页里唯一**非破坏性**的动作，而移除是两段式确认的危险动作，两者贴在一起时手指
+ * 很容易从前者滑到后者（真机上误触就是这么来的）。分开两端，距离本身就是一道防呆。
  */
 @Composable
 private fun ExtensionItem(
@@ -1053,6 +1155,7 @@ private fun ExtensionItem(
     removeArmed: Boolean,
     onToggle: (Boolean) -> Unit,
     onRemoveClick: () -> Unit,
+    onConfigClick: () -> Unit,
     onClick: () -> Unit,
 ) {
     val caps = record.manifest.declaredCaps
@@ -1153,8 +1256,13 @@ private fun ExtensionItem(
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                // SpaceBetween 而不是 End：配置在左、移除在右（理由见函数 KDoc 的防误触那段）。
+                // 用 SpaceBetween 而不是「左项 weight(1f)」——后者会把左侧的点击区拉满半行，
+                // 用户点在两个按钮中间的空地上也会命中「配置」，反而更容易误触。
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                ExtensionConfigEntry(onClick = onConfigClick)
                 // 两段式：第一下只把按钮变红（确认移除），第二下才真的删；
                 // contentColor 同时管住图标与文字，默认的 primary 就是原来的蓝色。
                 TextButton(
@@ -1177,6 +1285,52 @@ private fun ExtensionItem(
                 }
             }
         }
+    }
+}
+
+/**
+ * 扩展卡片左侧的配置入口：图标 + 两字，竖排紧凑。
+ *
+ * 几处细节都是踩出来的，不是审美：
+ *  1. **竖排 + labelSmall**：卡片底部那行还要塞「移除」，横排「图标 + 配置」会把它挤到换行。
+ *  2. **heightIn(min = 40.dp) + widthIn(min = 48.dp)**：竖排之后整块很窄，不垫一下的话
+ *     手指（和 TalkBack 焦点框）能碰到的地方只有十几个 dp。高度取 40dp 是为了与同一行右侧
+ *     TextButton 的默认高度对齐（Material3 的 ButtonDefaults.MinHeight），否则两颗按钮
+ *     一高一低。用 heightIn/widthIn 而不是写死 size：系统字体调到 200% 时文字会自己撑大，
+ *     写死就把字裁掉了。
+ *  3. **softWrap = false + overflow = Visible、不设 maxLines**：200% 字号下「配置」两个字
+ *     比图标宽得多，限制成一行再配 Ellipsis 就会显示成「配…」。这一行横向本来就只有它
+ *     一个控件，溢出没有代价（Row 用 SpaceBetween，右侧移除按钮的位置由 Row 自己分配）。
+ *     之所以不用 allowOverflow（那是 Row/Column 的参数，不是 Text 的）。
+ *  4. **contentDescription = null**：Modifier.clickable 会合并子节点语义，TalkBack 读到的
+ *     是文字「配置」，不必再把图标念一遍。
+ */
+@Composable
+private fun ExtensionConfigEntry(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .heightIn(min = 40.dp)
+            .widthIn(min = 48.dp)
+            .wrapContentWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            Icons.Outlined.Settings,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(R.string.dsh_ext_config),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            softWrap = false,
+            overflow = TextOverflow.Visible,
+        )
     }
 }
 
@@ -1496,6 +1650,109 @@ private fun ExtensionDetailSheet(
                 }
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/**
+ * 扩展的配置面板：宿主给标准容器，扩展只画内容。
+ *
+ * 这一层刻意做得**薄**，因为它是「多扩展同时覆写」问题的正解：
+ *  - 内容按 extensionId 独占（[ExtensionUiRegistry.configPanel]），结构上不存在争抢，
+ *    所以这里没有任何优先级 / 仲裁逻辑 —— 那正是它比整屏接管更适合做「配置」的原因；
+ *  - **滚动归宿主**：内容区有高度上限并由宿主滚动，扩展只管画，别自己再套一层
+ *    LazyColumn / verticalScroll（同方向嵌套会让内层拿到无限高度直接抛
+ *    "Vertically scrollable component was measured with an infinity maximum height"，
+ *    而那行报错出现在扩展的调用栈里，看起来像宿主崩了）。这条约定是**新增 API 时**定的，
+ *    此刻没有任何已发布扩展在用配置面板，所以现在写死这条契约没有兼容代价。
+ *
+ * 没有面板时**不隐藏这个入口**，而是显示空态：卡片上「有的有按钮、有的没有」会让用户
+ * 以为前者是另一种东西，而且「点了没反应」是这个仓反复被投诉的毛病。空态里补一句
+ * 「刚启用的话重启后再看」—— 扩展没有热加载，面板要等 onLoad 才会注册。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExtensionConfigSheet(
+    record: ExtensionRecord,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // 现取而不是从外面传进来：面板是运行期注册的（要等扩展 onLoad），列表这一层
+    // 手里只有磁盘上的 manifest，拿不到它。熔断态下 configPanel 返回 null，自然落到空态。
+    val panel = remember(record.id) { ExtensionUiRegistry.configPanel(record.id) }
+    val claims = remember(record.id) { ExtensionUiRegistry.ownedSurfaces(record.id) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+        ) {
+            Text(
+                text = panel?.title?.takeIf { it.isNotBlank() } ?: record.manifest.name,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "v" + record.manifest.version,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            // 它此刻在独占什么 —— 外壳 / 整屏都是 last-wins，输的一方没有任何运行时信号，
+            // 用户只会看到「我装了两个却只有一个生效」。这句话把冲突摆到明面上。
+            if (claims.isNotEmpty()) {
+                // 必须用 for 循环在**组合上下文**里逐个取串，不能写成
+                // claims.map { stringResource(...) } 或 joinToString { ... }：
+                // stringResource 是 @Composable，而 map/joinToString 的 lambda 不是
+                // 组合上下文，那样写编译不过（Unresolved reference / @Composable invocations
+                // can only happen from the context of a @Composable function）。
+                val labels = ArrayList<String>(claims.size)
+                for (claim in claims) {
+                    when (claim.kind) {
+                        ExtensionUiRegistry.SurfaceKind.SHELL ->
+                            labels.add(stringResource(R.string.dsh_ext_config_owns_shell))
+                        ExtensionUiRegistry.SurfaceKind.SCREEN ->
+                            labels.add(stringResource(R.string.dsh_ext_config_owns_screen, claim.id))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.dsh_ext_config_owns, labels.joinToString("、")),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(12.dp))
+
+            if (panel == null) {
+                Text(
+                    text = stringResource(R.string.dsh_ext_config_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.dsh_ext_config_empty_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                // 高度上限 + 宿主滚动：扩展可以画很长（一屏配置项），但不该把整屏顶满到
+                // 看不见关闭手势。上限取 420dp 是「大约半屏再多一点」——再高就把弹层自己的
+                // 拖拽手势区挤没了，用户想下拉关闭会摸不到地方。
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    panel.content(Modifier.fillMaxWidth())
+                }
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

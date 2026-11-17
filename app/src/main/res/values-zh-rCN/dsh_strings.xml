@@ -7,6 +7,9 @@
     <string name="dsh_plugins">插件</string>
     <string name="dsh_plugins_extensions">扩展</string>
     <string name="dsh_plugins_switch">切换页面</string>
+    <string name="dsh_plugins_check_app_update">检查应用更新</string>
+    <string name="dsh_plugins_update_up_to_date">已经是最新版本</string>
+    <string name="dsh_plugins_update_check_failed">检查更新失败，请稍后再试。</string>
 
     <string name="settings_home_layout_dsh">Harness 面板</string>
 
@@ -131,6 +134,15 @@
     <string name="dsh_ext_market_failed">拉取市场目录失败：%1$s</string>
     <string name="dsh_ext_market_installing">正在安装 %1$s…</string>
     <string name="dsh_ext_market_done">已安装 %1$s，重启 App 后生效</string>
+    <string name="dsh_ext_market_loading">正在加载扩展市场…</string>
+    <string name="dsh_ext_market_empty_hint">目录是通的，只是上面还没有登记任何扩展。</string>
+    <string name="dsh_ext_market_count">共 %1$d 个扩展</string>
+    <string name="dsh_ext_market_refresh">刷新市场目录</string>
+    <string name="dsh_ext_market_field_installed">已安装版本</string>
+    <string name="dsh_ext_market_field_minapi">最低宿主版本</string>
+    <string name="dsh_ext_market_field_minapi_any">不限制</string>
+    <string name="dsh_ext_market_field_url">下载地址</string>
+    <string name="dsh_ext_market_field_sha">校验值 (sha256)</string>
     <string name="dsh_ext_import_dir">从目录导入</string>
     <string name="dsh_ext_empty">还没有安装扩展。扩展与插件 / 用户脚本不同，它直接跑在 App 里、与 App 同权。</string>
     <string name="dsh_ext_install_hint">把扩展目录放进 files/extensions/ 即可：每个扩展一个目录，里面放 manifest.json。</string>
@@ -143,6 +155,12 @@
     <string name="dsh_ext_reenable_hint">重启 App 后扩展才会重新加载。</string>
     <string name="dsh_ext_crash_disable_all">禁用全部扩展并重启</string>
     <string name="dsh_ext_caps">能力：%1$s</string>
+    <string name="dsh_ext_config">配置</string>
+    <string name="dsh_ext_config_empty">这个扩展没有提供配置界面。</string>
+    <string name="dsh_ext_config_empty_hint">有些扩展的配置要等它加载之后才有：刚启用的话，重启 App 再来看。</string>
+    <string name="dsh_ext_config_owns">正在接管：%1$s</string>
+    <string name="dsh_ext_config_owns_shell">主界面外壳</string>
+    <string name="dsh_ext_config_owns_screen">整屏 %1$s</string>
     <string name="dsh_plugin_downloads">下载量</string>
     <string name="dsh_plugin_stars">星标</string>
     <string name="dsh_local_install">本地安装</string>
@@ -869,6 +887,8 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_clean_deleting_count">%1$d / %2$d</string>
     <string name="dsh_clean_failed_title">有 %1$d 项没能删掉</string>
     <string name="dsh_clean_failed_hint">常见原因：文件正被 dsh 或插件占用，或应用没有「所有文件访问」权限。</string>
+    <string name="dsh_clean_not_scanned">还没有扫描。扫描要遍历运行时、应用内部存储与共享存储，并逐层统计目录体积，所以进入本页时不会自动开始 —— 准备好了点下面的按钮。</string>
+    <string name="dsh_clean_start_scan">开始扫描</string>
     <string name="dsh_clean_empty">没有找到可清理的项目。</string>
     <string name="dsh_clean_note_no_perm">未扫描共享存储：应用没有「所有文件访问」权限。</string>
     <string name="dsh_clean_note_none">共享存储里没有可展示的大文件或大文件夹。</string>

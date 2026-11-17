@@ -148,7 +148,9 @@ interface DshExtensionHost {
 > 宿主实现里还有一个 `platform: DshPlatform`（36 项宿主能力门面），但**它不在 `ext-api` 里**，
 > 第三方拿不到。原因见 [10. 已知边界](#10-已知边界)。
 
-### 4.2 界面：槽位 / 整屏 / 外壳 / 色板
+### 4.2 界面：配置面板 / 槽位 / 整屏 / 外壳 / 色板
+
+**想让用户调参数，优先用配置面板**（第 4.2.1 节）—— 它是唯一**不会和别的扩展抢位置**的入口。
 
 ```kotlin
 ExtensionUiRegistry.registerSlot(
@@ -158,10 +160,45 @@ ExtensionUiRegistry.registerSlot(
     content: SlotContent,     // @Composable (Modifier) -> Unit
 )
 
-ExtensionUiRegistry.overrideScreen(extensionId, screenId, content)   // 整屏接管
-ExtensionUiRegistry.registerShell(extensionId, content)             // 接管导航外壳
-ExtensionUiRegistry.interceptPalette(extensionId) { scheme -> ... }  // 改主题色板
+ExtensionUiRegistry.registerConfigPanel(extensionId, title, content)  // 自己的配置界面
+ExtensionUiRegistry.overrideScreen(extensionId, screenId, content)    // 整屏接管
+ExtensionUiRegistry.registerShell(extensionId, content)              // 接管导航外壳
+ExtensionUiRegistry.interceptPalette(extensionId) { scheme -> ... }   // 改主题色板
 ```
+
+#### 4.2.1 配置面板（推荐）
+
+```kotlin
+ExtensionUiRegistry.registerConfigPanel(
+    extensionId = host.id,
+    title = "我的扩展设置",        // 可空，空则用扩展名
+    content = { modifier -> /* 你的配置界面 */ },
+)
+```
+
+宿主负责：扩展卡片左下角的「配置」入口、弹层标题栏、空态、**滚动与高度上限**。
+你只负责画内容。
+
+三条约定：
+
+1. **面板按 extensionId 独占**，一个扩展最多一块。多个扩展各注册各的，互不影响 ——
+   这正是它比「往共享槽位塞控件」和「整屏接管」更适合做配置的原因。
+2. **内容里不要再套滚动容器**（`LazyColumn` / `verticalScroll`）。宿主已经给了高度上限
+   并做了滚动，同方向嵌套会让内层拿到无限高度，直接抛
+   `Vertically scrollable component was measured with an infinity maximum height`。
+   配置项多就用普通 `Column` 铺开。
+3. 面板在 `onLoad` 里注册；没注册面板时入口**仍然显示**，弹层给出空态说明。
+
+#### 4.2.2 冲突规则：外壳与整屏都是「后注册的赢」
+
+`overrideScreen`（整屏）与 `registerShell`（外壳）都是 **last-wins**：后注册的那条生效。
+被顶掉的扩展不会报错，但宿主会记一行「谁顶掉了谁」的诊断日志（`logcat -s DSH-Ext`）。
+
+> **变更说明**：`overrideScreen` 早期是 first-wins（先注册者永久生效），与外壳的 last-wins
+> 语义相反 —— 同一套 API 两种规则，且先赢的那个完全静默，是极难排查的失效。现已统一成
+> last-wins。如果你的扩展依赖「先注册者赢」，行为会变，请改用配置面板或与占用者协调。
+
+想知道某个扩展此刻在独占什么，可以在它的配置面板顶部看到「正在接管：主界面外壳 / 整屏 …」。
 
 **宿主内置槽位**（`ExtensionUiRegistry.Slot`）：
 
@@ -192,7 +229,8 @@ interface ShellHost {
 **关键约定**：传给外壳的第二个参数是**宿主原有的页面树**。外壳决定「怎么切页」，
 页面本身仍归宿主 —— 外壳哪怕只画了个半成品，插件页/设置页/终端页也都在。
 
-多条外壳注册时**最后注册的那条生效**（后启用的扩展赢）。
+多条外壳注册时**最后注册的那条生效**（后启用的扩展赢，见 4.2.2）。
+同一扩展重复调用 `registerShell` 是覆盖而不是叠加。
 
 ### 4.3 拦截：19 个拦截点
 

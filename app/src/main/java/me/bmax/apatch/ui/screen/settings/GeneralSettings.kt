@@ -27,6 +27,7 @@ import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.ExpressiveCard
+import me.bmax.apatch.ui.component.UpdateChannelPicker
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.ui.component.UpdateDialog
@@ -71,8 +72,8 @@ fun GeneralSettingsContent(
     val autoUpdateTitle = stringResource(id = R.string.settings_auto_update_check)
     val autoUpdateSummary = stringResource(id = R.string.settings_auto_update_check_summary)
 
-    val betaUpdateTitle = stringResource(id = R.string.settings_beta_update)
-    val betaUpdateSummary = stringResource(id = R.string.settings_beta_update_summary)
+    val channelTitle = stringResource(id = R.string.settings_update_channel)
+    val channelSummary = stringResource(id = R.string.settings_update_channel_summary)
 
     val launcherIconTitle = stringResource(id = R.string.settings_alt_icon)
     val launcherIconSummary = stringResource(id = R.string.alt_icon_summary)
@@ -118,7 +119,10 @@ fun GeneralSettingsContent(
 
     val useAltIcon = remember { mutableStateOf(prefs.getBoolean(LauncherIconUtils.KEY_USE_ALT_ICON, false)) }
     var autoUpdateCheck by remember { mutableStateOf(prefs.getBoolean("auto_update_check", true)) }
-    var betaUpdate by remember { mutableStateOf(prefs.getBoolean(UpdateChecker.KEY_ACCEPT_BETA, false)) }
+    // 更新通道：原来是一个布尔（收/不收测试版），三通道之后布尔表达不了，改用枚举。
+    // 首次读取时 UpdateChannel.read 会把旧布尔键迁移过来，存量测试版用户不会掉回正式版。
+    var updateChannel by remember { mutableStateOf(UpdateChannel.read(context)) }
+    val showChannelPicker = remember { mutableStateOf(false) }
     var folkXEngineEnabled by remember { mutableStateOf(prefs.getBoolean("folkx_engine_enabled", true)) }
     var currentType by remember { mutableStateOf(prefs.getString("folkx_animation_type", "linear") ?: "linear") }
     var currentSpeed by remember { mutableStateOf(prefs.getFloat("folkx_animation_speed", 1.0f)) }
@@ -187,7 +191,7 @@ fun GeneralSettingsContent(
             ExpressiveCard(flat = flat, onClick = {
                 scope.launch {
                     loadingDialog.show()
-                    val status = UpdateChecker.checkManually(acceptBeta = betaUpdate)
+                    val status = UpdateChecker.checkManually(channel = updateChannel)
                     loadingDialog.hide()
                     when {
                         status.hasUpdate -> {
@@ -231,18 +235,40 @@ fun GeneralSettingsContent(
         )
         }
 
-        item(key = "general_beta_update") {
-            ToggleSettingCard(
-                flat = flat,
-                icon = Icons.Filled.Science,
-                title = betaUpdateTitle,
-                description = betaUpdateSummary,
-                checked = betaUpdate,
-                onCheckedChange = {
-                    betaUpdate = it
-                    prefs.edit { putBoolean(UpdateChecker.KEY_ACCEPT_BETA, it) }
-                },
-            )
+        // 原来是「接收测试版更新」开关。三通道之后开关表达不了（Beta 与 Alpha 都是"开"），
+        // 改成一张可点的卡片：点开弹通道选择面板，卡片副标题直接显示当前通道。
+        item(key = "general_update_channel") {
+            ExpressiveCard(flat = flat, onClick = { showChannelPicker.value = true }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Science,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = channelTitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(updateChannel.labelRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (updateChannel == UpdateChannel.ALPHA) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
         }
 
         item(key = "general_folkx_engine") {
@@ -482,6 +508,18 @@ fun GeneralSettingsContent(
         AppTitleChooseDialog(showAppTitleDialog) { newTitle ->
             currentAppTitle = newTitle
         }
+    }
+
+    if (showChannelPicker.value) {
+        UpdateChannelPicker(
+            current = updateChannel,
+            onDismiss = { showChannelPicker.value = false },
+            onPick = { picked ->
+                updateChannel = picked
+                UpdateChannel.write(context, picked)
+                showChannelPicker.value = false
+            },
+        )
     }
 
     if (showCustomAppTitleDialog.value) {

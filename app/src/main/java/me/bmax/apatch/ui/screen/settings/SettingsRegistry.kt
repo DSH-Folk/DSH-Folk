@@ -56,7 +56,9 @@ object SettingsRegistry {
             add(SettingEntry("general_language", R.string.settings_app_language, category = SettingCategory.GENERAL))
             add(SettingEntry("general_check_update", R.string.settings_check_update, category = SettingCategory.GENERAL))
             add(SettingEntry("general_auto_update", R.string.settings_auto_update_check, R.string.settings_auto_update_check_summary, SettingCategory.GENERAL))
-            add(SettingEntry("general_beta_update", R.string.settings_beta_update, R.string.settings_beta_update_summary, SettingCategory.GENERAL))
+            // 键名跟着卡片 item key 一起改了（general_update_channel）。搜索索引的 key 必须与
+            // 设置页里 item(key=...) 一致，否则搜到了跳过去高亮不到任何东西。
+            add(SettingEntry("general_update_channel", R.string.settings_update_channel, R.string.settings_update_channel_summary, SettingCategory.GENERAL))
             add(SettingEntry("general_folkx_engine", R.string.settings_folkx_engine_title, R.string.settings_folkx_engine_summary, SettingCategory.GENERAL))
             add(SettingEntry("general_folkx_animation_type", R.string.settings_folkx_animation_type, category = SettingCategory.GENERAL))
             add(SettingEntry("general_folkx_animation_speed", R.string.settings_folkx_animation_speed, category = SettingCategory.GENERAL))

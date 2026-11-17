@@ -174,6 +174,21 @@ object PermissionManager {
     }
 
     /**
+     * 启动阶段的权限迁移入口。
+     *
+     * 与 [refresh] / [elevationEnabled] 里那两处调用是**同一个** [migratePreference]，
+     * 所以重复调用无害（它自带 `KEY_PERM_MIGRATED` 幂等标志）。
+     *
+     * 单独暴露一个公开入口，是为了让 [me.bmax.apatch.util.StartupMigrations] 能在
+     * **启动时就把它跑掉**，而不是等到第一次有人 refresh 或问"能不能提权"。
+     * 这两者原来的时机都太晚：后台调用（[me.bmax.apatch.util.HardwareMonitor] 之类）
+     * 可能在 UI 还没起来时就问到权限，那时旧键还没迁完，会按旧语义回答一次。
+     */
+    fun migrateOnStartup(ctx: Context) {
+        migratePreference(ctx)
+    }
+
+    /**
      * 用户是否允许本应用提权（不依赖 [status] 是否已经 refresh 过）。
      *
      * 给非 Compose 的调用方用：[me.bmax.apatch.util.HardwareMonitor] 之类在后台线程里

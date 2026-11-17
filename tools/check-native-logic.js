@@ -1431,8 +1431,33 @@ console.log("── 限制模式页与弹窗 ──");
     ok(/PrivPolicy\.policyNoticePending/.test(home) && /PrivPolicy\.consumePolicyNotice/.test(home),
       "提示读真实标志位、弹过即清（不依赖「这版更新说明还没看过」）");
     const app = fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8");
-    ok(/PrivPolicy\.migrateOnce\(this\)/.test(app),
+    // 迁移入口从「APatchApp 里直接调 PrivPolicy.migrateOnce」改成「集中到 StartupMigrations」。
+    // 断言必须跟着改，否则门禁会把旧结构当成规范：谁按新结构整理代码谁红。
+    ok(/StartupMigrations\.runAll\(this\)/.test(app),
       "迁移在应用启动时跑（不靠用户打开首页 —— 后台调用不该按旧键判定）");
+    {
+      // 光有调用点不够：入口里必须**真的**把迁移排进去了，否则「集中管理」变成把迁移弄丢。
+      //
+      // 断言扫**剥过注释**的文本、且只扫 MIGRATIONS 清单那一段：
+      // 否则注释里提到 PrivPolicy.migrateOnce 就能让断言假绿 —— 而「删掉那一条迁移、
+      // 注释里还留着说明」恰恰是最容易发生的真实回归。
+      const rawMig = fs.readFileSync("app/src/main/java/me/bmax/apatch/util/StartupMigrations.kt", "utf8");
+      const migCode = rawMig
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/[^\n]*/g, "");
+      const listAt = migCode.indexOf("MIGRATIONS: List<Migration> = listOf(");
+      const listEnd = listAt >= 0 ? migCode.indexOf("\n    )", listAt) : -1;
+      const migList = listAt >= 0 && listEnd > listAt ? migCode.slice(listAt, listEnd) : "";
+      ok(/PrivPolicy\.migrateOnce/.test(migList),
+        "迁移清单里真的排了 PrivPolicy.migrateOnce（集中不等于弄丢）");
+      ok(/PermissionManager\.migrateOnStartup/.test(migList),
+        "权限通道迁移也排在启动清单里（原本要等第一次 refresh 才跑，时机太晚）");
+      // 兜异常必须包住**执行**那一句，而不是文件里随便有 try 就行
+      const runAt = migCode.indexOf("fun runAll(");
+      const runBody = runAt >= 0 ? migCode.slice(runAt, migCode.indexOf("\n    }", runAt) + 6) : "";
+      ok(/try \{[\s\S]{0,160}m\.run\(context\)[\s\S]{0,220}catch/.test(runBody),
+        "单条迁移的执行被 try 兜住（启动路径不能因为一条迁移抛异常就打不开应用）");
+    }
   }
   {
     const facts = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt", "utf8");

@@ -36,7 +36,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,8 +85,15 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     val scope = rememberCoroutineScope()
 
     var sections by remember { mutableStateOf<List<DshDeepClean.Section>>(emptyList()) }
-    var scanning by remember { mutableStateOf(true) }
-    var scanKey by remember { mutableStateOf(0) }
+    var scanning by remember { mutableStateOf(false) }
+    // 「扫过」与「扫出来是空的」是两件事：scan() 恒返回三块 Section，所以不能拿
+    // sections.isNotEmpty() 反推（那是在耦合 scan 的实现细节）。没有这个标志，进页那一瞬间
+    // 的空列表会被渲染成「没有可清理的项目」——而用户根本还没扫。
+    //
+    // 刻意不上 rememberSaveable：重建（旋转 / 进程回收）后 Section 活不下来，留着
+    // scanned=true 配一个空列表，恰好又变回上面那句误导文案。跟 sections 同生命周期最安全：
+    // 一起回落到「未扫描」，与「进页不自动扫」的语义一致。
+    var scanned by remember { mutableStateOf(false) }
     // 勾选集合只存**顶层选择**：勾父目录时把已选的子项剔掉（父覆盖子，统计不重复）
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var confirming by remember { mutableStateOf(false) }
@@ -96,12 +102,29 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     // deleting==null 表示没在删；非 null 时是 (已完成, 总数, 当前路径)。
     var deleting by remember { mutableStateOf<Triple<Int, Int, String>?>(null) }
 
-    // 扫描必须在 IO 上：rootfs 是十万级文件（见 DshDeepClean 的 KDoc）
-    LaunchedEffect(scanKey) {
+    /**
+     * 扫描只由**用户**触发：顶栏刷新、未扫描时的「开始扫描」、删完后的重扫。
+     *
+     * 进页不自动跑。以前这里是 `LaunchedEffect(scanKey)`，首次组合必跑 —— 而扫描要递归
+     * 统计共享存储里每个目录的体积（见 DshDeepClean 的 KDoc），进页就等于每次点进来先卡
+     * 十几秒，用户只是想把这一页看一眼也躲不掉。
+     *
+     * 没有沿用「scanKey 初值设成哨兵、在 effect 里跳过 0」那种写法：那让「不自动扫」变成一条
+     * 靠魔法数维持的约定，将来谁改了初值或 `scanKey++` 就静默退回进页即扫，而文本门禁看不见
+     * 这种语义回归。这里干脆删掉 scanKey，让「扫描只能由用户触发」是结构上的事实。
+     *
+     * 扫描必须在 IO 上：rootfs 是十万级文件。
+     */
+    fun startScan() {
+        if (scanning) return
+        // 同步置位：按钮的 enabled 依赖它，异步置位会在两次点击之间留一个窗口
         scanning = true
         selected = emptySet()
-        sections = withContext(Dispatchers.IO) { DshDeepClean.scan(context) }
-        scanning = false
+        scope.launch {
+            sections = withContext(Dispatchers.IO) { DshDeepClean.scan(context) }
+            scanning = false
+            scanned = true
+        }
     }
 
     val allTargets = sections.flatMap { it.targets }
@@ -142,7 +165,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
             failed = result.failed
             showToast(context, context.getString(R.string.dsh_clean_done, result.deleted))
             // 删完重扫：留下的与没删掉的要按真实情况重新列
-            scanKey++
+            startScan()
         }
     }
 
@@ -156,10 +179,14 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { scanKey++ }, enabled = !scanning) {
+                    IconButton(onClick = { startScan() }, enabled = !scanning) {
                         Icon(
                             Icons.Outlined.Refresh,
-                            contentDescription = stringResource(R.string.dsh_clean_rescan),
+                            // 还没扫过时不能叫「重新扫描」：这页以前进页即扫，那个标签一直是对的，
+                            // 现在第一次进来读屏软件会听到一句与事实不符的说明。
+                            contentDescription = stringResource(
+                                if (scanned) R.string.dsh_clean_rescan else R.string.dsh_clean_start_scan,
+                            ),
                         )
                     }
                 },
@@ -204,6 +231,25 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                     )
+                }
+            }
+
+            // 未扫描态：进页不自动扫，所以这里必须是一个明确的入口，不能是「没有可清理的项目」
+            // —— 后者会让用户以为真的没东西可清。
+            if (!scanned && !scanning) {
+                item(key = "not_scanned") {
+                    ExpressiveCard(flat = true) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.dsh_clean_not_scanned),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = { startScan() }) {
+                                Text(stringResource(R.string.dsh_clean_start_scan))
+                            }
+                        }
+                    }
                 }
             }
 
@@ -261,7 +307,8 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            if (!scanning && allTargets.isEmpty()) {
+            // 只有真扫过之后才可能说「没有可清理的项目」
+            if (scanned && !scanning && allTargets.isEmpty()) {
                 item(key = "empty") {
                     Text(
                         text = stringResource(R.string.dsh_clean_empty),

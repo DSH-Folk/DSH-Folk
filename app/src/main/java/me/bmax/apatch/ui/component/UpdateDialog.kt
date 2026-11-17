@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +51,21 @@ fun UpdateDialog(
 ) {
     val context = LocalContext.current
     val maxDialogHeight = (LocalConfiguration.current.screenHeightDp.dp - 48.dp).coerceAtLeast(320.dp)
+    // 强制过渡版本：这一版带了底层数据迁移，跳过它直接升更高版本会让本地数据停在旧结构上。
+    // 所以这种版本的对话框**不提供"关闭"**，只留"立即更新" —— 用户唯一的出路是装上它。
+    //
+    // 只靠"把关闭按钮禁用"是不够的：还要挡掉返回键与点击外部（见 onDismissRequest）。
+    // 但**不挡**下载/校验中的 busy 逻辑 —— 那两个状态本来就不能关，语义不冲突。
+    val mandatoryBridge = status?.isMandatoryBridge == true
+
+    // 强制过渡版本在正文顶部加一条说明，否则用户只会觉得"这个对话框怎么关不掉"。
+    // 文案要说清"为什么"（数据迁移）而不是只说"必须更新" —— 后者像是产品在强迫，
+    // 前者是用户在做一个知情的选择。
+    val bridgeNotice = if (mandatoryBridge) {
+        stringResource(R.string.update_mandatory_bridge_notice)
+    } else {
+        null
+    }
     val scope = rememberCoroutineScope()
 
     var phase by remember { mutableStateOf<AppUpdater.Phase>(AppUpdater.Phase.Idle) }
@@ -74,9 +91,11 @@ fun UpdateDialog(
         phase is AppUpdater.Phase.Verifying
 
     BasicAlertDialog(
-        onDismissRequest = { if (!busy) onDismiss() },
+        // 强制过渡版本不允许用"关掉对话框"绕过：挡返回键与外部点击。
+        // busy 时本来也不许关，两条判据是"或"关系。
+        onDismissRequest = { if (!busy && !mandatoryBridge) onDismiss() },
         properties = DialogProperties(
-            dismissOnBackPress = !busy,
+            dismissOnBackPress = !busy && !mandatoryBridge,
             dismissOnClickOutside = false,
         ),
     ) {
@@ -139,6 +158,23 @@ fun UpdateDialog(
                         text = stringResource(R.string.update_available_message),
                         style = MaterialTheme.typography.bodyMedium,
                     )
+
+                    // 强制过渡版本的说明摆在更新内容之前：用户先要知道"这版不能跳过"，
+                    // 再读"这版改了什么"，顺序反了会先被正文淹没。
+                    if (bridgeNotice != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                text = bridgeNotice,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp),
+                            )
+                        }
+                    }
 
                     // 更新内容（release body）。**不要**给它限高：这里是长文本（几段说明），
                     // 而 Text 一旦拿到有界高度又没有 overflow 配置，多出来的行是**静默裁掉**
@@ -377,8 +413,12 @@ fun UpdateDialog(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        TextButton(onClick = onDismiss, enabled = !busy) {
-                            Text(stringResource(R.string.update_close))
+                        // 强制过渡版本不渲染"关闭"：不是禁用而是不出现 ——
+                        // 一个灰着的按钮会让人反复去点，不如干脆不给这个选项。
+                        if (!mandatoryBridge) {
+                            TextButton(onClick = onDismiss, enabled = !busy) {
+                                Text(stringResource(R.string.update_close))
+                            }
                         }
                         TextButton(onClick = onUpdate, enabled = !busy) {
                             Text(stringResource(R.string.update_open_browser))

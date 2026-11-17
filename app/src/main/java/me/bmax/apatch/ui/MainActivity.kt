@@ -650,10 +650,7 @@ class MainActivity : AppCompatActivity() {
                                  kotlinx.coroutines.delay(2000)
                                  // 自动检查是静默的：查不到就什么都不做，别在冷启动弹错误
                                  val st = me.bmax.apatch.util.UpdateChecker.check(
-                                     acceptBeta = prefs.getBoolean(
-                                         me.bmax.apatch.util.UpdateChecker.KEY_ACCEPT_BETA,
-                                         false,
-                                     ),
+                                     channel = me.bmax.apatch.util.UpdateChannel.read(context),
                                  )
                                  if (st.hasUpdate) {
                                      autoUpdateStatus.value = st

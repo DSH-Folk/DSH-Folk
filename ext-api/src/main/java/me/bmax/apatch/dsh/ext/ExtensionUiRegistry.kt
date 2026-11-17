@@ -91,11 +91,17 @@ typealias ShellContent = @Composable (ShellHost, @Composable (Modifier) -> Unit)
 /**
  * 界面接管总线。
  *
- * 三级能力（从保守到激进）：
+ * 能力（从保守到激进）：
+ * 0. **配置面板**：扩展给宿主一块**自己的**配置界面，入口在它自己的卡片上（[registerConfigPanel]）；
  * 1. **具名槽位**：宿主在固定位置留插槽，扩展往里插内容（INSERT_BEFORE / REPLACE / …）；
  * 2. **整屏重绘**：接管某个界面的整屏；
  * 3. **外壳接管**：接管 App 的导航外壳（顶栏/抽屉/底栏），页面树仍由宿主提供；
  * 4. **主题色板拦截**：拿到宿主的 ColorScheme 再返回改过的一份。
+ *
+ * 0 是后来补的，补的理由值得写下来：在此之前，扩展想给用户一个调参数的地方，只有两条路 ——
+ * 往宿主固定槽位塞控件，或者整屏接管。前者是**共享**位置，多个扩展往同一处堆，越长越乱，
+ * REPLACE 更是硬冲突；后者天然独占，两个扩展同时干就必然有一个静默失效。配置面板按
+ * extensionId 独占一格，**结构上不存在争抢**，于是也不需要任何优先级仲裁。
  *
  * 熔断后一律返回空 / 原样 —— 界面必须回到宿主原生样子，否则用户连求救按钮都点不到。
  */
@@ -112,10 +118,35 @@ object ExtensionUiRegistry {
     /** 一次外壳接管。 */
     data class ShellOverride(val extensionId: String, val content: ShellContent)
 
+    /**
+     * 一条扩展自带的配置界面：宿主给标准容器，扩展只画内容。
+     *
+     * 为什么不复用 [SlotContent] 的槽位机制：槽位是**共享**位置，多个扩展往同一处塞就必然
+     * 要仲裁（谁先谁后、REPLACE 谁赢）。面板按 extensionId 独占，一个扩展最多一个，
+     * 「冲突」这个概念在这里不成立 —— 不需要仲裁的隔离才是真的解决了冲突。
+     */
+    data class ConfigPanel(
+        val extensionId: String,
+        /** 面板标题；空 = 宿主用扩展名（多数扩展不关心标题怎么写）。 */
+        val title: String,
+        val content: SlotContent,
+    )
+
+    /** 扩展**独占**了哪个界面面（见 [ownedSurfaces]）。 */
+    enum class SurfaceKind { SHELL, SCREEN }
+
+    /**
+     * 一处独占的界面面。
+     *
+     * 只收「独占」的两类（外壳 / 整屏）：槽位与色板是叠加式的，不存在「谁占了」这回事。
+     */
+    data class SurfaceClaim(val kind: SurfaceKind, val id: String)
+
     private val slots = ConcurrentHashMap<String, CopyOnWriteArrayList<SlotEntry>>()
     private val overrides = ConcurrentHashMap<String, CopyOnWriteArrayList<ScreenOverride>>()
     private val shells = CopyOnWriteArrayList<ShellOverride>()
     private val palette = CopyOnWriteArrayList<Pair<String, (ColorScheme) -> ColorScheme>>()
+    private val panels = ConcurrentHashMap<String, ConfigPanel>()
 
     /**
      * 宿主内置**整屏**（可被 overrideScreen 接管）。与槽位不同：槽位是往页面里插一段，
@@ -139,10 +170,36 @@ object ExtensionUiRegistry {
         slots.getOrPut(slot) { CopyOnWriteArrayList() }.add(SlotEntry(extensionId, op, content))
     }
 
-    /** 接管整屏（screenId 由宿主定义）。 */
+    /**
+     * 接管整屏（screenId 由宿主定义）。
+     *
+     * ## 语义：后注册的赢（**破坏性变更**，改自 first-wins）
+     *
+     * 原来这里是「第一个注册的永久生效」，而 [registerShell] 一直是「最后一个生效」——
+     * 同一套 API 两种语义，扩展作者无法预期，而且是**最难排查的那种失效**：先加载的那个
+     * 悄悄赢着，后加载的代码明明跑了（onLoad 没报错、注册也没被拒）却什么都看不见。
+     *
+     * 现在统一成 last-wins，理由不是「和外壳一样好看」，而是它有一条可解释的规则：
+     * 谁的 onLoad 更晚，谁就是用户最近启用的那个，界面归它。被顶掉的会留下一条日志，
+     * 写明「谁顶掉了谁」—— 排查时能直接看到输家是谁，而不是只看到「被顶掉了」。
+     *
+     * 已有扩展若依赖「先注册者赢」，实际表现会变；统一语义比维持一个偶然行为重要。
+     */
     fun overrideScreen(extensionId: String, screenId: String, content: SlotContent) {
-        if (ExtensionGate.isLatched()) return
-        overrides.getOrPut(screenId) { CopyOnWriteArrayList() }.add(ScreenOverride(extensionId, content))
+        if (ExtensionGate.isLatched()) {
+            ExtLog.log("[ext:" + extensionId + "] overrideScreen 被熔断拦截，未注册（" + screenId + "）")
+            return
+        }
+        val list = overrides.getOrPut(screenId) { CopyOnWriteArrayList() }
+        // 同一扩展重复注册：先撤掉自己那条，否则会叠加成一串（与 registerShell 同一纪律）
+        list.removeIf { it.extensionId == extensionId }
+        list.lastOrNull()?.let { loser ->
+            ExtLog.info(
+                "[" + extensionId + "] 接管整屏 " + screenId +
+                    "，顶掉了 [" + loser.extensionId + "]",
+            )
+        }
+        list.add(ScreenOverride(extensionId, content))
     }
 
     /**
@@ -150,6 +207,11 @@ object ExtensionUiRegistry {
      *
      * 多条注册时取**最后注册**的那条（后启用的扩展赢），只有一个外壳在生效 —— 两个外壳叠在
      * 一起既画不出来也没法解释。
+     *
+     * 同一扩展重复注册是**覆盖**而不是叠加：原来这里是裸 add，同一个扩展在 onLoad 里调两次
+     * 就会在 shells 里留两条一模一样的记录，日志里的「当前共 N 个」跟着失真（N 说的是记录数，
+     * 不是真正在争外壳的扩展数），卸载时倒是会被 unregisterAll 一起清掉 —— 于是这个 bug
+     * 只在「排查时看日志」这一种场景下露出来，最难发现。
      */
     fun registerShell(extensionId: String, content: ShellContent) {
         if (ExtensionGate.isLatched()) {
@@ -157,8 +219,62 @@ object ExtensionUiRegistry {
             ExtLog.log("[ext:" + extensionId + "] registerShell 被熔断拦截，未注册")
             return
         }
+        shells.removeIf { it.extensionId == extensionId }
+        shells.lastOrNull()?.let { loser ->
+            ExtLog.info("[" + extensionId + "] 接管外壳，顶掉了 [" + loser.extensionId + "]")
+        }
         shells.add(ShellOverride(extensionId, content))
         ExtLog.info("[" + extensionId + "] 已注册外壳（当前共 " + shells.size + " 个）")
+    }
+
+    /**
+     * 注册本扩展的配置面板（**独占**，一个扩展最多一块）。
+     *
+     * 这是扩展给用户调参数的标准入口：宿主负责卡片上的入口、标题栏、空态，以及**滚动**，
+     * 扩展只提供内容本身。
+     *
+     * ## 内容不要自己再套一层滚动
+     *
+     * 宿主的外框已经给了高度上限并做了 verticalScroll。内容里再放 LazyColumn / verticalScroll
+     * 就是同方向嵌套 —— 内层会拿到无限高度，直接抛
+     * "Vertically scrollable component was measured with an infinity maximum height"，
+     * 而那行报错出现在扩展自己的调用栈里，看起来像宿主崩了。配置项多就用普通 Column 铺开，
+     * 滚动由宿主负责。
+     *
+     * 重复注册按 id 覆盖（重新加载一个扩展时不该留下旧面板）。
+     */
+    fun registerConfigPanel(extensionId: String, title: String = "", content: SlotContent) {
+        if (ExtensionGate.isLatched()) {
+            ExtLog.log("[ext:" + extensionId + "] registerConfigPanel 被熔断拦截，未注册")
+            return
+        }
+        panels[extensionId] = ConfigPanel(extensionId, title, content)
+        ExtLog.info("[" + extensionId + "] 已注册配置面板")
+    }
+
+    /** 取某个扩展的配置面板（没有则 null = 卡片上显示空态）。熔断返回 null。 */
+    fun configPanel(extensionId: String): ConfigPanel? =
+        if (ExtensionGate.isLatched()) null else panels[extensionId]
+
+    /**
+     * 这个扩展当前**独占**了哪些界面面。
+     *
+     * 存在的唯一理由是「让冲突可见」：外壳与整屏都是 last-wins，输的那一方完全没有运行时
+     * 信号，用户只会看到「我装了两个，只有一个生效」。把这句摆进扩展自己的配置面板，
+     * 用户和扩展作者都能一眼看到它此刻在占什么，而不必去翻 logcat。
+     */
+    fun ownedSurfaces(extensionId: String): List<SurfaceClaim> {
+        if (ExtensionGate.isLatched()) return emptyList()
+        val out = ArrayList<SurfaceClaim>()
+        if (shells.lastOrNull()?.extensionId == extensionId) {
+            out.add(SurfaceClaim(SurfaceKind.SHELL, ""))
+        }
+        for ((screenId, list) in overrides) {
+            if (list.lastOrNull()?.extensionId == extensionId) {
+                out.add(SurfaceClaim(SurfaceKind.SCREEN, screenId))
+            }
+        }
+        return out
     }
 
     /** 拦截主题色板。 */
@@ -171,9 +287,14 @@ object ExtensionUiRegistry {
     fun slotEntries(slot: String): List<SlotEntry> =
         if (ExtensionGate.isLatched()) emptyList() else (slots[slot]?.toList() ?: emptyList())
 
-    /** 该界面是否被接管（返回第一个接管者）。 */
+    /**
+     * 该界面是否被接管（返回**最后**注册的接管者，与 [overrideScreen] 的 last-wins 一致）。
+     *
+     * 判据必须与写入端用同一个方向：读写两端各取一头（原来写端 first-wins、这里 firstOrNull
+     * 恰好一致，但那只是巧合）就会变成「注册了 A 却渲染了 B」这种没法复现的错乱。
+     */
     fun screenOverride(screenId: String): ScreenOverride? =
-        if (ExtensionGate.isLatched()) null else overrides[screenId]?.firstOrNull()
+        if (ExtensionGate.isLatched()) null else overrides[screenId]?.lastOrNull()
 
     /** 当前生效的外壳（没有则 null = 用宿主默认外壳）。 */
     fun shellOverride(): ShellOverride? =
@@ -192,15 +313,18 @@ object ExtensionUiRegistry {
         return out
     }
 
-    /** 撤掉某个扩展注册的全部界面内容（槽位 / 整屏 / 外壳 / 色板）。 */
+    /** 撤掉某个扩展注册的全部界面内容（槽位 / 整屏 / 外壳 / 色板 / 配置面板）。 */
     fun unregisterAll(extensionId: String) {
         for (list in slots.values) list.removeIf { it.extensionId == extensionId }
         for (list in overrides.values) list.removeIf { it.extensionId == extensionId }
         shells.removeIf { it.extensionId == extensionId }
         palette.removeIf { it.first == extensionId }
+        // 面板必须一起撤：它的 content 是扩展 dex 里的 lambda，扩展卸载之后这个 lambda
+        // 还指着已卸载的类加载器 —— 留着就是一颗定时炸弹（用户再点开配置就 NoClassDefFoundError）。
+        panels.remove(extensionId)
     }
 
     fun clearAll() {
-        slots.clear(); overrides.clear(); shells.clear(); palette.clear()
+        slots.clear(); overrides.clear(); shells.clear(); palette.clear(); panels.clear()
     }
 }

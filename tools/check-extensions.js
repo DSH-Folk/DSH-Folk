@@ -262,6 +262,55 @@ must(!/ExtensionUiRegistry/.test(crash), '崩溃页不许接扩展 UI（会被�
 
 const screen = read('app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt');
 
+// ---- 8a2. 配置面板：扩展自己那块界面，以及「独占面」语义不许再分叉 ----
+//
+// 这三条都是**变异可变红**的判据（改回旧实现断言必须红），不是钉注释/形参名的假保护：
+//  1. configPanel 熔断态返回 null —— 熔断之后界面必须回到宿主原生样子，面板也不例外；
+//  2. unregisterAll 清 panels —— 面板的 content 是扩展 dex 里的 lambda，扩展卸载后
+//     它还指着已卸载的类加载器，留着就是 NoClassDefFoundError；
+//  3. overrideScreen 与 shellOverride 同为 last-wins —— 这一条防的是「以后又分叉」：
+//     原来整屏是 first-wins、外壳是 last-wins，同一套 API 两种语义，先加载的悄悄赢、
+//     后加载的完全静默，是最难排查的那种失效。
+{
+  // 断言必须看**代码**，不能看注释：把实现注释掉之后，正则照样能在注释里匹配到
+  // 「panels.remove(extensionId)」这类字样，于是门禁保持绿色而保护其实已经没了
+  // （变异验证实测到过这一条，M2）。所以这几条判据先剥注释再匹配。
+  const codeOnly = (s) =>
+    s.split(String.fromCharCode(10)).map((l) => l.replace(/\/\/.*$/, '')).join(String.fromCharCode(10))
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  const panelBody = uiReg.slice(uiReg.indexOf("fun configPanel("));
+  must(panelBody.length > 0, '缺 ExtensionUiRegistry.configPanel()');
+  // 取到函数体结束（表达式体只有一行，取到下一个成员声明前即可）
+  const panelDecl = codeOnly(panelBody.slice(0, panelBody.indexOf("\n    }") + 6));
+  must(/if \(ExtensionGate\.isLatched\(\)\) null/.test(panelDecl),
+    'configPanel 在熔断态下没有返回 null（熔断后界面必须回到原生样子）');
+  must(/panels\[extensionId\]/.test(panelDecl),
+    'configPanel 没有从 panels 取内容（形同虚设）');
+
+  const unreg = uiReg.slice(uiReg.indexOf("fun unregisterAll("));
+  const unregBody = codeOnly(unreg.slice(0, unreg.indexOf("\n    }") + 6));
+  must(/panels\.remove\(extensionId\)/.test(unregBody),
+    'unregisterAll 没有清掉配置面板：扩展卸载后面板仍持有一个指向已卸载 dex 的闭包');
+
+  // 写入端与读取端必须同一个方向：写端 last-wins + 读端 lastOrNull
+  const overrideFn = uiReg.slice(uiReg.indexOf("fun overrideScreen("));
+  const overrideBody = codeOnly(overrideFn.slice(0, overrideFn.indexOf("\n    }") + 6));
+  must(/\.add\(ScreenOverride\(/.test(overrideBody) &&
+    !/firstOrNull|add\(0,/.test(overrideBody),
+    'overrideScreen 不再是追加语义（改回 first-wins 会让「后启用的扩展」静默失效）');
+  const screenGet = uiReg.slice(uiReg.indexOf("fun screenOverride("));
+  const screenGetBody = codeOnly(screenGet.slice(0, screenGet.indexOf("\n    }") + 6));
+  must(/overrides\[screenId\]\?\.lastOrNull\(\)/.test(screenGetBody),
+    'screenOverride 没有取最后注册的那条：与 overrideScreen 的 last-wins 分叉了');
+  const shellGet = uiReg.slice(uiReg.indexOf("fun shellOverride("));
+  const shellGetBody = codeOnly(shellGet.slice(0, shellGet.indexOf("\n    }") + 6));
+  must(/shells\.lastOrNull\(\)/.test(shellGetBody),
+    'shellOverride 没有取最后注册的那条（整屏与外壳的赢家规则必须一致）');
+  // 顶掉别人时必须留下「谁顶掉了谁」，只有「被顶掉了」等于没说是谁干的
+  must(/顶掉了 \[|顶掉了\[/.test(uiReg),
+    '接管冲突没有记录「谁顶掉了谁」：排查时看不出输家是谁');
+}
+
 // ---- 8b. 扩展市场：下载来的东西比本机的更不可信，三道防线一道都不能少 ----
 const market = read(EXT + "ExtensionMarket.kt");
 // 扩展可能依赖只有新宿主才有的 API（例如 ShellHost.resetToDefaultShell）：旧宿主必须拒装/拒载，

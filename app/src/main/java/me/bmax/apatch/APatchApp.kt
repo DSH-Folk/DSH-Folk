@@ -174,12 +174,15 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
         //    这里立刻复原一次，保证后面所有崩溃仍然回到宿主手里。
         ensureRootCrashHandler()
 
-        // 权限策略迁移：旧模型（全局严格程度 + 信任名单）→ 新模型（限制模式 + 两张清单）。
-        // 放在这里而不是 UI 里：它必须在任何一次能力判定之前跑完，而首页 composition 只是
+        // 历史版本兼容迁移：**集中在这一处**跑（见 [StartupMigrations]）。
+        //
+        // 放在这里而不是 UI 里：迁移必须在任何一次能力判定之前跑完，而首页 composition 只是
         // "通常更早" —— 一个后台调用不该因为用户没打开首页就按旧键做判定。
-        // 迁移只跑一次，并且**一律关**（用户拍板）；需要告知的人由 KEY_PRIV_POLICY_NOTICE 记着，
-        // 由首页在更新内容弹窗关掉之后弹一次说明（见 Home.kt）。
-        me.bmax.apatch.dsh.PrivPolicy.migrateOnce(this)
+        //
+        // 以前这里是单独一行 PrivPolicy.migrateOnce，其余几条散在各自模块里第一次被读到时
+        // 才跑。现在统一入口：要加新迁移就往 StartupMigrations.MIGRATIONS 里加一条，
+        // 不用再回来改这个文件。每条迁移自带幂等标志，重复调用无害。
+        me.bmax.apatch.util.StartupMigrations.runAll(this)
 
         // 无障碍服务被系统关掉后尽力恢复（见 [DshA11yRecovery]）：装上 secure settings 的
         // 监听。只在主进程做 —— 子进程（:root）不跑 UI，也没有写 secure settings 的必要。

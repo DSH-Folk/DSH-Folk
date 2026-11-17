@@ -62,15 +62,20 @@ object UpdateChecker {
     )
 
     /**
-     * 「接受测试版更新」的 prefs 键。
+     * 「接受测试版更新」的旧 prefs 键。
      *
-     * 键放在这里而不是设置页：检查逻辑和界面都要用它，而字面量各写一份是这类 bug 的
-     * 经典来源 —— 开关写进一个键、检查读另一个键，界面看起来完全正常。
+     * **已弃用**，只作迁移来源保留（见 [UpdateChannel.read]）。新代码不要读它 ——
+     * 通道现在由 [UpdateChannel] 表达，布尔表达不了三态。留这个常量是为了让还没
+     * 迁移完的调用方继续能编译，而不是鼓励继续用。
      */
-    const val KEY_ACCEPT_BETA = "accept_beta_update"
+    @Deprecated("用 UpdateChannel.read(context) 取通道")
+    const val KEY_ACCEPT_BETA = UpdateChannel.LEGACY_KEY_ACCEPT_BETA
 
     /** 版本 tag：可选 v 前缀 + 至少两段数字 + 可选预发布后缀。 */
     private val VERSION_TAG = Regex("""^[vV]?\d+(\.\d+)+([-+].*)?$""")
+
+    /** 强制过渡版本的正文标记（独占一行）。见 [isMandatoryBridge]。 */
+    private const val BRIDGE_MARKER = "[mandatory-bridge]"
 
     /** 检查结果。[failure] 只在真的查不到时非空，不能与「已是最新」混为一谈。 */
     data class Status(
@@ -91,6 +96,14 @@ object UpdateChecker {
          * 东西风险完全不同。不标出来就等于偷偷把人推上测试通道。
          */
         val isPrerelease: Boolean = false,
+        /**
+         * 这一版是不是「强制过渡版本」。
+         *
+         * 见 [isMandatoryBridge]：某些版本带了底层数据迁移，跳过它直接装更高版本会让
+         * 本地数据停在旧结构上（新代码读不懂）。这时 UI 必须禁用「跳过此版本」之类的
+         * 入口，用户只能先升到它。
+         */
+        val isMandatoryBridge: Boolean = false,
         val failure: String? = null,
     ) {
         /** 能不能走应用内更新：要有包，也要有校验值 —— 不校验就装是不可接受的。 */
@@ -98,25 +111,29 @@ object UpdateChecker {
     }
 
     /** 用户主动检查前取消自动检查遗留的网络请求，再从头发起一次。 */
-    suspend fun checkManually(acceptBeta: Boolean = false): Status {
+    suspend fun checkManually(channel: UpdateChannel = UpdateChannel.STABLE): Status {
         FolkApiClient.cancelInFlightRequests()
-        return check(acceptBeta)
+        return check(channel)
     }
 
     /**
-     * @param acceptBeta 是否接受测试版（GitHub 的 prerelease）。默认 false ——
-     *   这条通道必须由用户明确打开，见设置里那个开关。
+     * @param channel 更新通道。默认 [UpdateChannel.STABLE] —— 与历史行为一致
+     *   （旧布尔键缺省 false 就是只收正式版）。取值见 [UpdateChannel.read]。
      */
-    suspend fun check(acceptBeta: Boolean = false): Status = withContext(Dispatchers.IO) {
+    suspend fun check(channel: UpdateChannel = UpdateChannel.STABLE): Status = withContext(Dispatchers.IO) {
         var lastError: String? = null
 
         // 顺序取决于通道，这不是小事：`releases/latest` **定义上**跳过 prerelease，
-        // 所以开着测试版时先问它，会拿到正式版、判定「已是最新」然后直接返回，
+        // 所以通道不是 Stable 时先问它，会拿到正式版、判定「已是最新」然后直接返回，
         // 列表根本没机会被看一眼 —— 开关看起来毫无作用。
-        val paths = if (acceptBeta) listOf(LIST_PATH, LATEST_PATH) else listOf(LATEST_PATH, LIST_PATH)
+        val paths = if (channel == UpdateChannel.STABLE) {
+            listOf(LATEST_PATH, LIST_PATH)
+        } else {
+            listOf(LIST_PATH, LATEST_PATH)
+        }
 
         for (path in paths) {
-            val fetched = fetchFirstRelease(path, acceptBeta)
+            val fetched = fetchFirstRelease(path, channel)
             if (fetched == null) {
                 lastError = "all update sources failed for $path"
                 continue
@@ -136,7 +153,8 @@ object UpdateChecker {
                 apkSize = asset?.size ?: 0L,
                 sha256 = asset?.let { fetchSha256(it.shaUrl) }.orEmpty(),
                 notes = release.optString("body").trim(),
-                isPrerelease = release.optBoolean("prerelease"),
+                isPrerelease = isBeta(release, tag),
+                isMandatoryBridge = isMandatoryBridge(release, tag),
             )
         }
 
@@ -177,7 +195,7 @@ object UpdateChecker {
         null
     }
 
-    private suspend fun fetchFirstRelease(path: String, acceptBeta: Boolean): Pair<String, JSONObject>? =
+    private suspend fun fetchFirstRelease(path: String, channel: UpdateChannel): Pair<String, JSONObject>? =
         supervisorScope {
             val pending = (listOf(API_BASE) + API_MIRRORS).map { base ->
                 base to async {
@@ -187,7 +205,7 @@ object UpdateChecker {
                         maxRetries = 1,
                         forceRefresh = true,
                     ).getOrNull()?.let { body ->
-                        runCatching { newestVersionRelease(body, acceptBeta) }.getOrNull()
+                        runCatching { newestVersionRelease(body, channel) }.getOrNull()
                     }
                 }
             }.toMutableList()
@@ -307,17 +325,26 @@ object UpdateChecker {
     }
 
     /**
-     * 从 latest 对象或 releases 数组里挑出最新的**版本形** release。
+     * 从 latest 对象或 releases 数组里挑出**当前通道可见**的最新版本。
      *
      * 数组按发布时间倒序，但不能只取第一个：`runtime-latest` 也在同一个列表里。
      *
-     * [acceptBeta] 为 false 时把测试版整个排除掉，**两道判断都要**：
-     *  - `prerelease` 标记 —— 正常发布流程会设它；
-     *  - tag 里的预发布后缀（`1.8.1-beta.3` 的 `-beta.3`）—— 万一发布时忘了勾那个
-     *    复选框，仍然不会把测试版推给正式版通道的用户。漏一道的代价是所有人都被
-     *    推上测试版，而那正是这个开关要防的事。
+     * ## 通道过滤是「按档位」而不是「按后缀精确匹配」
+     *
+     * 早期的写法是「不接受测试版 → 把带 `-` 后缀的全排除」。加了 Alpha 之后不能这么做了：
+     * 若按后缀精确匹配，Alpha 通道用户会**看不到正式版**（后缀是 alpha，正式版没有后缀，
+     * 匹配不上）。正确语义是「通道是一个上限，档位不高于上限的都要」—— 由
+     * [UpdateChannel.allows] 回答。Stable 通道的上限是 Stable，于是 beta/alpha 全被挡掉，
+     * 与旧行为完全一致。
+     *
+     * ## 两道判断都要（对 Beta 及以下）
+     *
+     * 判断「这算不算 beta」时，`prerelease` 标记与 tag 后缀**都要看**：
+     *  - `prerelease` —— 正常发布流程会设它；
+     *  - tag 里的后缀（`1.8.1-beta.3` 的 `-beta.3`）—— 万一发布时忘了勾那个复选框，
+     *    仍然不会把测试版推给正式通道的用户。漏一道的代价是所有人都被推上测试版。
      */
-    private fun newestVersionRelease(body: String, acceptBeta: Boolean): JSONObject? {
+    private fun newestVersionRelease(body: String, channel: UpdateChannel): JSONObject? {
         val trimmed = body.trimStart()
         if (trimmed.startsWith("[")) {
             val arr = JSONArray(trimmed)
@@ -328,19 +355,108 @@ object UpdateChecker {
                 if (o.optBoolean("draft")) continue
                 val tag = o.optString("tag_name").trim()
                 if (!VERSION_TAG.matches(tag)) continue
-                if (!acceptBeta && isBeta(o, tag)) continue
+                if (!channel.allows(channelOf(o, tag))) continue
                 if (bestTag.isEmpty() || me.bmax.apatch.dsh.compareVersions(tag, bestTag) > 0) {
                     best = o
                     bestTag = tag
                 }
             }
-            return best
+            return pickWithMandatoryBridge(arr, best, channel)
         }
         val o = JSONObject(trimmed)
         val tag = o.optString("tag_name").trim()
         if (!VERSION_TAG.matches(tag)) return null
-        if (!acceptBeta && isBeta(o, tag)) return null
+        if (!channel.allows(channelOf(o, tag))) return null
         return o
+    }
+
+    /**
+     * 这个 release 属于哪一档通道。
+     *
+     * 判定顺序是「从最激进往下退」，因为后缀可能同时像 alpha 又像 beta 的写法不存在，
+     * 但**未标记**的 pre-release 必须有个归属：`prerelease=true` 但后缀认不出来的，
+     * 按 Beta 处理（保守：不至于让 Alpha 用户看不到它，也不会推给 Stable 用户）。
+     */
+    private fun channelOf(release: JSONObject, tag: String): UpdateChannel {
+        val pre = tag.substringAfter('-', "").lowercase()
+        if (pre.isEmpty()) {
+            // 没有后缀 = 正式版。但若 prerelease 标记为 true 而后缀为空，说明发布流程
+            // 没按约定打 tag：宁可当成 beta，也不要让 Stable 用户收到一个未标记的预发布。
+            return if (release.optBoolean("prerelease")) UpdateChannel.BETA else UpdateChannel.STABLE
+        }
+        if (pre.startsWith("alpha")) return UpdateChannel.ALPHA
+        // beta 及一切认不出来的后缀都归 Beta。
+        return UpdateChannel.BETA
+    }
+
+    /**
+     * 强制过渡版本：在候选里**优先**挑它。
+     *
+     * ## 为什么需要这个东西
+     *
+     * 有些版本带了底层数据迁移（本地存储结构变了）。用户若从很旧的版本直接跳到最新的，
+     * 中间那次迁移就被跳过了 —— 新代码读到的还是旧结构的数据，症状是"数据看起来还在
+     * 但功能全乱"。强制过渡版本就是那条"必经之路"：必须先装上它，把数据搬过去，
+     * 之后才能继续往上升。
+     *
+     * ## 怎么标记
+     *
+     * 约定写在 **release 正文**里，不用 tag 后缀：tag 要参与 semver 比较，往里塞标记
+     * 会让版本号本身变得难解析，而且 tag 一旦发出就不能改。正文标记可以在发布后修正。
+     *
+     * 形如（大小写不敏感，独占一行）：
+     * ```
+     * [mandatory-bridge]
+     * ```
+     *
+     * ## 为什么是"挑它"而不是"只允许它"
+     *
+     * 若本地版本已经 >= 该过渡版本，说明迁移已经做过了，此时它就是普通版本、不该再拦。
+     * 判定放在这里只负责"把候选换成它"，"要不要强制"由 [Status.isMandatoryBridge]
+     * 交给 UI —— 检查逻辑不该替 UI 决定按钮能不能点。
+     */
+    private fun pickWithMandatoryBridge(
+        arr: JSONArray,
+        best: JSONObject?,
+        channel: UpdateChannel,
+    ): JSONObject? {
+        if (best == null) return null
+        val bestTag = best.optString("tag_name").trim()
+        val local = BuildConfig.VERSION_NAME
+        // 候选里所有"比本地新、且属于强制过渡"的版本，取**最低**的那个：
+        // 用户必须先过最早的那道关。更高的过渡版本等他过了这道关之后自然会成为新的候选。
+        var bridge: JSONObject? = null
+        var bridgeTag = ""
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            if (o.optBoolean("draft")) continue
+            val tag = o.optString("tag_name").trim()
+            if (!VERSION_TAG.matches(tag)) continue
+            if (!channel.allows(channelOf(o, tag))) continue
+            if (!isMandatoryBridge(o, tag)) continue
+            // 已经不比本地新了 → 迁移早就做过，不再是"必经"
+            if (me.bmax.apatch.dsh.compareVersions(tag, local) <= 0) continue
+            if (bridgeTag.isEmpty() || me.bmax.apatch.dsh.compareVersions(tag, bridgeTag) < 0) {
+                bridge = o
+                bridgeTag = tag
+            }
+        }
+        // 没有待过的关，或者最新版本身就是那道关 → 直接用 best。
+        if (bridge == null) return best
+        // 若 best 比 bridge 更高，说明中间跳过了这道关：改推 bridge。
+        return if (me.bmax.apatch.dsh.compareVersions(bridgeTag, bestTag) < 0) bridge else best
+    }
+
+    /**
+     * 这个 release 是否声明为强制过渡版本。
+     *
+     * 只认**独占一行**的标记，避免正文里随口提到这个词就误判 —— 比如更新说明里写
+     * "这版不是 mandatory-bridge"，子串匹配会把它当成真的标记。
+     */
+    private fun isMandatoryBridge(release: JSONObject, tag: String): Boolean {
+        val body = release.optString("body")
+        if (body.isBlank()) return false
+        return body.lineSequence().any { it.trim().equals(BRIDGE_MARKER, ignoreCase = true) }
     }
 
     /** 这个 release 是不是测试版：`prerelease` 标记，或 tag 带预发布后缀。 */
