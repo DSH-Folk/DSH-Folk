@@ -1107,8 +1107,37 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
   // 现在钉的是反面：**存 coords、用时现取**，且 pan/scale 必须由调用方传入
   // （在 draw lambda 里读状态不会登记快照依赖，平移不会重绘）。
   ok(/fun pinWorldRect\(key: String, panNow: Offset, scaleNow: Float\): Rect\?/.test(cv) &&
-    /c\.boundsInWindow\(\), origin, panNow, scaleNow/.test(cv),
-    "针脚世界矩形**用时现算**（boundsInWindow 每次套用当前变换，平移后不再错位）");
+    /c\.unclippedBoundsInWindow\(\), origin, panNow, scaleNow/.test(cv),
+    "针脚世界矩形**用时现算**且用不裁剪的矩形（平移后不再错位）");
+  // 必须显式关掉裁剪。boundsInWindow() 的 clipBounds 默认 true，会把矩形夹到画布裁剪区上 ——
+  // 卡片一超出视野，线头就被拽向边界。这正是"超出画布部分拉线一直偏"的根因。
+  // 取函数体再断言，而不是拼一个跨行正则 —— 跨行正则在 JS 字符串里要多层转义，
+  // 写错时断言会静默失效（明明代码改坏了却仍然绿）。这里先切片再查，错误更容易暴露。
+  {
+    const at = cv.indexOf("fun LayoutCoordinates.unclippedBoundsInWindow()");
+    const end = at >= 0 ? cv.indexOf("\n\n", at) : -1;
+    const body = at >= 0 && end > at ? cv.slice(at, end) : "";
+    ok(body.includes("boundsInWindow(clipBounds = false)"),
+      "unclippedBoundsInWindow 真的传了 clipBounds = false（默认 true 会夹到裁剪区，卡片出视野线头就被拽向边界）");
+    ok(!/boundsInWindow\(\)/.test(body),
+      "unclippedBoundsInWindow 里没有裸 boundsInWindow() 调用");
+  }
+  // 整个画布文件里，任何取坐标的地方都不许用会裁剪的那个重载。
+  //
+  // 注意不能只查 `boundsInWindow()` 这个字面串：它是 `boundsInWindow(clipBounds = false)`
+  // 的**子串**，于是"改成裸调用"的变异会被子串命中而假绿（实测踩过）。
+  // 改成按调用点匹配：出现 boundsInWindow 之后必须紧跟 clipBounds = false。
+  {
+    // 先剥注释：KDoc 里为了解释这个坑，会**引用**裸调用的写法。
+    // 不剥的话注释本身会被当成"可疑调用"，断言在正确代码上就红了（实测踩过）。
+    const codeOnly = cv
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/[^\n]*/g, "");
+    const calls = codeOnly.match(/boundsInWindow\s*\([^)]*\)/g) || [];
+    const bad = calls.filter((c) => !/clipBounds\s*=\s*false/.test(c));
+    ok(calls.length > 0 && bad.length === 0,
+      `全文件的 boundsInWindow 都显式传了 clipBounds = false（默认裁剪会让卡片出视野就取不到真实位置）；可疑调用：${bad.join(", ") || "无"}`);
+  }
   // 形参名字对了不算数：函数体必须真的用传进来的 panNow/scaleNow。
   // 曾经只钉形参名，于是「形参叫 panNow、函数体仍读外层 pan」这种半吊子改法能蒙过去 ——
   // 而那正是 bug 的形状（draw 阶段读外层状态，平移不重绘）。
@@ -1117,7 +1146,7 @@ console.log("\u2500 #16k 拖动手感与拉线坐标（三条真机反馈的回�
     const at = cv.indexOf("fun pinWorldRect(");
     const body = at >= 0 ? cv.slice(at, cv.indexOf("\n    }", at) + 6) : "";
     ok(body.length > 0 &&
-      /toWorldRect\(c\.boundsInWindow\(\), origin, panNow, scaleNow\)/.test(body),
+      /toWorldRect\(c\.unclippedBoundsInWindow\(\), origin, panNow, scaleNow\)/.test(body),
       "pinWorldRect 函数体真的用传进来的 panNow/scaleNow（不是读外层状态）");
   }
   ok(/fun nodeWorldRect\(id: String, panNow: Offset, scaleNow: Float\): Rect\?/.test(cv) &&
@@ -2208,6 +2237,19 @@ console.log("\u2500 #16k 卡片可编辑 / 悬浮层定位 / 虚线框跟着选�
 
   // 虚线框用实测矩形，且跟着选中态而不是拖动。
   ok(/val rect = nodeWorldRect\(framed, pan, scale\)/.test(SRC.canvas), "虚线框用卡片实测矩形（不写死高度）");
+  // 矩形必须在 **Canvas 的 draw lambda 内部**取。写在组合期再被捕获的话，
+  // 拖动只改 Modifier.offset、不重组，捕获的 rect 永远是旧值 —— 框会停在原地。
+  {
+    const at = SRC.canvas.indexOf("val framed = selectedNodeId");
+    const seg = at >= 0 ? SRC.canvas.slice(at, at + 2000) : "";
+    const canvasAt = seg.indexOf("Canvas(Modifier.fillMaxSize())");
+    const rectAt = seg.indexOf("val rect = nodeWorldRect(framed, pan, scale)");
+    ok(canvasAt >= 0 && rectAt > canvasAt,
+      "虚线框矩形在 draw lambda 内部现取（写在组合期会被捕获成旧值，框就不跟卡片了）");
+    // draw lambda 里读 State 不登记快照依赖 → 高度变化不重绘。必须用 key(coords) 显式重建。
+    ok(/key\(boundsCoords\[framed\]\)/.test(seg),
+      "用 key(coords) 让卡片尺寸变化时重建（否则框停在旧高度）");
+  }
   ok(/val framed = selectedNodeId/.test(SRC.canvas), "虚线框跟选中态（松手后不消失）");
   ok(!/draggingNodeId/.test(SRC.canvas), "不再有 draggingNodeId 这一路状态");
 }

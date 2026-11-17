@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -159,12 +160,12 @@ internal fun WorkflowBlueprintCanvas(
     fun nodeWorldRect(id: String, panNow: Offset, scaleNow: Float): Rect? {
         val c = boundsCoords[id] ?: return null
         if (!c.isAttached) return null
-        return toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow)
+        return toWorldRect(c.unclippedBoundsInWindow(), origin, panNow, scaleNow)
     }
     /** 全部卡片此刻的世界矩形（落点判定用）。 */
     fun nodeWorldRects(panNow: Offset, scaleNow: Float): Map<String, Rect> =
         boundsCoords.mapNotNull { (id, c) ->
-            if (c.isAttached) id to toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow) else null
+            if (c.isAttached) id to toWorldRect(c.unclippedBoundsInWindow(), origin, panNow, scaleNow) else null
         }.toMap()
     // 画布的空白点击与拉线回调也要最新值（手势块的 key 不会因回调变化而重启）。
     val blankTapCb = rememberUpdatedState(onBlankTap)
@@ -221,7 +222,7 @@ internal fun WorkflowBlueprintCanvas(
     fun pinWorldRect(key: String, panNow: Offset, scaleNow: Float): Rect? {
         val c = pinCoords[key] ?: return null
         if (!c.isAttached) return null
-        return toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow)
+        return toWorldRect(c.unclippedBoundsInWindow(), origin, panNow, scaleNow)
     }
 
     Box(
@@ -281,25 +282,33 @@ internal fun WorkflowBlueprintCanvas(
             // 与卡片自身尺寸无关的固定 padding，所以缩放时框也跟着缩放（它画在内容层里）。
             val framed = selectedNodeId
             if (framed != null) {
-                // 框必须用**卡片实测的窗口矩形**换算，不能用写死的高度。
+                // 框必须用**卡片实测的窗口矩形**换算，不能用写死的高度 ——
+                // 卡片带参数行、会变高，写死的框会只包住上半张卡。
                 //
-                // 上一版把高度写死成 96dp：卡片还只有"名称+一个主参数"时正好相等，于是肉眼看不出问题；
-                // 现在卡片带参数行、会变高，写死的框就比卡片小一截（真机截图里框只包住上半张卡）。
-                val rect = nodeWorldRect(framed, pan, scale)
-                if (rect != null) {
+                // ## 两个坑叠在一起，各自都要修
+                //
+                // 1) 矩形不能在组合期算好再被 draw lambda 捕获。
+                //    拖动卡片只改 `Modifier.offset`，不重新布局、不动 boundsCoords 这个 State，
+                //    组合根本不会重跑 —— 捕获的 rect 永远是按下时的旧值。用户报的
+                //    「虚线框不跟卡片」就是这个：框停在原地，卡走了。
+                //    所以 rect 必须在 draw lambda **内部**现取。
+                //
+                // 2) 但 draw lambda 里读 State 不登记快照依赖，于是「卡片高度变了」
+                //    （展开参数、换状态）只更新 boundsCoords 而不重绘，框会停在旧高度。
+                //    用 key(coords) 把 Canvas 包起来：coords 换了就重建节点，显式重新组合一次。
+                //
+                // 矩形本身来自 unclippedBoundsInWindow —— 不能用 boundsInWindow()，
+                // 那个会把矩形夹到画布裁剪区上，卡片一出视野框就贴边。
+                key(boundsCoords[framed]) {
                     Canvas(Modifier.fillMaxSize()) {
+                        val rect = nodeWorldRect(framed, pan, scale) ?: return@Canvas
                         val pad = 8.dp.toPx()
-                        // bounds 里存的已是世界坐标（见 onBounds），这里直接用，不再逆变换。
-                        val left = rect.left
-                        val top = rect.top
-                        val right = rect.right
-                        val bottom = rect.bottom
                         drawRect(
                             color = wireColor,
-                            topLeft = Offset(left - pad, top - pad),
+                            topLeft = Offset(rect.left - pad, rect.top - pad),
                             size = androidx.compose.ui.geometry.Size(
-                                (right - left) + pad * 2,
-                                (bottom - top) + pad * 2,
+                                rect.width + pad * 2,
+                                rect.height + pad * 2,
                             ),
                             style = Stroke(
                                 width = 2.dp.toPx(),
@@ -311,6 +320,7 @@ internal fun WorkflowBlueprintCanvas(
                     }
                 }
             }
+
             // 每张卡里"已接线的参数键"：NONE 档据此决定显示哪些行。
             // 由数据边（toPin / fromPin 的 to 端）算出，卡片自己不认识边表。
             val dataLinkedKeys: Map<String, Set<String>> = definition.edges
@@ -422,7 +432,15 @@ internal fun WorkflowBlueprintCanvas(
                     // 根因：平移只改 graphicsLayer、不重新布局，onGloballyPositioned 不再触发，
                     // 存下的是**旧 pan 算出来的**世界坐标；卡片越出视口后 Compose 更不会为它
                     // 重跑布局，缓存值永远停在旧 pan 上。存 coords 则每次查询都会套用当前变换。
-                    onBounds = { c -> boundsCoords = boundsCoords + (node.id to c) },
+                    // 与 putPinCoords 同一套纪律：只在 coords **换对象**时写回。
+                    //
+                    // 上一版这里是无条件赋值（`boundsCoords = boundsCoords + (...)`），于是形成
+                    // 「布局 → 回调 → 改状态 → 重组 → 布局」的反馈循环。真机表现就是用户报的
+                    // 「虚线框不跟卡片了」：框读到的 rect 在循环里反复失效/重建，跟不上拖动。
+                    // 用 === 比身份：同一个 coords 对象在拖动/平移期间不变，天然切断循环。
+                    onBounds = { c ->
+                        if (boundsCoords[node.id] !== c) boundsCoords = boundsCoords + (node.id to c)
+                    },
                     onPinBounds = { pinKind, c -> putPinCoords("${node.id}:$pinKind", c) },
                     // 同时按引脚 id 登记：数据边与落点判定要精确到"哪一颗"。
                     onPinIdBounds = { pinId, pinKind, c ->
@@ -543,6 +561,35 @@ private fun toWorldPoint(point: Offset, origin: Offset, pan: Offset, scale: Floa
     val s = if (scale > 0f) scale else 1f
     return Offset((point.x - origin.x - pan.x) / s, (point.y - origin.y - pan.y) / s)
 }
+
+/**
+ * 某块布局**未被裁剪**的窗口矩形。
+ *
+ * ## 为什么不能用 boundsInWindow()
+ *
+ * `boundsInWindow()` 内部走的是 `findRootCoordinates().localBoundingBoxOf(this, clipBounds = true)`
+ * —— **clipBounds 是 true**。也就是说，当这个节点超出任何祖先的裁剪区时，返回的矩形会被
+ * **夹到裁剪边界上**，而不是它的真实位置。
+ *
+ * 画布根节点有 `.clip(RoundedCornerShape(12.dp))`，所以卡片一旦被拖出可视区：
+ *  - 它的 boundsInWindow 就变成"贴着画布边缘的一条"；
+ *  - 用它算出来的世界坐标自然也是错的 —— 线头被拽向边界，而不是跟着卡片。
+ *
+ * 这正是"卡片在视野内还好、一超出边界就偏"的根因。之前几轮一直在查 pan/scale 的换算，
+ * 方向错了：换算公式是对的，**输入**被裁剪过了。
+ *
+ * ## 修法
+ *
+ * 官方 API 本来就有这个开关：`boundsInWindow(clipBounds = false)`。
+ * 文档原话：「If true, any clipping that occurs between this layout and the window
+ * will affect the returned bounds, and can even result in an empty rectangle if clipped
+ * regions do not overlap.」—— 默认值就是 true。
+ *
+ * 用官方参数而不是自己拿 localToWindow 算两个角：后者在旋转/缩放时得到的不是外接矩形，
+ * 而官方实现会正确处理。
+ */
+private fun LayoutCoordinates.unclippedBoundsInWindow(): Rect =
+    boundsInWindow(clipBounds = false)
 
 private fun toWorldRect(rect: Rect, origin: Offset, pan: Offset, scale: Float): Rect {
     val s = if (scale > 0f) scale else 1f
@@ -721,7 +768,7 @@ private fun DrawScope.drawBlueprintEdges(
         // 针脚报的是**窗口**矩形，而这一层画在已被 graphicsLayer 缩放+平移过的内容层里 ——
         // 所以要先经逆变换回到世界坐标，否则一旦缩放，线头就会离针脚越来越远。
         val safeScale = if (scale > 0f) scale else 1f
-        // pinWorldRect 每次调用都现取 boundsInWindow() 再用**当前** pan/scale 换算，
+        // pinWorldRect 每次调用都现取窗口矩形（不裁剪）再用**当前** pan/scale 换算，
         // 所以拿到的一定是此刻的世界坐标。不能再逆变换一次 —— 那会把偏移算两遍。
         // 保留 worldX/worldY 两个名字只为可读性：这条绘制链路上的坐标一律是世界坐标。
         fun worldX(x: Float) = x
