@@ -75,9 +75,12 @@ enum class UpdateChannel(
             // 复用 APApplication 那一份：设置页写的是它，检查逻辑读的也必须是它。
             // 各写一份 getSharedPreferences(SP_NAME) 也能通，但两份来源一旦漂移（比如
             // 有人改了 SP_NAME 却只改一处），就变成「界面显示开了、检查读到关」。
-            val app = context.applicationContext
-            return if (app is APApplication) app.sharedPreferences
-            else app.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE)
+            // sharedPreferences 挂在 APApplication 的 **companion** 上，是伴生成员而不是实例成员，
+            // 所以要走 APApplication.sharedPreferences（全限定），不能用实例访问。
+            // lateinit 在 Application.onCreate 里赋值；若这里被更早调用会抛异常，
+            // 因此兜底走 getSharedPreferences —— 同一个 SP_NAME，读到的仍是同一份数据。
+            return runCatching { APApplication.sharedPreferences }
+                .getOrElse { context.applicationContext.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE) }
         }
 
         /**

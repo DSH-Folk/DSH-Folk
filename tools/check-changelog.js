@@ -291,8 +291,10 @@ ok(/LEGACY_KEY_ACCEPT_BETA/.test(channel) && /getBoolean\(LEGACY_KEY_ACCEPT_BETA
 ok(/if \(stored != null\) return fromId\(stored\)/.test(channel),
   "迁移只在新键不存在时发生一次（之后用户的选择是唯一事实）");
 // 通道读写必须与设置页同一份 prefs：写一份读另一份 = 界面显示开了、检查读到关
-ok(/app\.sharedPreferences/.test(channel) && /is APApplication/.test(channel),
-  "通道读写复用 APApplication.sharedPreferences（与设置页同源）");
+// sharedPreferences 是 **伴生对象** 成员，必须走 APApplication.sharedPreferences。
+// 曾经写成 app.sharedPreferences（实例访问）—— 本地门禁看不出来，CI 才报 Unresolved reference。
+ok(/APApplication\.sharedPreferences/.test(channel),
+  "通道读写复用 APApplication.sharedPreferences（伴生成员，不是实例成员；与设置页同源）");
 
 ok(/suspend fun check\(channel: UpdateChannel = UpdateChannel\.STABLE\)/.test(checker),
   "check() 的通道默认 STABLE（与历史行为一致：旧布尔缺省 false 就是只收正式版）");

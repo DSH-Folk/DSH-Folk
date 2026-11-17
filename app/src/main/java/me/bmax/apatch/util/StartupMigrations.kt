@@ -111,8 +111,11 @@ object StartupMigrations {
         prefs(context).getString(KEY_LAST_VERSION, null)
 
     private fun prefs(context: Context): SharedPreferences {
-        val app = context.applicationContext
-        return if (app is APApplication) app.sharedPreferences
-        else app.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE)
+        // sharedPreferences 挂在 APApplication 的 **companion** 上，是伴生成员而不是实例成员，
+        // 所以要走 APApplication.sharedPreferences（全限定），不能用实例访问。
+        // lateinit 在 Application.onCreate 里赋值；若这里被更早调用会抛异常，
+        // 因此兜底走 getSharedPreferences —— 同一个 SP_NAME，读到的仍是同一份数据。
+        return runCatching { APApplication.sharedPreferences }
+            .getOrElse { context.applicationContext.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE) }
     }
 }
