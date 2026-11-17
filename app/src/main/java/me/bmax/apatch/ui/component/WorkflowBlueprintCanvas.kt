@@ -510,7 +510,7 @@ internal fun WorkflowBlueprintCanvas(
                 //  - 命中可接针脚：primary（与落点高亮同色，读作"就落这儿"）；
                 //  - 压在卡片上但接不上：error 的低饱和版（明确但不用告警红，那不是错误操作）；
                 //  - 悬在空白：保持 wireColor（松手会弹节点面板，见 showActionSelector 的对应行为）。
-                // bounds 存的是**世界坐标**，wirePointer 是**窗口坐标** —— 必须先换算。
+                // 卡片矩形是**世界坐标**，wirePointer 是**窗口坐标** —— 必须先换算。
                 // 之前直接拿窗口坐标去 contains 世界矩形：画布一平移/缩放，两个坐标系就错开，
                 // "压在卡片上但接不上"的高亮会在错误的卡片上亮起（或该亮时不亮）。
                 val pointerWorld = toWorldPoint(wirePointer, origin, pan, scale)
