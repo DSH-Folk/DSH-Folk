@@ -1657,6 +1657,46 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
       (wrong.length ? "（不对：" + wrong.map((w) => w + "→" + (actionCat[w] || "缺失")).join(",") + "）" : ""));
   }
 
+  // ── 4b. 动作的**标题**必须是动作名，且两两不同 ──
+  //
+  // 这一条防的是一次真实回退：`Action(id, 分类, titleRes, descRes, …)` 的 titleRes 曾经
+  // 取的是**能力名**（"无障碍"），动作名被塞进 descRes。而画布卡片的标题就是 titleRes
+  // （defaultNodeName → appStringRaw(titleRes)），于是无障碍那 7 个动作在画布里全叫
+  // 「无障碍」、虚拟屏那 5 个全叫「虚拟屏」—— 31 个动作有 16 个标题撞车，只能靠下面那行
+  // 小字区分。点击助手里每张卡的标题就是动作名，所以这里也必须如此。
+  //
+  // 三层判据，缺一层都拦不住：
+  //   1. titleRes 的键名必须是 <token>_wf_act_*（动作名），不能是 _cap_*（能力名）；
+  //   2. descRes 必须落在 _cap_*（说明"要用哪个系统能力"）；
+  //   3. 31 条标题串两两不同（撞车正是这条 bug 的可见形态）。
+  {
+    // 取某个字符串键的**文案内容**（撞车要看内容，不是看键名：两个不同的键也可能写同一句话）。
+    // 用中文那份判：它是我们自己的文案，撞车时最直观；键集一致由 check-strings.js 保证。
+    const zhStrings = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
+    const txtOf = (key) => {
+      const m = zhStrings.match(new RegExp('<string name="' + key + '">([\\s\\S]*?)</string>'));
+      return m ? m[1] : key;
+    };
+    const rows = [...catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", R\.string\.(\w+), R\.string\.(\w+), R\.string\.(\w+),/gm)]
+      .map((m) => ({ id: m[1], cat: m[2], title: m[3], desc: m[4] }));
+    ok(rows.length >= 31, "能读出动作条目的分类/标题/说明三列（当前 " + rows.length + " 条）");
+    const titleNotAction = rows.filter((r) => !/_wf_act_/.test(r.title)).map((r) => r.id + "→" + r.title);
+    ok(titleNotAction.length === 0,
+      "标题用的是动作名（_wf_act_*），不是能力名" +
+      (titleNotAction.length ? "（不对：" + titleNotAction.join(",") + "）" : ""));
+    const descNotCap = rows.filter((r) => !/_cap_/.test(r.desc)).map((r) => r.id + "→" + r.desc);
+    ok(descNotCap.length === 0,
+      "说明用的是能力名（_cap_*），讲清这一步要哪个系统能力" +
+      (descNotCap.length ? "（不对：" + descNotCap.join(",") + "）" : ""));
+    // 标题撞车 = 画布上分不出来。用**文案内容**判，不用键名：两个不同的键也可能写同一句话。
+    const byText = {};
+    for (const r of rows) (byText[txtOf(r.title)] = byText[txtOf(r.title)] || []).push(r.id);
+    const dupText = Object.entries(byText).filter(([, v]) => v.length > 1);
+    ok(dupText.length === 0,
+      "每个动作的标题串互不相同（画布卡片标题就是它，撞车就分不出卡）" +
+      (dupText.length ? "（撞车：" + dupText.map(([t, v]) => t + "×" + v.length).join(",") + "）" : ""));
+  }
+
   // 计算册：JSON 归字典、列表算子归列表、与/或/非归条件判断。
   const consts = {};
   for (const m of computeSrc.matchAll(/private val (G_[A-Z]+) = R\.string\.(\w+)/g)) {
