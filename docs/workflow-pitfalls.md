@@ -275,6 +275,51 @@ internal object WorkflowGeometry {
 已连的线也要从**真针脚**起画（卡片上报每个针脚的 `boundsInWindow()`），
 否则线一律从卡片右上角出发，看起来像「没接上」。
 
+### 6.6b 别缓存「换算结果」，缓存**坐标源**
+
+上一条修好之后仍然有残留：卡片一移出可视区，线头就固定偏一截。
+
+根因不是公式，而是**把换算结果存进了状态**：
+
+```kotlin
+// ✗ 错：存的是「测量那一刻用当时的 pan 算出来的世界坐标」
+onPinBounds = { _, rect ->
+    putPinRect(key, toWorldRect(rect, origin, pan, scale))
+}
+```
+
+`世界 = (窗口 − origin − pan) / scale`，这个式子里的 `pan` 是**当时**的值。
+而平移画布只改 `graphicsLayer`、**不会重新布局** → `onGloballyPositioned` 不再触发
+→ 缓存里永远是用旧 pan 算出来的坐标。卡片越出视口后 Compose 更不会为它重跑布局，
+于是表现为「**在视口内还好，一超出边界就偏**」—— 偏多少正好等于那之后的平移量。
+
+```kotlin
+// ✓ 对：只存 LayoutCoordinates，世界矩形在**用的那一刻**现算
+var pinCoords by remember { mutableStateOf<Map<String, LayoutCoordinates>>(emptyMap()) }
+
+fun pinWorldRect(key: String, panNow: Offset, scaleNow: Float): Rect? {
+    val c = pinCoords[key] ?: return null
+    if (!c.isAttached) return null
+    return toWorldRect(c.boundsInWindow(), origin, panNow, scaleNow)
+}
+```
+
+`boundsInWindow()` 是**查询式** API，每次调用都套用当前的 `graphicsLayer` 变换，
+所以平移/缩放之后拿到的永远是对的。
+
+**两个配套细节，漏一个就还是错的：**
+
+1. `pan`/`scale` 必须**显式传参**。这类函数会在 `Canvas` 的 draw lambda 里被调用，
+   那属于**绘制阶段** —— 在那里读状态不会登记成快照依赖，平移既不触发重绘，
+   读到的也可能是过期值。
+2. 判等要用 **coords 身份**（`===`）而不是矩形值。同一个 coords 对象在平移期间不变，
+   天然切断「布局 → 回调 → 改状态 → 重组 → 布局」的反馈循环；比值反而每次都要重算，
+   等于把循环又接回去。
+
+> 门禁教训：一开始只钉了形参名（`fun pinWorldRect(key, panNow, scaleNow)`），
+> 于是「形参叫 panNow、函数体仍读外层 pan」这种半吊子改法能蒙混过关 ——
+> 而那正是 bug 的形状。补了一条**取函数体**、断言它真的用了 `panNow, scaleNow` 的检查。
+
 ### 6.7 落点必须跟着松手位置走
 
 三条拖放路径**必须共用同一处换算**：
