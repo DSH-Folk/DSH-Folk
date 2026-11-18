@@ -1113,7 +1113,13 @@ fun FunctionSettingsContent(
                                     checking = false
                                     val result = latest
                                     // 只有「确实装得上」才弹确认框：要求更高 App 版本的更新弹了也装不了
-                                    if (confirmAfterCheck && result?.version != null && result.minAppVersion.isEmpty()) {
+                                    // 抢提示权：自动检查（MainActivity 冷启动 2.5s 后那条）可能已经
+                                    // 弹过同一个版本了。两边共用 DshRuntime 的闸门，谁先到谁弹。
+                                    // 不加这一步的表现是「同一个更新弹两次窗」—— 用户会以为点了两次。
+                                    if (confirmAfterCheck && result?.version != null &&
+                                        result.minAppVersion.isEmpty() &&
+                                        DshRuntime.claimRuntimePrompt(result.version)
+                                    ) {
                                         updateConfirming = true
                                     }
                                     confirmAfterCheck = false
@@ -1209,7 +1215,10 @@ fun FunctionSettingsContent(
                                 )
                                 if (updateConfirming) {
                                     AlertDialog(
-                                        onDismissRequest = { updateConfirming = false },
+                                        onDismissRequest = {
+                                updateConfirming = false
+                                DshRuntime.clearPromptedRuntimeVersion()
+                            },
                                         title = { Text(stringResource(R.string.dsh_runtime_update_confirm_title)) },
                                         text = {
                                             Text(
@@ -1227,7 +1236,10 @@ fun FunctionSettingsContent(
                                             }) { Text(stringResource(R.string.dsh_runtime_update_go)) }
                                         },
                                         dismissButton = {
-                                            TextButton(onClick = { updateConfirming = false }) {
+                                            TextButton(onClick = {
+                                updateConfirming = false
+                                DshRuntime.clearPromptedRuntimeVersion()
+                            }) {
                                                 Text(stringResource(android.R.string.cancel))
                                             }
                                         },

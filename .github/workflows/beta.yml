@@ -103,6 +103,7 @@ jobs:
       # 走一遍完整构建 + 发布，让它们在上面拦下来代价最低。
       - name: Static source checks
         run: |
+          node tools/check-version-naming.js
           node tools/check-changelog.js
           node tools/check-kotlin-comments.js
           node tools/check-strings.js

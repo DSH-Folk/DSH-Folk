@@ -77,6 +77,8 @@ const stringsZh = read("app/src/main/res/values-zh-rCN/strings.xml");
 const checker = code(read("app/src/main/java/me/bmax/apatch/util/UpdateChecker.kt"));
 const folkClient = code(read("app/src/main/java/me/bmax/apatch/util/FolkApiClient.kt"));
 const runtime = code(read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt"));
+const mainActivity = code(read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt"));
+const settings = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt"));
 /** 剥 YAML 注释：注释里解释某个 flag 为什么重要，不能算作那个 flag 存在。 */
 function yml(src) {
   return src
@@ -342,6 +344,19 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   // 钉住**声明**与**包裹**两处，且必须是 checkRuntimeUpdate 这个函数。
   ok(/private val updateCheckMutex = kotlinx\.coroutines\.sync\.Mutex\(\)/.test(runtime),
     "运行时更新检查有 Mutex 声明（自动与手动并发时不重复请求、不互相覆盖结果）");
+  // ── 运行时更新提示：自动与手动不能各弹一次 ──
+  //
+  // 自动检查（MainActivity 冷启动 2.5s 后）与手动检查（设置页卡片）是两条独立路径，
+  // 各自弹各自的确认框。用户冷启动后进设置点一下「检查更新」，同一个更新会弹两次窗。
+  // 修法是让两边共用一份「已经提示过这个版本」的事实。
+  ok(/fun claimRuntimePrompt\(version: String\): Boolean/.test(runtime),
+    "DshRuntime 有提示去重闸门（否则自动+手动各弹一次）");
+  ok(/claimRuntimePrompt\(result\.version\)/.test(mainActivity),
+    "自动检查登记提示权");
+  ok(/claimRuntimePrompt\(result\.version\)/.test(settings),
+    "设置页手动检查也登记提示权（共用同一闸门）");
+  ok(/fun clearPromptedRuntimeVersion\(\)/.test(runtime),
+    "提示关掉时放开闸门（否则用户手动再查一次看不到结果）");
   ok(/suspend fun checkRuntimeUpdate\(\): RuntimeCheckResult = updateCheckMutex\.withLock/.test(runtime),
     "checkRuntimeUpdate 真的被 withLock 包住（只声明不用等于没锁）");
 }

@@ -366,11 +366,14 @@ internal fun DshSettingsScreen(
         if (!permissionOnly && groupKey == null && !autoOpened) {
             functionGroupOfItem(highlightKey)?.let { g ->
                 autoOpened = true
+                // **不能加 launchSingleTop**：入口层与分类页是同一个 Destination 的两个实例
+                // （只差 group 参数）。launchSingleTop 对「同一目的地不同参数」的行为是
+                // **替换栈顶**而不是压栈，于是栈里只剩一份 FunctionSettings ——
+                // 再从深度清理/工作流这类子页返回，就直接落回首页了。
+                // 用户报的「功能内部页面点返回直接回首页」就是这个。
                 navigator.navigate(
                     FunctionSettingsScreenDestination(highlightKey = highlightKey, group = g.key)
-                ) {
-                    launchSingleTop = true
-                }
+                )
             }
         }
     }
@@ -435,11 +438,10 @@ internal fun DshSettingsScreen(
             FunctionHubContent(
                 query = hubQuery,
                 onOpen = { group, itemKey ->
+                    // 同上：不加 launchSingleTop，否则分类页替换掉入口层，返回时直接落回首页。
                     navigator.navigate(
                         FunctionSettingsScreenDestination(highlightKey = itemKey, group = group.key)
-                    ) {
-                        launchSingleTop = true
-                    }
+                    )
                 },
                 modifier = Modifier.padding(paddingValues),
                 onOpenWorkflow = { navigator.navigate(WorkflowScreenDestination) { launchSingleTop = true } },

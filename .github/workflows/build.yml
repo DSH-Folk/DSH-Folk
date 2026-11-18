@@ -160,6 +160,7 @@ jobs:
       #   而那在 App 侧完全看不出来。
       - name: Static source checks
         run: |
+          node tools/check-version-naming.js
           node tools/check-changelog.js
           node tools/check-kotlin-comments.js
           node tools/check-strings.js

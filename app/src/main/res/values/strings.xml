@@ -526,8 +526,8 @@
     <string name="update_channel_beta_desc">Pre-release builds from CI on top of releases. Signed with the release key, so they upgrade in place.</string>
     <string name="update_channel_alpha">Alpha</string>
     <string name="update_channel_alpha_desc">Every build, including ones that may fail to start or lose data.</string>
-    <string name="update_channel_alpha_warning">Alpha builds are barely tested. They may refuse to open, or lose your data. Do not use this channel unless you can recover from that.</string>
-    <string name="update_channel_beta_warning">Beta builds are newer than they are tested. Unexpected behaviour is possible.</string>
+    <string name="update_channel_alpha_warning">Alpha builds are barely tested — they may fail to open, or lose your data. Do not use this channel unless you can recover from that.</string>
+    <string name="update_channel_beta_warning">Beta builds are newer than they are tested, so unexpected behaviour is possible.</string>
     <string name="update_channel_alpha_confirm_hint">Type %1$s to confirm</string>
     <string name="update_channel_alpha_confirm_word">ALPHA</string>
     <string name="update_channel_switch">Switch</string>

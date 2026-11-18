@@ -1638,6 +1638,17 @@ console.log("\u2500 #17 用户自己也能建/改流程");
     "atomicWrite 先 fsync 再 rename（否则断电后 rename 成功、内容为空）");
   ok(/if \(!tmp\.renameTo\(target\)\)/.test(awBody),
     "rename 失败要单独处理（保留旧文件，不能当作已成功）");
+  // ── 导航：分类页必须**压栈**，不能替换入口层 ──
+  //
+  // launchSingleTop 对「同一目的地不同参数」的行为是**替换栈顶**。
+  // FunctionSettings 的入口层与分类页正是同一 Destination 的两个实例（只差 group 参数），
+  // 所以加 launchSingleTop 会让栈里只剩一份 —— 再从深度清理/工作流返回就落回首页。
+  // 用户报的「功能内部页面点返回直接回首页」就是这个。
+  const fsScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+  const groupNav = [...fsScreen.matchAll(/navigate\(\s*FunctionSettingsScreenDestination\([^)]*group = [^)]*\)\s*\)(\s*\{[^}]*\})?/g)];
+  ok(groupNav.length >= 2, "能找到进入分类页的导航（应为 2 处：搜索直达 + 点分类）");
+  ok(groupNav.every(m => !/launchSingleTop/.test(m[1] || "")),
+    "进入分类页不加 launchSingleTop（同一目的地不同参数会替换栈顶，返回时直接落回首页）");
 
   // ── 多入口：未指定入口时要提示选择 ──
   //

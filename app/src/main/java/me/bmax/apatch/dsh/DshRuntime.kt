@@ -162,6 +162,39 @@ object DshRuntime : DshRuntimeHost {
 
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // ─────────────────── 更新提示的全局闸门 ───────────────────
+    //
+    // 自动检查（冷启动 2.5s 后，MainActivity）与手动检查（设置页卡片）是**两条独立路径**，
+    // 各自弹各自的确认框。用户在冷启动后进设置点一下「检查更新」，两条都会命中，
+    // 于是**同一个更新弹两次窗** —— 用户看到的是"点了两次一样的东西"。
+    //
+    // 修法不是让其中一条别弹（两条都是用户可见的意图），而是让它们**共用一份"已经提示过"**
+    // 的事实：谁先弹谁登记版本号，后到的发现同一个版本已经提示过就不再弹。
+    //
+    // 只按版本号去重、不按时间：用户关掉提示后再次手动检查，仍应看到结果（那是他主动要的），
+    // 所以去重只在**提示还挂着**时生效，见 clearPromptedRuntimeVersion()。
+    private val _promptedRuntimeVersion = MutableStateFlow<String?>(null)
+
+    /** 当前正被提示的运行时版本；null = 没有提示在挂。 */
+    val promptedRuntimeVersion: StateFlow<String?> = _promptedRuntimeVersion.asStateFlow()
+
+    /**
+     * 登记「这个版本已经弹过提示」。
+     *
+     * @return true = 本次抢到了提示权（调用方该弹）；false = 同一个版本已经在提示中（不该再弹）。
+     */
+    fun claimRuntimePrompt(version: String): Boolean {
+        if (version.isEmpty()) return false
+        if (_promptedRuntimeVersion.value == version) return false
+        _promptedRuntimeVersion.value = version
+        return true
+    }
+
+    /** 提示关掉时调用：放开闸门，下次手动检查仍能看到结果。 */
+    fun clearPromptedRuntimeVersion() {
+        _promptedRuntimeVersion.value = null
+    }
+
     private val _state = MutableStateFlow(DshState())
     val state: StateFlow<DshState> = _state.asStateFlow()
 

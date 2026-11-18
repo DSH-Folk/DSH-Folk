@@ -670,7 +670,11 @@ class MainActivity : AppCompatActivity() {
                         val result = runCatching { DshRuntime.checkRuntimeUpdate() }.getOrNull()
                         // 查不到 / 已最新：静默（同应用自动检查）。要求更高 App 版本的
                         // 更新也不弹 —— 弹了也装不上，设置页那张运行时卡会说明该怎么办。
-                        if (result?.version != null && result.minAppVersion.isEmpty()) {
+                        // 抢提示权：设置页的手动检查可能已经弹过同一个版本了。
+                        // 两边共用 DshRuntime 的闸门，谁先到谁弹，后到的不重复弹。
+                        if (result?.version != null && result.minAppVersion.isEmpty() &&
+                            DshRuntime.claimRuntimePrompt(result.version)
+                        ) {
                             runtimePrompt.value = result
                         }
                     }
@@ -763,7 +767,10 @@ class MainActivity : AppCompatActivity() {
 
                 if (showRuntimeDialog.value) {
                     AlertDialog(
-                        onDismissRequest = { showRuntimeDialog.value = false },
+                        onDismissRequest = {
+                            showRuntimeDialog.value = false
+                            DshRuntime.clearPromptedRuntimeVersion()
+                        },
                         title = { Text(stringResource(R.string.dsh_runtime_prompt_title)) },
                         text = {
                             Text(
@@ -776,6 +783,7 @@ class MainActivity : AppCompatActivity() {
                         confirmButton = {
                             TextButton(onClick = {
                                 showRuntimeDialog.value = false
+                                DshRuntime.clearPromptedRuntimeVersion()
                                 // 通道 metadata 就是刚查到的那个版本，重装即更新。这里不直接跑：
                                 // 先过「建议先备份」，用户点「继续」后再启动并回首页看进度。
                                 // 自动检测更新这条路的更新动作：必须走 updateRuntime（按通道候选取最新），
@@ -785,7 +793,10 @@ class MainActivity : AppCompatActivity() {
                             }) { Text(stringResource(R.string.dsh_runtime_update_go)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showRuntimeDialog.value = false }) {
+                            TextButton(onClick = {
+                                showRuntimeDialog.value = false
+                                DshRuntime.clearPromptedRuntimeVersion()
+                            }) {
                                 Text(stringResource(android.R.string.cancel))
                             }
                         },

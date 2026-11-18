@@ -501,8 +501,8 @@
     <string name="update_channel_beta_desc">在正式版之外收 CI 构建的预发布版。用正式版签名，可直接覆盖安装。</string>
     <string name="update_channel_alpha">Alpha</string>
     <string name="update_channel_alpha_desc">所有构建都收，包括可能起不来或丢数据的那些。</string>
-    <string name="update_channel_alpha_warning">Alpha 构建几乎没测过，可能无法打开，甚至丢失数据。除非你能承担这个后果，否则不要选这条通道。</string>
-    <string name="update_channel_beta_warning">Beta 构建「新」得多于「稳」，可能出现各种意料之外的行为。</string>
+    <string name="update_channel_alpha_warning">Alpha 构建几乎没测过，甚至可能无法打开软件、丢失数据。除非你能承担这个后果，否则不要选这条通道。</string>
+    <string name="update_channel_beta_warning">Beta 构建比正式版新，但测试不如它充分，可能出现各种意料之外行为。</string>
     <string name="update_channel_alpha_confirm_hint">输入 %1$s 以确认</string>
     <string name="update_channel_alpha_confirm_word">ALPHA</string>
     <string name="update_channel_switch">切换</string>

@@ -75,6 +75,19 @@ object StartupMigrations {
      * 调用点见 [me.bmax.apatch.APatchApp.onCreate]。
      */
     fun runAll(context: Context) {
+        // 先静默比对版本号：**只用于日志与诊断**，不参与"这一条该不该跑"的判定。
+        //
+        // 为什么不做成"版本变了才跑迁移"：版本号会**回退**（用户装回旧版、或从 beta
+        // 退回 stable），回退时"变了"会再跑一遍，而有些迁移读完旧键即删、第二次跑时
+        // 旧键已经没了。版本号只能回答"整体变没变"，回答不了"这一条该不该跑" ——
+        // 后者由每条迁移自己的幂等标志回答（见类注释）。
+        //
+        // 但"从哪个版本升上来"是有价值的诊断信息：用户报"设置莫名重置"时，
+        // 第一件事就是确认他跨了哪个版本。所以这里**记下来**，不改行为。
+        val previous = lastVersion(context)
+        if (previous != null && previous != BuildConfig.VERSION_NAME) {
+            Log.i(TAG, "版本变化 " + previous + " -> " + BuildConfig.VERSION_NAME + "，开始跑启动迁移")
+        }
         for (m in MIGRATIONS) {
             try {
                 m.run(context)
