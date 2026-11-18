@@ -176,7 +176,10 @@ fun HomeScreenDsh(
         //
         // 触发条件是「刚才是我发起的安装」且「已经装好且没在跑」。不加 installPending
         // 的话，进页面时只要运行时已装就会立刻弹一次 —— 那是打扰，不是询问。
-        if (installPending && state.installed && !running && !busy) {
+        // running / busy 是 DshHeroCard **内部**的局部量，这一层看不到，
+        // 所以这里直接按 phase 判断（同一份事实，只是自己算一遍）。
+        val installSettled = state.phase == DshPhase.NOT_READY || state.phase == DshPhase.ERROR
+        if (installPending && state.installed && installSettled) {
             installPending = false
             showInstalledPrompt = true
         }

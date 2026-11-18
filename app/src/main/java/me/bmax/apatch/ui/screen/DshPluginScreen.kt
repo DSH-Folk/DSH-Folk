@@ -95,6 +95,7 @@ import me.bmax.apatch.ui.screen.settings.UserscriptAddFab
 import me.bmax.apatch.ui.screen.settings.UserscriptsContent
 import me.bmax.apatch.ui.screen.settings.rememberUserscriptInstallRequest
 import me.bmax.apatch.dsh.DshRuntime
+import me.bmax.apatch.dsh.ext.ExtensionMarket
 import me.bmax.apatch.dsh.ext.ExtensionEngine
 import me.bmax.apatch.dsh.ext.ExtensionRecord
 import me.bmax.apatch.dsh.ext.ExtensionLayout
@@ -534,8 +535,8 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                                     Intent(Intent.ACTION_GET_CONTENT).apply {
                                         // 扩展包是 zip；限制 MIME 让选择器直接停在压缩包上，
                                         // 而不是让用户在几百个文件里找。
-                                        type = "application/zip",
-                                        addCategory(Intent.CATEGORY_OPENABLE),
+                                        type = "application/zip"
+                                        addCategory(Intent.CATEGORY_OPENABLE)
                                     },
                                 )
                             },

@@ -1723,10 +1723,14 @@ object DshRuntime : DshRuntimeHost {
      * 也不能复用 stopServer() —— 那会写「已停止」，而这里从来没有启动过。
      */
     private fun markInstalledIdle() {
+        // 只改 phase 与 message：webUrl 是**计算属性**（由 port + token 拼出来），
+        // 不是构造参数，写不了；pid / webToken 也不该在这里清 ——
+        // 装完不启动时它们本来就是空的。
         _state.value = _state.value.copy(
             phase = DshPhase.NOT_READY,
-            webUrl = "",
-            error = "",
+            progress = 0f,
+            speedBytesPerSec = 0L,
+            message = "",
         )
     }
 
