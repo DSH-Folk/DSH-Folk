@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -778,15 +779,38 @@ private fun EntryPickerDialog(
                 // 不滚动：入口数量是人手加的，几十个已经是异常情况；
                 // 真多到滚不动时用户该做的是拆流程，而不是在这个弹窗里找。
                 for (t in def.triggers) {
-                    ListItem(
-                        headlineContent = {
-                            Text(t.name.ifBlank { workflowNodeLabel(t) })
-                        },
-                        supportingContent = t.description.takeIf { it.isNotBlank() }?.let {
-                            { Text(it, style = MaterialTheme.typography.bodySmall) }
-                        },
-                        modifier = Modifier.clickable { onPick(t.id) },
-                    )
+                    // 不依赖 workflowNodeLabel（那是 WorkflowNodeCard 里的 private）：
+                    // 这里的标题只是「这是哪个入口」，有名字就用名字，没名字就用节点 id ——
+                    // 入口卡片通常都有名字，兜底只要不空就行。
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(t.id) }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = t.name.ifBlank { t.id },
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            if (t.description.isNotBlank()) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = t.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         },

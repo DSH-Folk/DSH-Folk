@@ -118,7 +118,7 @@ internal object WorkflowEngine {
             // 不该因为自己存在而启动一整套 DSH）。
             runCatching { HarnessService.hold(ctx.applicationContext) }
             try {
-                execute(ctx.applicationContext, run)
+                execute(ctx.applicationContext, run, entryId)
             } catch (e: CancellationException) {
                 finishCanceled(ctx.applicationContext, runId, e.message ?: "canceled")
                 throw e
@@ -168,7 +168,7 @@ internal object WorkflowEngine {
 
     // ────────────────────────── 执行 ──────────────────────────
 
-    private suspend fun execute(ctx: Context, initial: WorkflowRun) {
+    private suspend fun execute(ctx: Context, initial: WorkflowRun, entryId: String? = null) {
         val runId = initial.runId
         val def = initial.definition ?: return
         var run = initial.copy(state = WorkflowRunState.RUNNING)
