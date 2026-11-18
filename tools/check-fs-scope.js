@@ -379,12 +379,16 @@ console.log("\u2500 #4 深度清理：长按入口 + 搜索 + 删除纪律");
   const dcScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/DshDeepCleanScreen.kt");
   const dcCode = code(dc);
 
-  // ① 入口 = 清理卡的**长按**（点仍是原来的浅清理），回调接到深度清理页
+  // ① 入口 = 清理卡的**单击**，回调接到深度清理页
+  //
+  // 原来是长按。长按是**不可发现**的：卡片上没有任何提示，用户只会点一下，
+  // 于是永远看不到深度清理页 —— 那个页面等于不存在。改成单击之后，
+  // 断言必须跟着改，否则门禁会把"长按"这个已废弃的交互当成规范。
   const cleanCard = fsScopeBranchBody(fn, 'item(key = "function_clean_storage"');
-  ok(cleanCard.length > 0 && /combinedClickable\(/.test(cleanCard) &&
-    /onLongClick = onOpenDeepClean/.test(cleanCard) &&
-    /onClick = \{ showCleanStorageDialog\.value = true \}/.test(cleanCard),
-    "深度清理的入口是清理卡的长按（combinedClickable：点=浅清理、长按=深度清理）");
+  ok(cleanCard.length > 0 && /onClick = onOpenDeepClean/.test(cleanCard),
+    "深度清理的入口是清理卡的单击（长按不可发现，等于没有入口）");
+  ok(!/onLongClick/.test(cleanCard),
+    "清理卡不再有长按行为（两套语义叠在同一张卡上会让人猜）");
   ok(/onOpenDeepClean = \{ navigator\.navigate\(DshDeepCleanScreenDestination\)( \{ launchSingleTop = true \})? \}/.test(fnScreen),
     "长按回调接到 DshDeepCleanScreenDestination（不是只声明一个没人用的参数）");
 

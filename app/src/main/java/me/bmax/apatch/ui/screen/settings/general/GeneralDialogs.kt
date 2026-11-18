@@ -355,40 +355,22 @@ fun DesktopAppNameChooseDialog(showDialog: MutableState<Boolean>, onNameChanged:
             color = AlertDialogDefaults.containerColor,
         ) {
             LazyColumn {
-                item {
+                // 选项来自 LauncherIconUtils.NAMES（唯一来源）—— 每加一个名字要同时加
+                // 两个 activity-alias 与一个字符串资源，三处任何一处漏了都会让桌面图标消失，
+                // 所以名字列表不能在这份 UI 里再抄一遍。
+                val current = LauncherIconUtils.normalizeName(currentName)
+                items(LauncherIconUtils.NAMES) { name ->
                     ListItem(
-                        headlineContent = { Text(text = "DSH-Folk") },
+                        headlineContent = { Text(text = name) },
                         modifier = Modifier.clickable {
                             showDialog.value = false
-                            prefs.edit {
-                                putString("desktop_app_name", "DSH-Folk")
-                            }
-                            onNameChanged("DSH-Folk")
+                            prefs.edit { putString("desktop_app_name", name) }
+                            onNameChanged(name)
                             LauncherIconUtils.applySaved(context)
                         },
                         trailingContent = {
-                            if (currentName == "DSH-Folk" || currentName == null) {
-                                Icon(Icons.Filled.Check, contentDescription = null)
-                            }
-                        }
-                    )
-                }
-                item {
-                    ListItem(
-                        headlineContent = { Text(text = "DSH") },
-                        modifier = Modifier.clickable {
-                            showDialog.value = false
-                            prefs.edit {
-                                putString("desktop_app_name", "DSH")
-                            }
-                            onNameChanged("DSH")
-                            LauncherIconUtils.applySaved(context)
+                            if (current == name) Icon(Icons.Filled.Check, contentDescription = null)
                         },
-                        trailingContent = {
-                            if (currentName == "DSH") {
-                                Icon(Icons.Filled.Check, contentDescription = null)
-                            }
-                        }
                     )
                 }
             }

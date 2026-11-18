@@ -70,10 +70,20 @@ fun WorkflowEditorScreen(
         title = stringResource(R.string.dsh_workflow_editor_title),
         // 自动保存：界面每次改动都会走这里，返回的是落盘后的定义（含新 revision）。
         // 冲突/失败返回 null，编辑器会显示状态并保留草稿，不会假装已保存。
-        autosave = { edited -> WorkflowStore.saveIfRevision(ctx, edited, initial.revision) },
+        //
+        // 前置 revision **必须用 edited.revision**，不能用外层的 initial.revision。
+        //
+        // 这里踩过一个让「保存功能失效」的坑：编辑器内部维护 savedRevision 并在每次落盘后
+        // 更新它，调用 saver 时把当前值塞进 edited.revision 一起传下来
+        // （见 WorkflowEditorSurface 的 persistNow：saver(current.copy(revision = savedRevision))）。
+        // 而这里原先写死 initial.revision —— 那是**进入页面时**的值，是个常量。
+        // 第一次保存：磁盘 revision == initial.revision，成功，磁盘变成 +1。
+        // 第二次保存起：磁盘 revision 已 +1，而 expected 仍是 initial.revision → 永远拒绝。
+        // 用户看到的就是「第一次改动存住了，之后怎么改都存不住」，也就是「保存功能失效」。
+        autosave = { edited -> WorkflowStore.saveIfRevision(ctx, edited, edited.revision) },
         onSave = { edited ->
-            // 手动保存 = 立刻落盘并退出。它同样走零冲突路径：磁盘 revision 变了就不覆盖。
-            WorkflowStore.saveIfRevision(ctx, edited, initial.revision)
+            // 手动保存 = 立刻落盘并退出。同样用 edited.revision（理由见上）。
+            WorkflowStore.saveIfRevision(ctx, edited, edited.revision)
             navigator.popBackStack()
         },
         onCancel = { navigator.popBackStack() },

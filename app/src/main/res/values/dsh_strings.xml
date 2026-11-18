@@ -909,6 +909,9 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_clean_failed_hint">Usual causes: the file is in use by dsh or a plugin, or the app lacks All files access.</string>
     <string name="dsh_clean_not_scanned">Nothing has been scanned yet. Scanning walks the runtime, app storage and shared storage, and sizes every folder it meets, so it is not run for you when this page opens — start it when you are ready.</string>
     <string name="dsh_clean_start_scan">Start scan</string>
+    <string name="dsh_clean_scan_shared">Scan shared storage</string>
+    <string name="dsh_clean_scan_shared_hint">Junk locations are already listed above. Scanning shared storage also walks your photos, videos and downloads to total up large files and folders — that takes a while, so it only runs when you ask.</string>
+    <string name="dsh_clean_scanning_shared">Scanning shared storage…</string>
     <string name="dsh_clean_empty">Nothing to clean up was found.</string>
     <string name="dsh_clean_note_no_perm">Shared storage was not scanned: the app has no All files access.</string>
     <string name="dsh_clean_note_none">No large files or folders to show on shared storage.</string>

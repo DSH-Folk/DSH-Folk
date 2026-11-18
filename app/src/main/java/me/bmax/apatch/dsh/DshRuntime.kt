@@ -1951,7 +1951,23 @@ object DshRuntime : DshRuntimeHost {
      * 更高的 App 版本，[RuntimeCheckResult.minAppVersion] 一并带上（UI 据此改提示
      * 「先更新应用」而不是给「更新运行时」按钮）。查不到 / 已最新 = 空结果。
      */
-    suspend fun checkRuntimeUpdate(): RuntimeCheckResult = withContext(Dispatchers.IO) {
+    /**
+     * 运行时更新检查的互斥锁。
+     *
+     * 自动检查（冷启动 2.5 秒后）与手动检查（设置页点卡片）**可能同时发生**：
+     * 用户冷启动后立刻进设置点一下，两条 `checkRuntimeUpdate()` 就并行了。
+     *
+     * 不加锁的后果不只是多发一轮请求（虽然那也已经浪费了匿名 API 的 60/h 配额），
+     * 更麻烦的是两条都可能返回结果，界面收到两次响应 —— 一个提示框弹两次，
+     * 或者先到的"有更新"被后到的"没更新"覆盖掉。
+     *
+     * 用 [Mutex] 而不是"标志位 + 直接返回"：后到的那次**等**前一次做完再返回它的结果，
+     * 而不是拿到一个假的"没更新"。用户点检查就是想看到答案，给他一个假的否定比让他多等一会儿糟。
+     */
+    private val updateCheckMutex = kotlinx.coroutines.sync.Mutex()
+
+    suspend fun checkRuntimeUpdate(): RuntimeCheckResult = updateCheckMutex.withLock {
+        withContext(Dispatchers.IO) {
         if (!DshEnv.isRuntimeInstalled(appContext)) return@withContext RuntimeCheckResult()
         val meta = fetchNewestMeta() ?: return@withContext RuntimeCheckResult(failure = true)
         val local = prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
@@ -1963,6 +1979,7 @@ object DshRuntime : DshRuntimeHost {
             version = meta.version,
             minAppVersion = if (appSatisfies(meta.minAppVersion)) "" else meta.minAppVersion,
         )
+        }
     }
 
     /**

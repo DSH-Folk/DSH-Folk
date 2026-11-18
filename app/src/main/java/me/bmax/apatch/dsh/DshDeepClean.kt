@@ -115,8 +115,33 @@ internal object DshDeepClean {
         "root/.local/share/pnpm/store/*/tmp" to R.string.dsh_clean_kind_temp,
     )
 
-    /** 扫描三块区域。**阻塞**（rootfs 是十万级文件），调用方必须在 IO 线程上跑。 */
-    fun scan(ctx: Context): List<Section> {
+    /**
+     * 扫描的**范围**。
+     *
+     * 拆成两档的理由：两块区域的代价差一个数量级。
+     *
+     * - [JUNK_ONLY]：运行时垃圾 + 应用内部缓存/日志。路径都是**已知的固定位置**
+     *   （`RUNTIME_JUNK` 那张表 + `logFiles`），只 `sizeOf` 那几个命中项，通常几十毫秒。
+     * - [INCLUDE_SHARED]：额外递归统计共享存储里的大文件/大文件夹。要遍历整棵
+     *   `/sdcard`，用户存了几万张照片时是**十几秒**级，而且读的是别人的数据目录。
+     *
+     * 进页默认只跑 [JUNK_ONLY]：用户点进「深度清理」想看到的是"有什么垃圾可以清"，
+     * 不该为此先卡十几秒。挂载目录的体积要用户**主动**要（见页面上的「扫描共享存储」）。
+     */
+    enum class Scope {
+        /** 只扫已知的垃圾位置：运行时 junk/log + 应用缓存/log。快。 */
+        JUNK_ONLY,
+
+        /** 再加上共享存储的大文件/大文件夹递归统计。慢，且需要存储权限。 */
+        INCLUDE_SHARED,
+    }
+
+    /**
+     * 扫描。**阻塞**（rootfs 是十万级文件），调用方必须在 IO 线程上跑。
+     *
+     * @param scope 扫到哪一层，见 [Scope]。默认只扫垃圾位置。
+     */
+    fun scan(ctx: Context, scope: Scope = Scope.JUNK_ONLY): List<Section> {
         val out = ArrayList<Section>()
 
         // ── 1. 运行时（rootfs） ──
@@ -155,7 +180,12 @@ internal object DshDeepClean {
         }
         out.add(section(ctx.filesDir, R.string.dsh_clean_section_app, app, null))
 
-        // ── 3. 共享存储的大文件 / 大文件夹 ──
+        // ── 3. 共享存储的大文件 / 大文件夹（只在 INCLUDE_SHARED 时做）──
+        //
+        // 这一块是**唯一**要遍历用户数据的地方，也是唯一可能卡十几秒的。JUNK_ONLY 时
+        // 整段跳过：不是"扫了但结果为空"，而是**根本不读**。界面据 Scope 决定显不显示
+        // 这一块以及要不要给「扫描共享存储」按钮。
+        if (scope == Scope.JUNK_ONLY) return out
         val ext = Environment.getExternalStorageDirectory()
         val shared = ArrayList<Target>()
         var note: Int? = null

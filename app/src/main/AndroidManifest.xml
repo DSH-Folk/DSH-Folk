@@ -274,6 +274,70 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- ── 桌面名称的另外两组（DeepDroid / DSHD）──
+             每个名字都要「主图标 + 备用图标」两份，因为图标与名字是两个独立维度：
+             用户可能想用 DeepDroid 配备用图标。四个别名共用 targetActivity，
+             LauncherIconUtils 按 (名字, 是否备用图标) 决定启用哪一个、禁用其余全部。
+
+             label 指向各自独立的字符串资源 —— 这是必须新增别名的原因：
+             Android 的 android:label 在**安装时**从资源解析，运行期没有 API 能改，
+             所以"改桌面名字"只能靠切换启用哪个别名。 -->
+        <activity-alias
+            android:name=".ui.MainActivityAliasDeepDroid"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/app_name_deepdroid"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.MainActivityAliasAltDeepDroid"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_alt"
+            android:roundIcon="@mipmap/ic_launcher_alt_round"
+            android:label="@string/app_name_deepdroid"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.MainActivityAliasDshd"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/app_name_dshd"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.MainActivityAliasAltDshd"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_alt"
+            android:roundIcon="@mipmap/ic_launcher_alt_round"
+            android:label="@string/app_name_dshd"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- 内置 WebUI：只加载本机 127.0.0.1，不对外暴露。
              画中画（悬浮小窗）要 supportsPictureInPicture + resizeableActivity；上面那串
              configChanges 已经覆盖 PiP 需要的方向/尺寸变化，所以缩成小窗不会重建 Activity

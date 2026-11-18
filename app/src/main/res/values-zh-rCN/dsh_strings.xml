@@ -889,6 +889,9 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_clean_failed_hint">常见原因：文件正被 dsh 或插件占用，或应用没有「所有文件访问」权限。</string>
     <string name="dsh_clean_not_scanned">还没有扫描。扫描要遍历运行时、应用内部存储与共享存储，并逐层统计目录体积，所以进入本页时不会自动开始 —— 准备好了点下面的按钮。</string>
     <string name="dsh_clean_start_scan">开始扫描</string>
+    <string name="dsh_clean_scan_shared">扫描共享存储</string>
+    <string name="dsh_clean_scan_shared_hint">上面列出的垃圾位置已经扫完了。扫描共享存储会遍历相册、视频与下载目录，统计大文件和大文件夹 —— 这一步比较慢，所以只在你主动要的时候才跑。</string>
+    <string name="dsh_clean_scanning_shared">正在扫描共享存储…</string>
     <string name="dsh_clean_empty">没有找到可清理的项目。</string>
     <string name="dsh_clean_note_no_perm">未扫描共享存储：应用没有「所有文件访问」权限。</string>
     <string name="dsh_clean_note_none">共享存储里没有可展示的大文件或大文件夹。</string>

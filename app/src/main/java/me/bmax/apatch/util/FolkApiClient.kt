@@ -33,11 +33,27 @@ object FolkApiClient {
     private val memoryCache = ConcurrentHashMap<String, CacheEntry>()
     private val inFlightRequests = ConcurrentHashMap<String, Deferred<String>>()
 
+    /**
+     * 在途请求 → 发起它的链路标签。
+     *
+     * 存在的理由只有一个：**取消要能分得开**。
+     *
+     * `cancelInFlightRequests()` 取消的是全部在途请求，而冷启动时应用更新与运行时更新是
+     * **并行**跑的（两条都走 [fetchJson]）。用户在这期间点「手动检查应用更新」，原来会把
+     * 运行时那条也一起取消 —— 它拿到 null 后静默当作"没查到"，于是运行时更新提示时有时无，
+     * 且不报任何错。这类"偶发、无报错"的行为最难查。
+     *
+     * 加标签之后「检查应用更新」只取消它自己那条链，互不干扰。
+     */
+    private val inFlightTags = ConcurrentHashMap<String, String>()
+
     suspend fun fetchJson(
         url: String,
         ttlMs: Long = DEFAULT_TTL_MS,
         maxRetries: Int = DEFAULT_MAX_RETRIES,
-        forceRefresh: Boolean = false
+        forceRefresh: Boolean = false,
+        /** 发起这条请求的链路标签，用于按链路取消（见 [cancelTagged]）。 */
+        tag: String? = null,
     ): Result<String> {
         // 安全校验：拒绝非 HTTP/HTTPS 协议的 URL
         if (!url.startsWith("https://") && !url.startsWith("http://")) {
@@ -70,6 +86,7 @@ object FolkApiClient {
         }
 
         inFlightRequests[url] = deferred
+        if (tag != null) inFlightTags[url] = tag
 
         return try {
             val result = deferred.await()
@@ -81,6 +98,7 @@ object FolkApiClient {
             Result.failure(e)
         } finally {
             inFlightRequests.remove(url)
+            inFlightTags.remove(url)
         }
     }
 
@@ -120,6 +138,18 @@ object FolkApiClient {
 
     fun cancelInFlightRequests() {
         inFlightRequests.values.forEach { it.cancel() }
+    }
+
+    /**
+     * 只取消**某条链路**发起的在途请求。
+     *
+     * 没有标签的请求（历史上没传 tag 的调用方）不会被这里取消 —— 那是有意的：
+     * 宁可少取消一条，也不要在用户点「检查应用更新」时把运行时更新一起打断。
+     */
+    fun cancelTagged(tag: String) {
+        inFlightTags.forEach { (url, t) ->
+            if (t == tag) inFlightRequests[url]?.cancel()
+        }
     }
 
     fun clearCache() {

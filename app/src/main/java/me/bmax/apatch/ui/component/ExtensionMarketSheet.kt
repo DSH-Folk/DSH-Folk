@@ -1,5 +1,11 @@
 package me.bmax.apatch.ui.component
 
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,11 +36,9 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -89,7 +93,6 @@ fun ExtensionMarketSheet(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var loading by remember { mutableStateOf(true) }
     var entries by remember { mutableStateOf<List<MarketEntry>>(emptyList()) }
@@ -174,27 +177,36 @@ fun ExtensionMarketSheet(
         )
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(Modifier.fillMaxWidth()) {
-            // 标题行：右侧那颗刷新与插件商店顶栏的刷新是同一件事（重拉目录）。
-            // 弹层没有顶栏，刷新入口只能挂在这里，否则错误态之后没有第二条路。
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.dsh_ext_market),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { reload() }, enabled = !loading) {
-                    Icon(
-                        Icons.Outlined.Refresh,
-                        contentDescription = stringResource(R.string.dsh_ext_market_refresh),
-                    )
-                }
-            }
+    // ── 整页，不是弹层 ──
+    //
+    // 原来是 ModalBottomSheet（半窗）。用户的原话是「而不是像现在的半窗」——
+    // 而「对齐插件商店」这件事在半窗里根本做不到：插件商店是 Scaffold 整页，
+    // 有顶栏、有全屏列表、有自己的返回语义；塞在弹层里就只能是「像商店的一块」。
+    //
+    // 现在用同一套 Scaffold + TopAppBar，返回箭头与插件商店一致，
+    // 列表也拿到了整屏高度 —— 之前那个 heightIn(max = 520.dp) 是为了让弹层不被内容顶爆，
+    // 整页之后它就成了没必要的限制，已去掉。
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.dsh_ext_market)) },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { reload() }, enabled = !loading) {
+                        Icon(
+                            Icons.Outlined.Refresh,
+                            contentDescription = stringResource(R.string.dsh_ext_market_refresh),
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
             // 计数行：与商店的「共 N 个插件」同一处位置。市场没有分类与搜索，
             // 所以不做「显示 N / 共 M」——那个数字只在「搜的是全量」时才有意义。
             if (!loading && entries.isNotEmpty()) {
@@ -280,10 +292,11 @@ fun ExtensionMarketSheet(
                     }
                 }
                 else -> {
-                    // heightIn(max) 而不是固定 height：两三条时弹层该矮一点，
-                    // 但 LazyColumn 必须有界（弹层高度是 wrap 的），否则量不出高度。
+                    // 整页之后列表直接吃满剩余高度（weight(1f)）：这是 Scaffold 里的
+                    // Column，高度有界，不需要再给 LazyColumn 一个 max ——
+                    // 那个 520dp 是为「弹层高度是 wrap 的」加的，现在反而是个没必要的限制。
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {

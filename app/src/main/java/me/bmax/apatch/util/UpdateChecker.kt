@@ -110,11 +110,32 @@ object UpdateChecker {
         val canInstallInApp: Boolean get() = apkUrl.isNotEmpty() && sha256.isNotEmpty()
     }
 
-    /** 用户主动检查前取消自动检查遗留的网络请求，再从头发起一次。 */
+    /**
+     * 用户主动检查前取消**应用更新**遗留的网络请求，再从头发起一次。
+     *
+     * ## 为什么不能无条件 cancelInFlightRequests()
+     *
+     * `cancelInFlightRequests()` 取消的是 `FolkApiClient` 里**全部**在途请求，不区分是谁发的。
+     * 而冷启动时 `MainActivity` 会并行跑两条自动检查：应用更新 + **运行时更新**
+     * （`DshRuntime.checkRuntimeUpdate()` 走同一个 `fetchApiJson`）。
+     *
+     * 于是「用户在冷启动后两秒内点了手动检查应用更新」会发生：
+     *  1. 手动检查取消掉在途请求 → **运行时自动检查被连带取消**；
+     *  2. 运行时那条 `runCatching{}.getOrNull()` 拿到 null，静默当作"没查到"；
+     *  3. 用户永远看不到那个本来存在的运行时更新提示，而且没有任何错误可见。
+     *
+     * 这不会报错、不会崩，只会让"运行时更新提示时有时无" —— 最难查的那一类。
+     *
+     * 现在只取消**应用更新**这条链自己的请求（见 [FolkApiClient.cancelTagged]），
+     * 运行时那条不受影响。用户点"检查应用更新"不该影响运行时更新。
+     */
     suspend fun checkManually(channel: UpdateChannel = UpdateChannel.STABLE): Status {
-        FolkApiClient.cancelInFlightRequests()
+        FolkApiClient.cancelTagged(TAG_APP_UPDATE)
         return check(channel)
     }
+
+    /** 应用更新这条链在 [FolkApiClient] 里登记请求用的标签。 */
+    const val TAG_APP_UPDATE = "app-update"
 
     /**
      * @param channel 更新通道。默认 [UpdateChannel.STABLE] —— 与历史行为一致
@@ -177,6 +198,7 @@ object UpdateChecker {
                     ttlMs = 10 * 60 * 1000L,
                     maxRetries = 1,
                     forceRefresh = true,
+                    tag = TAG_APP_UPDATE,
                 ).getOrNull()
             }
         }.toMutableList()
@@ -204,6 +226,7 @@ object UpdateChecker {
                         ttlMs = 30 * 60 * 1000L,
                         maxRetries = 1,
                         forceRefresh = true,
+                        tag = TAG_APP_UPDATE,
                     ).getOrNull()?.let { body ->
                         runCatching { newestVersionRelease(body, channel) }.getOrNull()
                     }
@@ -314,8 +337,12 @@ object UpdateChecker {
             listOf(url)
         }
         for (c in candidates) {
-            val body = FolkApiClient.fetchJson(c, ttlMs = 30 * 60 * 1000L, maxRetries = 0)
-                .getOrNull().orEmpty()
+            val body = FolkApiClient.fetchJson(
+                c,
+                ttlMs = 30 * 60 * 1000L,
+                maxRetries = 0,
+                tag = TAG_APP_UPDATE,
+            ).getOrNull().orEmpty()
             val hex = body.trim().substringBefore(' ').trim()
             if (hex.length == 64 && hex.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) {
                 return hex.lowercase()

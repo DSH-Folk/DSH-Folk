@@ -37,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -94,6 +95,11 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     // scanned=true 配一个空列表，恰好又变回上面那句误导文案。跟 sections 同生命周期最安全：
     // 一起回落到「未扫描」，与「进页不自动扫」的语义一致。
     var scanned by remember { mutableStateOf(false) }
+    // 这次扫描用的范围，以及**已经**扫过的最大范围。
+    // 两个都要：前者决定进度文案（"正在扫描共享存储…"），后者决定
+    // 「扫描共享存储」这个按钮还要不要显示（已经扫过就不用再点）。
+    var scanningScope by remember { mutableStateOf(DshDeepClean.Scope.JUNK_ONLY) }
+    var scannedScope by remember { mutableStateOf(DshDeepClean.Scope.JUNK_ONLY) }
     // 勾选集合只存**顶层选择**：勾父目录时把已选的子项剔掉（父覆盖子，统计不重复）
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var confirming by remember { mutableStateOf(false) }
@@ -103,28 +109,38 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     var deleting by remember { mutableStateOf<Triple<Int, Int, String>?>(null) }
 
     /**
-     * 扫描只由**用户**触发：顶栏刷新、未扫描时的「开始扫描」、删完后的重扫。
+     * 扫描。分两档，由 [DshDeepClean.Scope] 决定扫到哪一层。
      *
-     * 进页不自动跑。以前这里是 `LaunchedEffect(scanKey)`，首次组合必跑 —— 而扫描要递归
-     * 统计共享存储里每个目录的体积（见 DshDeepClean 的 KDoc），进页就等于每次点进来先卡
-     * 十几秒，用户只是想把这一页看一眼也躲不掉。
+     * ## 进页自动扫垃圾，但**不**自动扫挂载目录
      *
-     * 没有沿用「scanKey 初值设成哨兵、在 effect 里跳过 0」那种写法：那让「不自动扫」变成一条
-     * 靠魔法数维持的约定，将来谁改了初值或 `scanKey++` 就静默退回进页即扫，而文本门禁看不见
-     * 这种语义回归。这里干脆删掉 scanKey，让「扫描只能由用户触发」是结构上的事实。
+     * 这两件事的代价差一个数量级，所以不能一起做：
+     * - **垃圾位置**（运行时 junk/log + 应用缓存/log）是已知的固定路径，只统计那几个
+     *   命中项，几十毫秒。进页就扫，用户点进来立刻看到"有什么垃圾可清"。
+     * - **挂载目录**（共享存储）要递归遍历整棵 `/sdcard`，几万张照片时是十几秒级，
+     *   而且读的是用户自己的数据。这个必须**主动**要 —— 页面上给一个「扫描共享存储」按钮。
+     *
+     * 早期版本是"进页什么都不扫"，用户还得先点一下才看到垃圾；更早的版本是"进页全扫"，
+     * 点进来先卡十几秒。两档拆开之后两个问题都没有了。
      *
      * 扫描必须在 IO 上：rootfs 是十万级文件。
      */
-    fun startScan() {
+    fun startScan(scanScope: DshDeepClean.Scope = DshDeepClean.Scope.JUNK_ONLY) {
         if (scanning) return
         // 同步置位：按钮的 enabled 依赖它，异步置位会在两次点击之间留一个窗口
         scanning = true
+        scanningScope = scanScope
         selected = emptySet()
         scope.launch {
-            sections = withContext(Dispatchers.IO) { DshDeepClean.scan(context) }
+            sections = withContext(Dispatchers.IO) { DshDeepClean.scan(context, scanScope) }
             scanning = false
             scanned = true
+            scannedScope = scanScope
         }
+    }
+
+    // 进页自动扫**垃圾**（不含挂载目录）。这是唯一一处自动扫描，且限定在快的那一档。
+    LaunchedEffect(Unit) {
+        if (!scanned) startScan(DshDeepClean.Scope.JUNK_ONLY)
     }
 
     val allTargets = sections.flatMap { it.targets }
@@ -234,19 +250,21 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            // 未扫描态：进页不自动扫，所以这里必须是一个明确的入口，不能是「没有可清理的项目」
-            // —— 后者会让用户以为真的没东西可清。
-            if (!scanned && !scanning) {
-                item(key = "not_scanned") {
+            // 「扫描共享存储」入口：进页只扫了垃圾位置（快），挂载目录要用户主动要。
+            //
+            // 只在**还没扫过**共享存储时显示。扫过一次之后（scannedScope 变成 INCLUDE_SHARED）
+            // 就收起 —— 那一块已经在列表里了，留着一个按钮会让人以为要再点一次。
+            if (scanned && !scanning && scannedScope == DshDeepClean.Scope.JUNK_ONLY) {
+                item(key = "scan_shared") {
                     ExpressiveCard(flat = true) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             Text(
-                                text = stringResource(R.string.dsh_clean_not_scanned),
+                                text = stringResource(R.string.dsh_clean_scan_shared_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Spacer(Modifier.height(12.dp))
-                            Button(onClick = { startScan() }) {
-                                Text(stringResource(R.string.dsh_clean_start_scan))
+                            Button(onClick = { startScan(DshDeepClean.Scope.INCLUDE_SHARED) }) {
+                                Text(stringResource(R.string.dsh_clean_scan_shared))
                             }
                         }
                     }
@@ -259,7 +277,13 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = stringResource(R.string.dsh_clean_scanning),
+                            text = stringResource(
+                                if (scanningScope == DshDeepClean.Scope.INCLUDE_SHARED) {
+                                    R.string.dsh_clean_scanning_shared
+                                } else {
+                                    R.string.dsh_clean_scanning
+                                },
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

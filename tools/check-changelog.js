@@ -75,6 +75,8 @@ const changelogKt = code(read("app/src/main/java/me/bmax/apatch/util/Changelog.k
 const stringsEn = read("app/src/main/res/values/strings.xml");
 const stringsZh = read("app/src/main/res/values-zh-rCN/strings.xml");
 const checker = code(read("app/src/main/java/me/bmax/apatch/util/UpdateChecker.kt"));
+const folkClient = code(read("app/src/main/java/me/bmax/apatch/util/FolkApiClient.kt"));
+const runtime = code(read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt"));
 /** 剥 YAML 注释：注释里解释某个 flag 为什么重要，不能算作那个 flag 存在。 */
 function yml(src) {
   return src
@@ -325,6 +327,52 @@ ok(/private fun pickWithMandatoryBridge\(/.test(checker),
   "候选里优先挑过渡版本（否则直接跳到最新版 = 跳过数据迁移）");
 ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   "Status 带 isMandatoryBridge，UI 才能禁掉「跳过此版本」");
+{
+  // ── 自动检查与手动检查不能互相打断 ──
+  //
+  // 冷启动时应用更新与运行时更新是**并行**的两条自动检查，而
+  // cancelInFlightRequests() 取消的是 FolkApiClient 里**全部**在途请求。
+  // 用户在两秒内点「手动检查应用更新」，原来会把运行时那条一起取消 ——
+  // 它拿到 null 后静默当作"没查到"，运行时更新提示时有时无且不报任何错。
+  ok(/fun cancelTagged\(tag: String\)/.test(folkClient),
+    "FolkApiClient 支持按标签取消（不分标签就会误杀另一条检查）");
+  ok(/cancelTagged\(TAG_APP_UPDATE\)/.test(checker),
+    "手动检查只取消应用更新这条链，不动运行时那条");
+  // 只查"文件里有这两个词"不够：注释里提到 updateCheckMutex 就会假绿。
+  // 钉住**声明**与**包裹**两处，且必须是 checkRuntimeUpdate 这个函数。
+  ok(/private val updateCheckMutex = kotlinx\.coroutines\.sync\.Mutex\(\)/.test(runtime),
+    "运行时更新检查有 Mutex 声明（自动与手动并发时不重复请求、不互相覆盖结果）");
+  ok(/suspend fun checkRuntimeUpdate\(\): RuntimeCheckResult = updateCheckMutex\.withLock/.test(runtime),
+    "checkRuntimeUpdate 真的被 withLock 包住（只声明不用等于没锁）");
+}
+{
+  // ── 桌面名称四选一 ──
+  //
+  // android:label 是**安装时**从资源解析的，运行期没有 API 能改，
+  // 所以换桌面名字只能靠切换启用哪个 activity-alias。
+  // 每加一个名字要同时加：两个别名（主/备用图标）+ 一个字符串资源。
+  const icon = code(read("app/src/main/java/me/bmax/apatch/util/LauncherIconUtils.kt"));
+  ok(/val NAMES = listOf\("DSH-Folk", "DSH", "DeepDroid", "DSHD"\)/.test(icon),
+    "桌面名称四个可选值在唯一来源里（UI 不再抄一遍）");
+  for (const n of ["DeepDroid", "DSHD"]) {
+    ok(icon.includes('"' + n + '"'), `桌面名称含 ${n}`);
+  }
+  const manifest = read("app/src/main/AndroidManifest.xml");
+  for (const a of ["MainActivityAliasDeepDroid","MainActivityAliasAltDeepDroid","MainActivityAliasDshd","MainActivityAliasAltDshd"]) {
+    ok(manifest.includes(a), `manifest 有别名 ${a}`);
+  }
+  ok(/app_name_deepdroid/.test(manifest) && /app_name_dshd/.test(manifest),
+    "两个新名字各有独立 label 资源（复用同一个 label 就等于两个名字一样）");
+}
+{
+  // ── 扩展商店是整页，不是半窗 ──
+  const market = code(read("app/src/main/java/me/bmax/apatch/ui/component/ExtensionMarketSheet.kt"));
+  ok(/Scaffold\(/.test(market) && /TopAppBar\(/.test(market),
+    "扩展商店用 Scaffold + TopAppBar（与插件商店同一套容器）");
+  // 列表那个 520dp 上限是为「弹层高度是 wrap」加的；整页之后它变成没必要的限制。
+  ok(!/heightIn\(max = 520\.dp\)/.test(market),
+    "列表不再有 520dp 上限（整页高度有界，不需要它）");
+}
 {
   // 强制过渡版本必须有**实际约束**，不能只是数据类上有个字段。
   // 只加字段不加约束 = 用户照旧可以关掉对话框、跳过迁移，那个字段就成了装饰。

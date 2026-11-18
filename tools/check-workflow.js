@@ -1607,8 +1607,20 @@ console.log("\u2500 #17 用户自己也能建/改流程");
     (SRC.editorScreen.match(/WorkflowDefinitionEditor\(/g) || []).length;
   ok(callers >= 3, "审批弹窗与编辑页共用同一个编辑器（共 " + callers + " 处，含定义本身与弹窗包装）");
   ok(/WorkflowApprovals\.stopEditing\(request\.id, edited\.toJson\(\)\.toString\(\)\)/.test(SRC.dialogs), "审批路径保存回待批状态");
-  ok(/WorkflowStore\.saveIfRevision\(ctx, edited, initial\.revision\)/.test(SRC.editorScreen),
-  "编辑页保存走带 revision 前置条件的落盘（不会静默覆盖别处的改动）");
+  // 前置 revision 必须是 **edited.revision**，不是 initial.revision。
+  //
+  // 这条断言原先钉的是 `initial.revision` —— 而那正是「保存功能失效」的 bug：
+  // initial.revision 是**进入页面时**的常量，第一次保存成功后磁盘 revision +1，
+  // 第二次起 diskRevision != expectedRevision，saveIfRevision 永远返回 null。
+  // 用户看到的是「第一次改动存住了，之后怎么改都存不住」。
+  // 断言钉错了方向，等于给 bug 发了合格证。
+  ok(/WorkflowStore\.saveIfRevision\(ctx, edited, edited\.revision\)/.test(SRC.editorScreen),
+    "编辑页保存用 edited.revision 当前置条件（不是 initial.revision 那个进入时的常量）");
+  ok(!/saveIfRevision\(ctx, edited, initial\.revision\)/.test(SRC.editorScreen),
+    "不再拿 initial.revision 当保存前置条件（第二次保存起必然失败，保存功能失效）");
+  // 自动保存与手动保存两条路径都要对，只对一条等于半修。
+  ok((SRC.editorScreen.match(/saveIfRevision\(ctx, edited, edited\.revision\)/g) || []).length >= 2,
+    "自动保存与手动保存都用 edited.revision（只改一条等于半修）");
   // 起点改成**空模板**（对齐点击助手：新建出来是一张白纸，第一张卡由用户从面板加）。
   //
   // 这条断言原先钉的是反面（"有合法起点（不是空定义）"）：当时空定义是跑不起来的，

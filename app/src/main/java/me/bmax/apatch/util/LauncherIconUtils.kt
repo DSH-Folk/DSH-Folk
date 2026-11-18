@@ -12,6 +12,27 @@ object LauncherIconUtils {
     private const val ALIAS_ACTIVITY = ".ui.MainActivityAlias"
     private const val ALIAS_ACTIVITY_SU = ".ui.MainActivityAliasSu"
     private const val ALIAS_ACTIVITY_ALT_SU = ".ui.MainActivityAliasAltSu"
+    // DeepDroid / DSHD 两组的别名（各含主图标与备用图标）。
+    private const val ALIAS_DEEPDROID = ".ui.MainActivityAliasDeepDroid"
+    private const val ALIAS_ALT_DEEPDROID = ".ui.MainActivityAliasAltDeepDroid"
+    private const val ALIAS_DSHD = ".ui.MainActivityAliasDshd"
+    private const val ALIAS_ALT_DSHD = ".ui.MainActivityAliasAltDshd"
+
+    /**
+     * 桌面名称的可选值。
+     *
+     * 为什么这些名字必须各有一套 activity-alias：`android:label` 是**安装时**从资源解析的，
+     * 运行期没有任何 API 能改它。所以「换桌面名字」唯一的实现方式就是声明多个别名、
+     * 每次只启用一个 —— 桌面看到的是被启用的那个别名的 label。
+     *
+     * 图标与名字是两个独立维度（用户可能想用 DeepDroid 配**备用**图标），
+     * 所以每个名字都要「主图标 + 备用图标」两份别名，一共 4 名字 × 2 = 8 个。
+     */
+    val NAMES = listOf("DSH-Folk", "DSH", "DeepDroid", "DSHD")
+
+    /** 旧版本存过的、现在已没有对应别名的名字，一律折回默认值。 */
+    fun normalizeName(stored: String?): String =
+        if (stored != null && stored in NAMES) stored else "DSH-Folk"
 
     /**
      * 「设置 → 常规 → 备用图标」的 prefs 键。
@@ -40,27 +61,39 @@ object LauncherIconUtils {
     fun updateLauncherState(context: Context) {
         val prefs = APApplication.sharedPreferences
         val useAlt = prefs.getBoolean(KEY_USE_ALT_ICON, false)
-        val appName = prefs.getString("desktop_app_name", "DSH-Folk")
-        // 短名别名（AliasSu / AliasAltSu）的 label 是 @string/app_name_short
-        val isSu = appName == "DSH"
+        // normalizeName：旧版本可能存过已没有对应别名的名字（那时只有两个选项）。
+        // 不折回默认值的话，下面 when 会落到 else 分支、启用 DSH-Folk 的别名，
+        // 而偏好里仍写着旧名字 —— 下次读又对不上，来回抖。
+        val appName = normalizeName(prefs.getString("desktop_app_name", "DSH-Folk"))
 
         val pm = context.packageManager
         val basePackage = APApplication::class.java.`package`?.name ?: "me.bmax.apatch"
-        
+
         val mainComponent = ComponentName(context.packageName, basePackage + MAIN_ACTIVITY)
         val aliasComponent = ComponentName(context.packageName, basePackage + ALIAS_ACTIVITY)
         val aliasSuComponent = ComponentName(context.packageName, basePackage + ALIAS_ACTIVITY_SU)
         val aliasAltSuComponent = ComponentName(context.packageName, basePackage + ALIAS_ACTIVITY_ALT_SU)
+        val aliasDeepDroid = ComponentName(context.packageName, basePackage + ALIAS_DEEPDROID)
+        val aliasAltDeepDroid = ComponentName(context.packageName, basePackage + ALIAS_ALT_DEEPDROID)
+        val aliasDshd = ComponentName(context.packageName, basePackage + ALIAS_DSHD)
+        val aliasAltDshd = ComponentName(context.packageName, basePackage + ALIAS_ALT_DSHD)
 
-
-        val targetComponent = when {
-            useAlt && isSu -> aliasAltSuComponent
-            useAlt && !isSu -> aliasComponent
-            !useAlt && isSu -> aliasSuComponent
-            else -> mainComponent
+        // 目标 = (名字, 是否备用图标) 的笛卡尔积。用 when 逐条列出而不是查表拼字符串：
+        // 别名常量与 manifest 里的 android:name 必须一字不差，拼错了会启用一个不存在的
+        // 组件（setComponentEnabledSetting 静默失败，桌面图标直接消失）。
+        val targetComponent = when (appName) {
+            "DSH" -> if (useAlt) aliasAltSuComponent else aliasSuComponent
+            "DeepDroid" -> if (useAlt) aliasAltDeepDroid else aliasDeepDroid
+            "DSHD" -> if (useAlt) aliasAltDshd else aliasDshd
+            else -> if (useAlt) aliasComponent else mainComponent
         }
 
-        val allComponents = listOf(mainComponent, aliasComponent, aliasSuComponent, aliasAltSuComponent)
+        val allComponents = listOf(
+            mainComponent, aliasComponent,
+            aliasSuComponent, aliasAltSuComponent,
+            aliasDeepDroid, aliasAltDeepDroid,
+            aliasDshd, aliasAltDshd,
+        )
 
         try {
             // Enable target

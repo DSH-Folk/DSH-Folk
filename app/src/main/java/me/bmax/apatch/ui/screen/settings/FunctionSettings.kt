@@ -408,7 +408,7 @@ fun FunctionSettingsContent(
     onOpenAllFilesSettings: () -> Unit,
     /** 打开「细化文件访问范围（黑白名单）」子页。 */
     onOpenFileAccess: () -> Unit = {},
-    /** 打开「深度清理」页（长按「清理资源和缓存」那张卡进来）。 */
+    /** 打开「深度清理」页（点「清理资源和缓存」那张卡进来）。 */
     onOpenDeepClean: () -> Unit = {},
     /** 打开「权限管理」：特权通道、无线 ADB 与各项原生能力都在那一页里分类 + 可搜索。 */
     onOpenPermissionHub: () -> Unit = {},
@@ -1411,20 +1411,19 @@ fun FunctionSettingsContent(
                     }
 
                     item(key = "function_clean_storage") {
-                        // 点 = 原有的浅清理（主题 / 媒体 / 音效 / 应用缓存）；长按 = 深度清理页
-                        // （运行时临时文件、apt/npm 缓存、日志，以及共享存储的大文件/大文件夹）。
-                        // 长按挂在内层 Row 上：ExpressiveCard 的 onClick 不接受 onLongClick，而这张卡里
-                        // 没有别的可点元素、Row 又铺满整卡，所以触摸范围就是整张卡（与共享存储那张卡
-                        // 同一个写法）。
-                        ExpressiveCard(flat = flat) {
+                        // **点一下就直接进深度清理页**，不再有长按。
+                        //
+                        // 原来这里是「点 = 浅清理弹窗、长按 = 深度清理页」。问题在于长按是
+                        // **不可发现**的：卡片上没有任何提示，用户只会点一下，于是永远看不到
+                        // 深度清理页 —— 那个页面等于不存在。清理这件事本身也不需要一个
+                        // "轻/重"分岔：用户想清就给他看能清什么，浅清理那几项在深度清理页里
+                        // 本来就都列着。
+                        //
+                        // 浅清理弹窗（主题 / 媒体 / 音效 / 应用缓存）保留在原处，只是不再挂在
+                        // 这张卡上 —— 它现在由深度清理页里的对应分区承担（应用缓存那一条）。
+                        ExpressiveCard(flat = flat, onClick = onOpenDeepClean) {
                             Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = { showCleanStorageDialog.value = true },
-                                        onLongClick = onOpenDeepClean,
-                                    )
-                                    .padding(16.dp),
+                                Modifier.fillMaxWidth().padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Icon(Icons.Filled.CleaningServices, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
