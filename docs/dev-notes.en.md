@@ -202,16 +202,182 @@ it too (it re-resolves git deps the same way). A baseline is also installed at s
 reconcile, self-heal, and `dsh plugin` run by the agent inside the session — are covered.
 `tools/check-race-channel.js` pins those five points.
 
-## Beta channel (app / runtime)
+## Update channels (app / runtime)
 
-### Beta Channel
+### App: three channels + mandatory-bridge versions
 
-After enabling **Settings → General → Accept beta updates**, update checks also include prereleases, which are shown with a
-“Beta” badge in the UI. This is disabled by default.
+**Settings → General → Update channel** opens a panel with Alpha / Beta / Stable. Default Stable.
 
-The container runtime beta is a separate channel: set the **update channel slider** in the version menu to beta and runtime
-checks switch to the `runtime-beta-latest` rolling channel; the default is stable, and beta versions may be unstable. It is
-independent of the app beta toggle above.
+The old "accept beta updates" boolean cannot express three states, so it became an enum
+(`UpdateChannel`). The legacy `accept_beta_update` key is still read once and migrated
+(true→Beta, false→Stable), **only when the new `update_channel` key is absent** — switching keys
+outright would silently drop existing beta users back to Stable.
+
+**A channel is an upper bound, not an exact suffix match.**
+`allows(other) = other.ordinal <= this.ordinal`: choosing Alpha also accepts Beta and Stable.
+The earlier "exclude anything with a `-` suffix" rule would, once Alpha existed, make **Alpha
+users unable to see stable releases** (stable has no suffix, so it never matches). Do not revert this.
+
+| Channel | Accepts | Switching cost |
+|---|---|---|
+| Stable | releases only | none |
+| Beta | releases + CI prereleases | one normal confirmation |
+| Alpha | everything | red warning + **type `ALPHA`** |
+
+Friction matches irreversibility: Alpha may fail to open or lose data, and once it fails to open
+the user cannot get back to settings to change it. Requiring typed confirmation for every tier
+would train users to type it reflexively, defeating the warning.
+
+**Mandatory-bridge versions**: some builds carry data migrations; skipping one and jumping
+straight to a higher version leaves local data in the old shape (new code cannot read it). The
+marker goes on its own line in the release **body**:
+
+```
+[mandatory-bridge]
+```
+
+Body rather than a tag suffix: tags participate in semver comparison, a marker inside them makes
+the version hard to parse, and tags cannot be changed after publishing — body markers can be
+fixed afterwards. Matched **per line** rather than as a substring: a changelog saying "this is
+not a mandatory-bridge" would otherwise be misread as the real marker.
+
+`pickWithMandatoryBridge` picks the **lowest** pending bridge (users must clear the earliest gate)
+and only considers versions newer than the local one — already installed means the migration was
+done, so it no longer blocks.
+
+The UI **does not render a Close button** for a mandatory-bridge version (not disabled — a greyed
+button gets clicked repeatedly), and blocks back/outside-tap. Adding the `isMandatoryBridge` field
+without enforcing it just makes it decoration.
+
+### Runtime: two tiers, independent of the app
+
+In the **version menu**, setting the "update channel" slider to beta makes runtime checks use the
+`runtime-beta-latest` rolling channel; default is stable. It is independent of the app channel.
+
+## Update checks: where they trigger, how results are reported
+
+Three triggers, all sharing one `UpdateChecker.check(channel)`:
+
+| Trigger | Location | Note |
+|---|---|---|
+| Cold-start auto check | `MainActivity` LaunchedEffect | gated by `auto_update_check`, silent, does nothing on failure |
+| Manual check in Settings | `GeneralSettings` | result shown in a dialog or snackbar |
+| **Manual check on the Manage Extensions page** | `DshPluginScreen` top bar | shown on all three pages |
+
+That button and the "refresh list" one mean **different things** (host version vs. re-reading the
+plugin list), so they use different icons (`SystemUpdate` vs `Refresh`) and the copy says "app
+update". It is not hidden inside one group — the host version is unrelated to which page you are on.
+
+### "Could not check" ≠ "already latest"
+
+A non-null `Status.failure` means the check **genuinely failed** (403 rate limit, no network, DNS)
+and must be reported separately from "already latest". Collapsing both into "you are on the latest
+version" hands the user a confident wrong conclusion. The anonymous GitHub API allows 60/h and the
+plugin store uses it too, so once the quota is gone this path silently stops working.
+
+## Startup compatibility migrations (all in one place)
+
+All legacy-compatibility code lives in `util/StartupMigrations`, invoked by `APatchApp.onCreate`
+via `runAll(this)`. **Add new migrations to `MIGRATIONS`; do not scatter them again** — scattered
+migrations make "did it ever run?" unanswerable from one place, forcing a repo-wide grep.
+
+### Each migration carries its own idempotency flag, not a version comparison
+
+The first idea was "record last versionName, run migrations when it changes". That is **unsafe**:
+
+- Version numbers can **go backwards** (downgrade, beta→stable). "Changed" fires again and some
+  migrations are not repeatable (e.g. read-and-delete a legacy key; the second run finds nothing).
+- One upgrade may need only some of them, others belong to older versions — a version number can
+  answer "did anything change", not "should this one run".
+
+So each migration **carries** its own `xxx_migrated` boolean (that is what makes it idempotent).
+The version is still recorded (`startup_last_version_name`) but **for diagnostics only**.
+
+### Hard constraints
+
+1. **One failure must not block startup.** This is the cold-start path; a throwing migration means
+   "the app will not open". Each is wrapped in `runCatching`, failures logged at warn level
+   (swallowing silently makes "my settings reset by themselves" unreportable).
+2. **Record the version only after all migrations ran.** The reverse (record first) means a crash
+   mid-migration has already advanced the version, so a future version-dependent migration skips.
+3. **Idempotent.** Re-running must produce no extra effects.
+
+## Deep clean: no auto-scan on entry
+
+`DshDeepCleanScreen` scanning is **user-triggered only** (top-bar refresh / the start button in the
+not-yet-scanned state / rescan after deletion). It does not run on entry: scanning recursively
+measures the size of every directory in shared storage, so running on entry means a 10+ second stall
+every time the page is opened.
+
+Implementation-wise the `LaunchedEffect(scanKey)` was **deleted** in favour of an explicit
+`startScan()`. A sentinel-value approach ("skip when scanKey == 0") was rejected: it makes "do not
+auto-scan" a convention held up by a magic number — change the initial value or the `scanKey++` and
+it silently reverts to auto-scan, which text-based gates cannot see.
+
+Three states (using a `scanned` boolean, **not** `sections.isNotEmpty()` — scan() always returns
+three sections, so that would couple to implementation detail):
+
+| Condition | Shown |
+|---|---|
+| `!scanned && !scanning` | "not scanned" card + start button |
+| `scanning` | scanning row |
+| `scanned && allTargets.isEmpty()` | "nothing to clean" (original copy, now only reachable after a real scan) |
+
+`scanned` deliberately **not** in `rememberSaveable`: sections do not survive recreation, so
+`scanned=true` paired with an empty list reproduces exactly the misleading copy. Same lifecycle as
+sections is safest.
+
+## Extension UI takeover: three surfaces, one semantic
+
+Extensions can take over three things, all in `ExtensionUiRegistry`:
+
+| Surface | Register | Winner |
+|---|---|---|
+| Whole screen | `overrideScreen(screenId, …)` | **last-wins** |
+| Shell | `registerShell(…)` | last-wins |
+| Slot | `registerSlot(slotId, op, …)` | REPLACE takes the last, INSERT_* render all |
+| **Config panel** | `registerConfigPanel(…)` | exclusive per extensionId — no contention |
+
+### Three strategies used to coexist (now unified)
+
+`overrideScreen` was **first-wins** while `registerShell` was **last-wins** — one API, two
+semantics. A later extension ran, its registration was not rejected, but the UI stayed owned by the
+earlier one, **completely silently**; the author concludes their code never ran.
+
+Now both are last-wins, and being replaced logs "who replaced whom". **Both ends must agree**:
+changing only the write side while the read side still uses `firstOrNull()` yields "registered A,
+rendered B".
+
+`registerShell` / `overrideScreen` now register **by id, overwriting** — `shells.add()` used to
+stack duplicates, making the "N registered" log line wrong.
+
+### Config panel: isolation instead of arbitration
+
+`registerConfigPanel` stores by `extensionId`; the entry point lives on **that extension's own
+card**. Structurally there is no "competing for one position", so no priority arbitration is
+needed — **a conflict that needs no arbitration is genuinely solved**; arbitration only makes the
+conflict predictable.
+
+`ownedSurfaces(id)` makes "what this extension currently owns" visible in the panel instead of
+being logcat-only.
+
+### Card entry layout
+
+The entry sits at the **left** end of the card's bottom row, same row as "Remove", left-aligned,
+rendered as an icon + "Config" stacked compactly.
+
+- Use `heightIn(min = 40.dp)` / `widthIn(min = 48.dp)`, **not a fixed `size()`** — at 200% font
+  scale the text grows and a fixed size clips it.
+- `softWrap = false` and **no `maxLines`**: stacked, "Config" is much wider than the icon; one line
+  plus ellipsis becomes "Con…". Nothing else shares that horizontal slot, so overflow is free.
+- Left placement also reduces mis-taps: config is non-destructive, remove is a two-step dangerous
+  action, and adjacent placement invites finger slips.
+
+### Panel scroll contract
+
+**Host scrolls, extension does not.** The host wraps content in `verticalScroll` with a height cap;
+an extension adding its own `LazyColumn` would receive infinite height and crash. Documented in the
+API KDoc and `docs/extensions/README.md`.
 
 ## Runtime card: a switch card plus a version menu
 

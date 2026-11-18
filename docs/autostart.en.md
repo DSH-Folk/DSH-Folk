@@ -33,7 +33,45 @@ boot script would permanently occupy a root process.
 
 All three methods ultimately converge on `DshAutostart.trigger`, which checks whether the currently selected method matches the trigger source. Therefore, after switching modes,
 an old script left on the device or an accessibility service the user forgot to disable will not secretly start anything (the script is also actively deleted when switching away).
+**Everything is off by default.** The factory state is `Mode.OFF` (the first entry of
+`DshAutostart.Mode`, and what `mode()` falls back to when the key is absent) — nothing
+autostarts at boot; the user has to enable one of the three paths explicitly. This is
+deliberate: autostart launches a whole container, and the app should not decide that for the user.
+
+The "start the container too" option **defaults to on** (`KEY_AUTOSTART_CONTAINER` defaults to
+`true`), but it only matters once the user has picked an autostart path — with autostart off,
+that flag does nothing.
+
 The container is never started if the runtime has not yet been downloaded — otherwise boot could automatically consume 120 MB of data.
+
+## After the service gets disabled: automatic recovery
+
+When the system turns the accessibility service off, `DshA11yRecovery` tries to turn it back
+on. It does exactly one thing: **write the user's original intent back**.
+
+Whether to restore is decided from **in-app intent**, not the system setting (is the autostart
+mode still accessibility, is the native bridge's a11y level still not OFF). The system setting
+cannot tell us whether the user meant it — reading it would turn this into fighting over the
+switch. Turning those off inside the app revokes the intent, and recovery stops immediately.
+
+Writing `Settings.Secure` needs `WRITE_SECURE_SETTINGS`, which has no runtime prompt (ADB/root
+only). Without it we **write nothing and do not pretend success** — the UI shows "command not
+run yet" accordingly.
+
+Three hard constraints, all to avoid damaging the user's device:
+
+1. **Add-only**: other apps' entries are preserved verbatim; we only add our own missing
+   components, never reorder or clear. One "tidy-up" would disable the user's screen reader.
+2. **Write then read back**: a write is not proof of effect (some ROMs reject or revert it).
+3. **Rate limited**: a fixed number of attempts per window. If the system keeps reverting,
+   writing more just means two processes fighting over one switch — stopping and reporting is
+   better than retrying forever.
+
+**Limits**: best-effort. Covered moments are "secure-settings change while our process is
+alive", "app returning to foreground" and "service disconnect callback". **While our process is
+dead, nobody restores it** — but a dead process is not a disabled service: an enabled a11y
+service gets re-bound by the system and `onServiceConnected` runs again, which is the
+"container comes back" mechanism.
 
 **Whether to start the container at the same time** is an independent option. On: the container starts with the app and is immediately usable after boot. Off: only the notification appears and the process is prewarmed;
 tap once to start, without consuming CPU during those first few seconds of boot or keeping a Node process in memory. The latter is the right choice for users who “just want it handy.”
