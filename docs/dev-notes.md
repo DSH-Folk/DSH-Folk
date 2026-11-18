@@ -456,6 +456,48 @@ x86_64 是 `rootfs-x86_64.tar.gz` + `metadata-x86_64.json`（arm64 沿用无后�
 `workflow_dispatch` 也可手动覆盖）：低于该版本的应用会先被要求更新软件，而不是下载一个装不上的运行时。
 已装运行时的要求会持久化，App 升级后自动放行；空字段 = 无要求，兼容旧 metadata。
 
+## 工作流接口：对外契约与实现必须对齐
+
+工作流有三条对外路径，它们的参数与返回**必须**和实现一致 —— 不一致的症状是
+「AI 说能跑、这里跑不了」或者「点了运行没反应」，而两边都看不到对方的错误。
+
+### 三条路径
+
+| 路径 | 入口 | 谁在用 |
+|---|---|---|
+| CLI | 容器内 `dsh-workflow` | agent 在容器里直接调 |
+| 回环桥 | `WorkflowBridge`（127.0.0.1 内部端点） | 工具插件、外部脚本 |
+| 界面 | `WorkflowScreen` / `WorkflowEditorScreen` | 用户手动操作 |
+
+三者**共用同一份**校验器（`WorkflowValidator`）与同一个执行器（`WorkflowEngine`）。
+新增节点类型或参数时，三处要一起改；只改一处的结果是「AI 建得出来、界面报不合法」。
+
+### 入口：一个流程可以有多个
+
+`WorkflowDefinition.triggers` 是**全部**开始卡片，`trigger` 只是「第一张」的便捷访问器。
+
+- **不要**用 `trigger` 做「运行」的入口选择：多入口时它会静默取第一张，
+  用户点运行跑的可能是另一个入口，而界面上完全看不出来。
+- 手动运行（界面）在 `triggers.size > 1` 时弹窗让用户选，选中的 id 通过
+  `WorkflowEngine.start(entryId = ...)` 传下去。
+- 指定的入口不存在时返回 `entry_not_found`，**不**静默换成第一张 —— 那会变成
+  「点了 A 跑了 B」，比失败更难查。
+
+### 保存：前置 revision 必须是当前值
+
+`WorkflowStore.saveIfRevision(ctx, def, expectedRevision)` 的判据是
+「磁盘上的 revision == expectedRevision」，否则拒绝。
+
+调用方**必须**传 `edited.revision`（当前对象上的值），不能传「进入页面时那个值」——
+后者是个常量，第一次保存成功后磁盘 +1，第二次起永远不相等，表现就是
+「第一次改动存住了，之后怎么改都存不住」。
+
+### 原子写：不能先 delete
+
+`atomicWrite` 用 `rename(2)` 的覆盖语义，**不能**先 `delete` 目标：
+delete 之后 rename 一旦失败（目标被占用 / 磁盘满 / 跨设备），新文件没就位、
+旧文件也没了 —— 工作流直接消失。必须先 `fsync` 再 rename，顺序不能反。
+
 ## 虚拟屏要的是通道，不是权限
 
 虚拟屏服务端（`displayserver/`）是 `app_process` 起的**独立进程**，以 uid 0（root）或 2000

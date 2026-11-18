@@ -74,6 +74,18 @@
     <string name="dsh_perm_shizuku_uid_shell">uid 2000（shell）</string>
     <string name="dsh_perm_shizuku_detail_uid">服务运行中：%1$s · 已授权：%2$s · %3$s</string>
     <string name="dsh_start">启动</string>
+    <string name="dsh_install">安装</string>
+    <string name="dsh_install_confirm_title">下载运行时？</string>
+    <string name="dsh_install_confirm_body">安装 DSH 需要额外下载文件，请确保你的网络畅通且处于 Wi-Fi 环境下，从而避免流量损耗！</string>
+    <string name="dsh_install_confirm_go">下载并安装</string>
+    <string name="dsh_install_confirm_cancel">取消</string>
+    <string name="dsh_installed_done_title">已安装</string>
+    <string name="dsh_installed_done_body">运行时已安装完成，是否启动 DSH？</string>
+    <string name="dsh_installed_done_start">启动 DSH</string>
+    <string name="dsh_installed_done_later">暂不</string>
+    <string name="dsh_restart_confirm_title">重启 DSH？</string>
+    <string name="dsh_restart_confirm_body">请保存重要工作内容，否则可能会导致数据丢失。</string>
+    <string name="dsh_restart_confirm_go">重启 DSH</string>
     <string name="dsh_stop">停止</string>
     <string name="dsh_restart">重启</string>
     <string name="dsh_install_and_start">下载并启动</string>
@@ -127,6 +139,11 @@
     <string name="dsh_ext_detail_dir">安装目录</string>
     <string name="dsh_ext_detail_nocaps">这个扩展没有声明任何能力。</string>
     <string name="dsh_ext_market">扩展市场</string>
+    <string name="dsh_ext_install_link">从链接安装</string>
+    <string name="dsh_ext_install_file">从文件安装</string>
+    <string name="dsh_ext_install_link_desc">粘贴扩展 .zip 的直链。这条路径没有已发布的校验值可比对，只请使用你信任的来源。</string>
+    <string name="dsh_ext_install_go">安装</string>
+    <string name="dsh_ext_installed_ok">已安装 %1$s，准备好后再启用它。</string>
     <string name="dsh_ext_market_install">安装</string>
     <string name="dsh_ext_market_installed">已安装</string>
     <string name="dsh_ext_market_update">可更新</string>
@@ -469,7 +486,7 @@
     <string name="dsh_notif_stopped">服务未启动</string>
     <string name="dsh_notif_stop_action">停止</string>
     <string name="dsh_mode_proot_name">proot（内置，稳定）</string>
-    <string name="dsh_mode_proroot_name">proroot（实验，零 ptrace 开销）</string>
+    <string name="dsh_mode_proroot_name">proroot（仅 Arm 64）</string>
     <string name="dsh_mode_proot_missing">APK 内的 libproot.so 缺失（安装包可能损坏，建议重装）</string>
     <string name="dsh_mode_proroot_missing">缺 %1$d 个运行时文件（%2$s 等）—— 这些随 APK 分发，缺失说明安装包不完整，建议重装</string>
     <string name="dsh_mode_proroot_arch_only">proroot 仅支持 arm64-v8a，本机使用 proot</string>
@@ -1890,6 +1907,11 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_workflow_editor_auto_layout">整理</string>
     <string name="dsh_workflow_editor_delete_node">删除节点</string>
     <string name="dsh_mode_chroot_name">chroot（真 root）</string>
+    <string name="dsh_mode_proroot_denied_title">proroot 现在不可用</string>
+    <string name="dsh_mode_proroot_denied_body">proroot 需要 arm64-v8a 架构，且运行时文件必须完整（它们随 APK 分发）。当前设备不满足，已保持原来的容器后端不变。</string>
+    <string name="dsh_mode_chroot_denied_title">chroot 需要 Root</string>
+    <string name="dsh_mode_chroot_denied_body">chroot 走的是真 root，必须先在「特权通道」里拿到 root（或 Shizuku / 无线 ADB 提供的等效能力）。没有它时容器起不来，所以已保持原来的容器后端不变。</string>
+    <string name="dsh_mode_denied_ok">知道了</string>
     <string name="dsh_mode_chroot_desc">以真实 root 身份进入容器。注意：chroot 只改根目录、不是沙箱；它可能让工作区沙箱模式可用，但取决于设备内核。</string>
     <string name="dsh_mode_chroot_needs_root">需要 root 权限通道</string>
     <!-- 关于页的赞助者区块 -->

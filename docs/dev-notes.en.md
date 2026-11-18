@@ -512,6 +512,54 @@ A runtime can declare `minAppVersion` in its `metadata.json` (auto-detected from
 The requirement of an installed runtime is persisted and released automatically after the app is upgraded; an empty field means no requirement, keeping old metadata compatible.
 
 
+## Workflow interface: the contract and the implementation must agree
+
+Workflows are reachable through three paths, and their parameters and returns **must**
+match the implementation. When they drift, the symptom is "the AI says it can run, the UI
+says it is invalid" or "pressing run does nothing", and neither side sees the other error.
+
+### The three paths
+
+| Path | Entry | Used by |
+|---|---|---|
+| CLI | `dsh-workflow` inside the container | the agent, directly |
+| Loopback bridge | `WorkflowBridge` (internal 127.0.0.1 endpoints) | tool plugins, external scripts |
+| UI | `WorkflowScreen` / `WorkflowEditorScreen` | the user |
+
+All three share **one** validator (`WorkflowValidator`) and **one** executor
+(`WorkflowEngine`). Adding a node type or a parameter means changing all three; changing
+one leaves you with "the AI can build it, the UI calls it invalid".
+
+### Entries: a workflow can have several
+
+`WorkflowDefinition.triggers` is **all** start cards; `trigger` is only a convenience
+accessor for "the first one".
+
+- Do **not** use `trigger` to pick the entry for a manual run: with several entries it
+  silently takes the first, so pressing run may execute a different entry than the user
+  intended — and nothing in the UI shows that.
+- The UI asks when `triggers.size > 1` and passes the chosen id through
+  `WorkflowEngine.start(entryId = ...)`.
+- A missing entry reports `entry_not_found` and is **not** silently replaced by the first —
+  that would be "pressed A, ran B", which is harder to diagnose than a failure.
+
+### Saving: the revision precondition must be the current value
+
+`WorkflowStore.saveIfRevision(ctx, def, expectedRevision)` rejects unless the on-disk
+revision equals `expectedRevision`.
+
+Callers **must** pass `edited.revision` (the value on the current object), never "the value
+when the screen opened". The latter is a constant: after the first successful save the disk
+revision is +1, so every later save mismatches — which looks exactly like "the first edit
+stuck, nothing after it does".
+
+### Atomic write: never delete first
+
+`atomicWrite` relies on the overwrite semantics of `rename(2)` and must **not** delete the
+target first. Once deleted, a failing rename (target held, disk full, cross-device) leaves
+neither the new file nor the old one — the workflow simply disappears. Contents must be
+`fsync`-ed before the rename; the order cannot be reversed.
+
 ## The virtual screen needs a channel, not a permission
 
 The virtual-screen server (`displayserver/`) is a **separate process** started with `app_process`

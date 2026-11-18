@@ -1715,7 +1715,22 @@ object DshRuntime : DshRuntimeHost {
      * 重装那个回调），于是「测试通道检测到正式版更新」在按下更新后仍然去下当前通道那份 ——
      * 真机日志里就是这样：检测到新版，下载 URL 还是 runtime-beta-latest。
      */
-    fun updateRuntime(preserveData: Boolean = true) {
+    /**
+     * 装完但不启动：把状态落回「已安装、未运行」。
+     *
+     * 不能什么都不做：`downloadAndInstall` 结束时 phase 停在 DOWNLOADING/EXTRACTING 之类的
+     * 中间态上，首页会一直转圈，而实际上安装早就完成了。
+     * 也不能复用 stopServer() —— 那会写「已停止」，而这里从来没有启动过。
+     */
+    private fun markInstalledIdle() {
+        _state.value = _state.value.copy(
+            phase = DshPhase.NOT_READY,
+            webUrl = "",
+            error = "",
+        )
+    }
+
+    fun updateRuntime(preserveData: Boolean = true, autoStart: Boolean = true) {
         scope.launch {
             bootMutex.withLock {
                 stopServer()
@@ -1726,13 +1741,16 @@ object DshRuntime : DshRuntimeHost {
                     seedPlugins()
                     ensureFsBridgeCli()
                     if (checkPortConflict()) return@withLock
-                    startAndAwait()
+                    // 装完**不一定要**立刻拉起来：首页那条「安装」路径要把「装完」与
+                    // 「启动」拆成两步，由用户在弹窗里自己决定。不拆的话，用户点「安装」
+                    // 之后容器直接跑起来，而他想先看一眼装了什么的机会就没有了。
+                    if (autoStart) startAndAwait() else markInstalledIdle()
                 }
             }
         }
     }
 
-    fun reinstallRuntime(preserveData: Boolean = true) {
+    fun reinstallRuntime(preserveData: Boolean = true, autoStart: Boolean = true) {
         scope.launch {
             bootMutex.withLock {
                 stopServer()
@@ -1745,7 +1763,7 @@ object DshRuntime : DshRuntimeHost {
                     seedPlugins()
                     ensureFsBridgeCli()
                     if (checkPortConflict()) return@withLock
-                    startAndAwait()
+                    if (autoStart) startAndAwait() else markInstalledIdle()
                 }
             }
         }

@@ -183,6 +183,11 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
     var extensionFilter by rememberSaveable { mutableStateOf("") }
     // 扩展市场弹层开关（扩展页 ＋ 菜单里那颗）
     var showMarket by remember { mutableStateOf(false) }
+    // 扩展的链接安装 / 文件安装
+    var showExtLinkInstall by remember { mutableStateOf(false) }
+    var extLinkInput by remember { mutableStateOf("") }
+    var extLinkBusy by remember { mutableStateOf(false) }
+    var extLinkError by remember { mutableStateOf("") }
     // 市场装完要让扩展列表重读。列表的事实来源在 ExtensionsPane 内部（磁盘 + prefs，没有可观察流），
     // 所以用一个自增信号从外面捅它一下，而不是把整份列表状态提到页面级。
     var extensionRefresh by remember { mutableStateOf(0) }
@@ -220,6 +225,28 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         }
     }
 
+    // 扩展包选择器：与插件的 pickTarball 同构，只是走 ExtensionMarket.installFromFile。
+    val pickExtZip = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode != RESULT_OK) return@rememberLauncherForActivityResult
+        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val r = ExtensionMarket.installFromFile(context, uri)
+            r.fold(
+                onSuccess = {
+                    snackBarHost.showSnackbar(
+                        context.getString(R.string.dsh_ext_installed_ok, it.name),
+                    )
+                    extensionRefresh++
+                },
+                onFailure = { e ->
+                    snackBarHost.showSnackbar(e.message ?: e.javaClass.simpleName)
+                },
+            )
+        }
+    }
+
     // 扩展市场：放在**页面级**而不是 ExtensionsPane 里 —— 它装完要让列表重读，
     // 而列表的事实来源在 ExtensionsPane 内部，所以靠 extensionRefresh 这个自增信号从外面捅它。
     //
@@ -232,6 +259,75 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
     // 用 Dialog 把它提到**独立窗口**，尺寸由窗口决定而不是由父布局分配，
     // 这样它才能真正铺满整屏。usePlatformDefaultWidth = false 是必须的：
     // 默认 Dialog 会留一圈边距、宽度受限，那正是"看起来像半窗"的另一半原因。
+    // 从链接安装扩展
+    if (showExtLinkInstall) {
+        AlertDialog(
+            onDismissRequest = { if (!extLinkBusy) showExtLinkInstall = false },
+            title = { Text(stringResource(R.string.dsh_ext_install_link)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.dsh_ext_install_link_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = extLinkInput,
+                        onValueChange = { extLinkInput = it; extLinkError = "" },
+                        singleLine = true,
+                        isError = extLinkError.isNotEmpty(),
+                        enabled = !extLinkBusy,
+                        placeholder = { Text("https://…/extension.zip") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (extLinkError.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            extLinkError,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !extLinkBusy && extLinkInput.isNotBlank(),
+                    onClick = {
+                        extLinkBusy = true
+                        extLinkError = ""
+                        scope.launch {
+                            val r = ExtensionMarket.installFromUrl(context, extLinkInput.trim())
+                            extLinkBusy = false
+                            r.fold(
+                                onSuccess = {
+                                    showExtLinkInstall = false
+                                    extLinkInput = ""
+                                    snackBarHost.showSnackbar(
+                                        context.getString(R.string.dsh_ext_installed_ok, it.name),
+                                    )
+                                    extensionRefresh++
+                                },
+                                onFailure = { e ->
+                                    // 失败留在弹窗里而不是用 snackbar：用户要能直接改链接重试，
+                                    // 关掉弹窗再找入口是多余的一步。
+                                    extLinkError = e.message ?: e.javaClass.simpleName
+                                },
+                            )
+                        }
+                    },
+                ) { Text(stringResource(R.string.dsh_ext_install_go)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showExtLinkInstall = false },
+                    enabled = !extLinkBusy,
+                ) { Text(stringResource(R.string.update_channel_cancel)) }
+            },
+        )
+    }
+
     if (showMarket) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { showMarket = false },
@@ -422,6 +518,27 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                             icon = Icons.Outlined.Storefront,
                             labelRes = R.string.dsh_ext_market,
                             onClick = { showMarket = true },
+                        ),
+                        // 从链接 / 从文件：与插件页那两个入口同构 —— 市场只是「有一个目录」，
+                        // 而扩展同样可能是用户自己从别处拿到的包。
+                        AddMenuEntry(
+                            icon = Icons.Outlined.Link,
+                            labelRes = R.string.dsh_ext_install_link,
+                            onClick = { showExtLinkInstall = true },
+                        ),
+                        AddMenuEntry(
+                            icon = Icons.Outlined.FolderOpen,
+                            labelRes = R.string.dsh_ext_install_file,
+                            onClick = {
+                                pickExtZip.launch(
+                                    Intent(Intent.ACTION_GET_CONTENT).apply {
+                                        // 扩展包是 zip；限制 MIME 让选择器直接停在压缩包上，
+                                        // 而不是让用户在几百个文件里找。
+                                        type = "application/zip",
+                                        addCategory(Intent.CATEGORY_OPENABLE),
+                                    },
+                                )
+                            },
                         ),
                     ),
                 )

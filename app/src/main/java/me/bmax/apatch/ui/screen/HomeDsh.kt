@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.OpenInBrowser
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Security
@@ -123,6 +124,14 @@ fun HomeScreenDsh(
     ) {
         Spacer(Modifier.height(0.dp))
 
+        // 安装/重启这三段状态都是**页面级**的：弹窗要跨 recomposition 存活，
+        // 而它们描述的是"用户刚点了什么"，不属于 DshRuntime 的状态机。
+        var showInstallConfirm by remember { mutableStateOf(false) }
+        var showInstalledPrompt by remember { mutableStateOf(false) }
+        var showRestartConfirm by remember { mutableStateOf(false) }
+        // 这次安装是不是**我**发起的：不加它的话，进页面时只要已装就会弹完成提示。
+        var installPending by remember { mutableStateOf(false) }
+
         DshHeroCard(
             phase = state.phase,
             installed = state.installed,
@@ -134,7 +143,84 @@ fun HomeScreenDsh(
             onStop = { HarnessService.stop(context) },
             onRestart = { DshRuntime.restart() },
             onOpenWeb = { uiState.openWeb() },
+            onInstall = { showInstallConfirm = true },
+            onRestartRequested = { showRestartConfirm = true },
         )
+
+        // ── 安装前告知 ──
+        //
+        // 运行时是 150MB 级的额外下载。以前点「启动」会静默开始下载，用户既不知道
+        // 要下多少、也不知道自己在用流量 —— 这一句就是把它说清楚，并给一个明确的取消。
+        if (showInstallConfirm) {
+            AlertDialog(
+                onDismissRequest = { showInstallConfirm = false },
+                title = { Text(stringResource(R.string.dsh_install_confirm_title)) },
+                text = { Text(stringResource(R.string.dsh_install_confirm_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showInstallConfirm = false
+                        installPending = true
+                        // autoStart = false：装完**不**自动启动，交给下面的完成弹窗问一句。
+                        DshRuntime.updateRuntime(preserveData = true, autoStart = false)
+                    }) { Text(stringResource(R.string.dsh_install_confirm_go)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showInstallConfirm = false }) {
+                        Text(stringResource(R.string.dsh_install_confirm_cancel))
+                    }
+                },
+            )
+        }
+
+        // ── 安装/更新完成：问要不要启动 ──
+        //
+        // 触发条件是「刚才是我发起的安装」且「已经装好且没在跑」。不加 installPending
+        // 的话，进页面时只要运行时已装就会立刻弹一次 —— 那是打扰，不是询问。
+        if (installPending && state.installed && !running && !busy) {
+            installPending = false
+            showInstalledPrompt = true
+        }
+        if (showInstalledPrompt) {
+            AlertDialog(
+                onDismissRequest = { showInstalledPrompt = false },
+                title = { Text(stringResource(R.string.dsh_installed_done_title)) },
+                text = { Text(stringResource(R.string.dsh_installed_done_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showInstalledPrompt = false
+                        HarnessService.start(context)
+                    }) { Text(stringResource(R.string.dsh_installed_done_start)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showInstalledPrompt = false }) {
+                        Text(stringResource(R.string.dsh_installed_done_later))
+                    }
+                },
+            )
+        }
+
+        // ── 重启前提醒保存 ──
+        //
+        // 重启会杀掉容器里所有进程，正在跑的东西（编辑器里的未保存内容、长任务）会没。
+        // 这句话必须出现在**按钮按下之后、真的重启之前**，不能只写在按钮文案里。
+        if (showRestartConfirm) {
+            AlertDialog(
+                onDismissRequest = { showRestartConfirm = false },
+                title = { Text(stringResource(R.string.dsh_restart_confirm_title)) },
+                text = { Text(stringResource(R.string.dsh_restart_confirm_body)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showRestartConfirm = false
+                        DshRuntime.restart()
+                    }) { Text(stringResource(R.string.dsh_restart_confirm_go)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRestartConfirm = false }) {
+                        Text(stringResource(R.string.dsh_install_confirm_cancel))
+                    }
+                },
+            )
+        }
 
         // 实际运行时：**直接读已经算好的 state**，不再现算。
         //
@@ -286,6 +372,10 @@ private fun DshHeroCard(
     onStop: () -> Unit,
     onRestart: () -> Unit,
     onOpenWeb: () -> Unit,
+    /** 「安装」：未装时点主按钮。与启动分开，装完由用户在弹窗里决定要不要启动。 */
+    onInstall: () -> Unit,
+    /** 「重启」时也要先问一句（正在跑的话数据可能没保存）。 */
+    onRestartRequested: () -> Unit,
 ) {
     val running = phase == DshPhase.RUNNING
     val busy = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING || phase == DshPhase.STARTING
@@ -383,7 +473,7 @@ private fun DshHeroCard(
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.dsh_open_webui))
                         }
-                        OutlinedButton(onClick = onRestart) {
+                        OutlinedButton(onClick = onRestartRequested) {
                             Icon(Icons.Outlined.RestartAlt, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.dsh_restart))
@@ -394,17 +484,31 @@ private fun DshHeroCard(
                             Text(stringResource(R.string.dsh_stop))
                         }
                     } else {
+                        // 未运行时的主按钮分两种：**没装**说「安装」，**装了**说「启动」。
+                        //
+                        // 以前这里恒为「启动」，而点下去会先下载 150MB 再启动 —— 用户以为
+                        // 自己点的是"开始跑"，实际触发了一次大下载，流量和等待都不可预期。
+                        // 拆开之后：没装时按钮如实说「安装」，且点它有下载前告知；
+                        // 装完不自动启动，由弹窗问一句。
                         Button(
-                            onClick = onStart,
+                            onClick = if (installed) onStart else onInstall,
                             enabled = !busy,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = content.copy(alpha = 0.18f),
                                 contentColor = content,
                             ),
                         ) {
-                            Icon(Icons.Outlined.PlayArrow, null, Modifier.size(18.dp))
+                            Icon(
+                                if (installed) Icons.Outlined.PlayArrow else Icons.Outlined.Download,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.dsh_start))
+                            Text(
+                                stringResource(
+                                    if (installed) R.string.dsh_start else R.string.dsh_install
+                                )
+                            )
                         }
                     }
                 }

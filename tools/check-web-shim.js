@@ -289,9 +289,14 @@ ok(/internal fun DshRuntime\.fetchNewestMeta\(\): DshMeta\?/.test(rt) &&
   "检查更新在候选里取最新（不再只看所选通道那一个 tag）");
 ok(/DshRuntime\.updateRuntime\(true\)/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt", "utf8")) &&
   "自动检测更新的确认框调 updateRuntime（不是 reinstallRuntime），检测到的新版本才会被真正下载");
-ok(/fun updateRuntime\(preserveData: Boolean = true\)/.test(rt) &&
+// autoStart 参数是后加的（首页要把「装完」与「启动」拆成两步），断言跟着放宽到
+// 「有 preserveData 且可选 autoStart」，但**仍然钉住** newest = true 这一句 ——
+// 那才是「更新与重装分道」的实质。
+ok(/fun updateRuntime\(preserveData: Boolean = true(, autoStart: Boolean = true)?\)/.test(rt) &&
   /downloadAndInstall\(preserveData, newest = true\)/.test(rt),
   "「更新」走候选取最新，与「重装」分道（更新曾借用重装那条，下载的还是旧通道）");
+ok(/if \(autoStart\) startAndAwait\(\) else markInstalledIdle\(\)/.test(rt),
+  "装完不一定启动：autoStart=false 时落回「已安装未运行」（首页安装流程要用）");
 // downloadAndInstall 现在是 DshRuntime 的扩展函数（同包搬家），内部调用带 this. 前缀。
 ok(/internal suspend fun DshRuntime\.downloadAndInstall\(preserveData: Boolean = true, newest: Boolean = true\)/.test(rt) &&
   /val meta = if \(newest\) this\.fetchNewestMeta\(\) else this\.fetchMeta\(\)/.test(rt) &&

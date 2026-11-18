@@ -494,6 +494,14 @@
     <string name="settings_beta_update">接受测试版更新</string>
     <string name="settings_beta_update_summary">连 GitHub Actions 构建的预发布版一起提示。它用正式版的签名，可以直接覆盖安装，之后的正式版也能装回来 —— 代价只是它「新」得多于「稳」。</string>
     <string name="settings_update_channel">更新通道</string>
+    <string name="settings_github_token">GitHub 令牌</string>
+    <string name="settings_github_token_summary">未设置 —— GitHub 对匿名 API 调用限流 60 次/小时，更新检查可能因此失败</string>
+    <string name="settings_github_token_body">填了令牌之后限额提升到 5000 次/小时，更新检查不会再莫名失败。令牌用系统密钥库加密，不会离开这台设备。</string>
+    <string name="settings_github_token_hint">粘贴令牌</string>
+    <string name="settings_github_token_readonly_hint">建议使用只读令牌：本应用只读 Releases 与元数据，不需要任何写权限。</string>
+    <string name="settings_github_token_save">保存</string>
+    <string name="settings_github_token_clear">清除</string>
+    <string name="settings_github_token_save_failed">令牌加密失败，已保留原来的值。</string>
     <string name="settings_update_channel_summary">正式版只收稳定发布。Beta 额外收预发布构建。Alpha 什么都收，包括可能打不开、可能丢数据的版本。</string>
     <string name="update_channel_stable">正式版</string>
     <string name="update_channel_stable_desc">只收正式发布。默认选项。</string>

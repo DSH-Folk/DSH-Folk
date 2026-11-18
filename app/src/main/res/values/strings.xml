@@ -519,6 +519,14 @@
     <string name="settings_beta_update">Accept beta updates</string>
     <string name="settings_beta_update_summary">Also offer pre-release builds from GitHub Actions. They are signed with the release key, so they upgrade in place and a later release installs back over them — but they are newer than they are tested.</string>
     <string name="settings_update_channel">Update channel</string>
+    <string name="settings_github_token">GitHub token</string>
+    <string name="settings_github_token_summary">Not set — GitHub limits anonymous API calls to 60 per hour, which can make update checks fail</string>
+    <string name="settings_github_token_body">A token raises the limit to 5000 calls per hour, so update checks stop failing. It is encrypted with a key held by the system keystore and never leaves the device.</string>
+    <string name="settings_github_token_hint">Paste the token</string>
+    <string name="settings_github_token_readonly_hint">Use a read-only token: this app only reads Releases and metadata, so no write scope is needed.</string>
+    <string name="settings_github_token_save">Save</string>
+    <string name="settings_github_token_clear">Remove</string>
+    <string name="settings_github_token_save_failed">Could not encrypt the token; the previous value was kept.</string>
     <string name="settings_update_channel_summary">Stable gets releases only. Beta also gets pre-release builds. Alpha gets everything, including builds that may not open or may lose data.</string>
     <string name="update_channel_stable">Stable</string>
     <string name="update_channel_stable_desc">Release builds only. The default.</string>

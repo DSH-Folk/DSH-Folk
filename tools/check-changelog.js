@@ -357,6 +357,65 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
     "设置页手动检查也登记提示权（共用同一闸门）");
   ok(/fun clearPromptedRuntimeVersion\(\)/.test(runtime),
     "提示关掉时放开闸门（否则用户手动再查一次看不到结果）");
+{
+  // ── GitHub 令牌：加密存储 + 只发给 api.github.com ──
+  const token = code(read("app/src/main/java/me/bmax/apatch/util/GithubTokenStore.kt"));
+  ok(/AES\/GCM\/NoPadding/.test(token),
+    "令牌用 AES-GCM 加密（GCM 自带完整性校验，密文被改过会抛而不是解出垃圾）");
+  ok(/AndroidKeyStore/.test(token),
+    "密钥在 AndroidKeyStore（密钥不出安全硬件，拿到 prefs 文件也解不开）");
+  ok(/setUserAuthenticationRequired\(false\)/.test(token),
+    "不要求用户认证（更新检查可能在后台跑，要求解锁会静默失败）");
+  ok(/fun masked\(context: Context\): String\?/.test(token),
+    "有打码展示（设置页要能确认配的是哪个，但不能把完整令牌画在屏幕上）");
+  // 关键安全边界：令牌只能发给 api.github.com，绝不能跟着代理发出去
+  // 用**原始文本**而不是 code()：code() 会剥掉 "//" 之后的内容，而这里要检查的
+  // 恰好是含 "https://" 的那一行 —— 用 code() 会让断言永远为假（假红）。
+  const apiRaw = read("app/src/main/java/me/bmax/apatch/util/FolkApiClient.kt");
+  ok(apiRaw.includes('url.startsWith("https://api.github.com/")'),
+    "令牌只对 api.github.com 发送（跟着 gh-proxy 发出去等于把凭据交给中间人）");
+  ok(apiRaw.includes('Authorization') && apiRaw.includes('Bearer '), "带 Bearer 头");
+  const gen = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt"));
+  ok(/GithubTokenDialog/.test(gen), "设置页有令牌输入弹窗");
+  ok(/settings_github_token_readonly_hint/.test(gen),
+    "明确建议只读令牌（我们只读 Releases/元数据，写权限是纯风险）");
+}
+{
+  // ── 安装与启动分开 ──
+  ok(/fun updateRuntime\(preserveData: Boolean = true, autoStart: Boolean = true\)/.test(runtime),
+    "updateRuntime 可指定装完是否自动启动");
+  ok(/private fun markInstalledIdle\(\)/.test(runtime),
+    "装完不启动要落回「已安装未运行」（否则首页一直转圈）");
+  const home = code(read("app/src/main/java/me/bmax/apatch/ui/screen/HomeDsh.kt"));
+  ok(/if \(installed\) onStart else onInstall/.test(home),
+    "未运行时主按钮按「已装/未装」分派（以前恒为「启动」，点下去却先下 150MB）");
+  ok(/dsh_install_confirm_body/.test(home), "安装前有下载告知");
+  ok(/dsh_installed_done_body/.test(home), "装完问要不要启动");
+  ok(/dsh_restart_confirm_body/.test(home), "重启前提醒保存");
+}
+{
+  // ── 容器后端：无权限时弹窗而不是灰按钮 ──
+  const fs2 = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt"));
+  ok(/deniedBackend = "chroot"/.test(fs2) && /deniedBackend = "proroot"/.test(fs2),
+    "无权限的后端点下去弹说明（灰按钮只表达「不行」，不表达「为什么」）");
+  ok(/dsh_mode_chroot_denied_body/.test(fs2), "chroot 无权限有说明");
+  ok(/dsh_mode_denied_ok/.test(fs2), "弹窗有确认按钮");
+}
+{
+  // ── 扩展：从链接 / 从文件安装 ──
+  const mkt = code(read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionMarket.kt"));
+  ok(/suspend fun installFromUrl\(/.test(mkt), "扩展支持从链接安装");
+  ok(/suspend fun installFromFile\(/.test(mkt), "扩展支持从文件安装");
+  // 只查"文件里有 MAX_ZIP_BYTES"不够：注释里提到就会假绿。钉住**声明**与**使用**两处。
+  ok(/private const val MAX_ZIP_BYTES = \d+L \* 1024 \* 1024/.test(mkt),
+    "有大小上限的常量声明（防止一个链接把存储写满）");
+  ok(/if \(total > MAX_ZIP_BYTES\)/.test(mkt),
+    "上限真的在读取循环里生效（只声明不比较等于没有）");
+  ok(/findManifestDir/.test(mkt), "容忍多套一层目录的 zip");
+  const plug = code(read("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt"));
+  ok(/showExtLinkInstall/.test(plug) && /pickExtZip/.test(plug),
+    "扩展页有链接与文件两个入口");
+}
   ok(/suspend fun checkRuntimeUpdate\(\): RuntimeCheckResult = updateCheckMutex\.withLock/.test(runtime),
     "checkRuntimeUpdate 真的被 withLock 包住（只声明不用等于没锁）");
 }

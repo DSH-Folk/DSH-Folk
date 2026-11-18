@@ -73,6 +73,11 @@ fun GeneralSettingsContent(
     val autoUpdateSummary = stringResource(id = R.string.settings_auto_update_check_summary)
 
     val channelTitle = stringResource(id = R.string.settings_update_channel)
+    // GitHub 令牌：卡片标题 + 打码后的当前值（null = 未配置）。
+    val githubTokenTitle = stringResource(R.string.settings_github_token)
+    val githubTokenSummary = stringResource(R.string.settings_github_token_summary)
+    var githubTokenMasked by remember { mutableStateOf(GithubTokenStore.masked(context)) }
+    val showGithubTokenDialog = remember { mutableStateOf(false) }
     val channelSummary = stringResource(id = R.string.settings_update_channel_summary)
 
     val launcherIconTitle = stringResource(id = R.string.settings_alt_icon)
@@ -265,6 +270,42 @@ fun GeneralSettingsContent(
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             }
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── GitHub 令牌 ──
+        //
+        // 放在「更新通道」正下方：它解决的是同一类问题（更新检查打 GitHub API），
+        // 用户撞了限流会先来这里找。
+        item(key = "general_github_token") {
+            ExpressiveCard(flat = flat, onClick = { showGithubTokenDialog.value = true }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Key,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = githubTokenTitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            // 已配置时显示打码后的令牌：让用户确认"配的是哪一个"，
+                            // 又不会把完整凭据画在屏幕上（截图发出去就等于泄露）。
+                            text = githubTokenMasked ?: githubTokenSummary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -522,6 +563,18 @@ fun GeneralSettingsContent(
         )
     }
 
+    if (showGithubTokenDialog.value) {
+        GithubTokenDialog(
+            onDismiss = { showGithubTokenDialog.value = false },
+            onSaved = {
+                // 存完重读打码值：卡片上要立刻反映"配上了/清掉了"，
+                // 不能等下次进页面。
+                githubTokenMasked = GithubTokenStore.masked(context)
+                showGithubTokenDialog.value = false
+            },
+        )
+    }
+
     if (showCustomAppTitleDialog.value) {
         CustomAppTitleDialog(showCustomAppTitleDialog, snackBarHost) { newTitle ->
             currentCustomAppTitle = newTitle
@@ -619,4 +672,89 @@ fun GeneralSettingsContent(
         )
     }
 
+}
+
+/**
+ * GitHub 令牌输入弹窗。
+ *
+ * 三个要点：
+ *  1. **不回显已存的值**：输入框永远从空开始。回显等于把完整凭据重新画到屏幕上，
+ *     而用户改令牌时本来就是整条替换，不需要看到旧的。
+ *  2. **明确建议只读令牌**：读权限就够用（我们只读 Releases / metadata），
+ *     写权限对这个功能没有任何用处，多给的每一分权限都是纯风险。
+ *  3. **留一个清除入口**：令牌会过期、会被吊销，用户需要一个"我不用了"的动作，
+ *     否则只能重装应用。
+ */
+@Composable
+private fun GithubTokenDialog(
+    onDismiss: () -> Unit,
+    onSaved: () -> Unit,
+) {
+    val context = LocalContext.current
+    var text by remember { mutableStateOf("") }
+    var failed by remember { mutableStateOf(false) }
+    val hasToken = remember { GithubTokenStore.hasToken(context) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_github_token)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_github_token_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it; failed = false },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.settings_github_token_hint)) },
+                    isError = failed,
+                )
+                if (failed) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(R.string.settings_github_token_save_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_github_token_readonly_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (GithubTokenStore.save(context, text)) onSaved() else failed = true
+                },
+                enabled = text.isNotBlank(),
+            ) { Text(stringResource(R.string.settings_github_token_save)) }
+        },
+        dismissButton = {
+            Row {
+                if (hasToken) {
+                    TextButton(onClick = {
+                        GithubTokenStore.clear(context)
+                        onSaved()
+                    }) {
+                        Text(
+                            text = stringResource(R.string.settings_github_token_clear),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.update_channel_cancel))
+                }
+            }
+        },
+    )
 }

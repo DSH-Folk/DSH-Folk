@@ -595,6 +595,10 @@ fun FunctionSettingsContent(
                                 )
                                 Spacer(Modifier.height(12.dp))
 
+                                // 被拒绝的后端 id（null = 没弹窗）。存 id 而不是布尔，
+                                // 因为弹窗里要说清是哪一个、缺哪个权限。
+                                var deniedBackend by remember { mutableStateOf<String?>(null) }
+
                                 // 必须是 `== "proot"`，不能写 `!= "proroot"`：
                                 // 加了 chroot 之后后者会让 proot 和 chroot **同时**显示为选中。
                                 RuntimeOption(
@@ -604,24 +608,66 @@ fun FunctionSettingsContent(
                                     summary = stringResource(R.string.dsh_mode_proot_desc),
                                     onSelect = { onRuntimeIdChange("proot") },
                                 )
+                                // proroot / chroot 都是「能点」的：没有权限时**弹窗说明并保持原选择**，
+                                // 而不是画成灰色禁用。
+                                //
+                                // 灰按钮的问题在于它只表达「不行」，不表达「为什么不行、该怎么办」——
+                                // 用户看到一颗点不动的选项，唯一能做的就是猜。弹窗能把「缺哪个权限、
+                                // 去哪开」一次说清，而且不会把用户的选择悄悄改掉。
                                 RuntimeOption(
                                     selected = runtimeId == "proroot",
-                                    enabled = prorootAvailable,
+                                    enabled = true,
                                     title = stringResource(R.string.dsh_mode_proroot),
                                     summary = if (prorootAvailable) stringResource(R.string.dsh_mode_proroot_desc)
                                     else prorootUnavailableReason,
-                                    onSelect = { onRuntimeIdChange("proroot") },
+                                    onSelect = {
+                                        if (prorootAvailable) onRuntimeIdChange("proroot")
+                                        else deniedBackend = "proroot"
+                                    },
                                 )
                                 // chroot：需要 root 通道。说明里写明「它不是沙箱」，
                                 // 免得用户以为选了它就得到了隔离。
                                 RuntimeOption(
                                     selected = runtimeId == "chroot",
-                                    enabled = chrootAvailable,
+                                    enabled = true,
                                     title = stringResource(R.string.dsh_mode_chroot_name),
                                     summary = if (chrootAvailable) stringResource(R.string.dsh_mode_chroot_desc)
                                     else chrootUnavailableReason,
-                                    onSelect = { onRuntimeIdChange("chroot") },
+                                    onSelect = {
+                                        if (chrootAvailable) onRuntimeIdChange("chroot")
+                                        else deniedBackend = "chroot"
+                                    },
                                 )
+
+                                // 无权限时的说明弹窗。**保持原选择不变**：
+                                // 用户点了 chroot 但没 root，选择仍是之前那个 —— 不能因为
+                                // 点了一下就把他现在的可用配置改掉。
+                                deniedBackend?.let { denied ->
+                                    AlertDialog(
+                                        onDismissRequest = { deniedBackend = null },
+                                        title = {
+                                            Text(
+                                                stringResource(
+                                                    if (denied == "chroot") R.string.dsh_mode_chroot_denied_title
+                                                    else R.string.dsh_mode_proroot_denied_title,
+                                                ),
+                                            )
+                                        },
+                                        text = {
+                                            Text(
+                                                stringResource(
+                                                    if (denied == "chroot") R.string.dsh_mode_chroot_denied_body
+                                                    else R.string.dsh_mode_proroot_denied_body,
+                                                ),
+                                            )
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = { deniedBackend = null }) {
+                                                Text(stringResource(R.string.dsh_mode_denied_ok))
+                                            }
+                                        },
+                                    )
+                                }
 
                                 Spacer(Modifier.height(4.dp))
                                 Text(

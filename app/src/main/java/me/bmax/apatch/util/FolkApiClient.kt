@@ -106,7 +106,16 @@ object FolkApiClient {
         var lastException: Exception? = null
         repeat(maxRetries + 1) { attempt ->
             try {
-                val request = Request.Builder().url(url).build()
+                val builder = Request.Builder().url(url)
+                // GitHub API 走令牌认证，前提是目标就是 api.github.com ——
+                // 这条判断不能省：令牌绝不能跟着 gh-proxy 之类的第三方代理发出去，
+                // 那等于把账号凭据交给一个中间人。
+                if (url.startsWith("https://api.github.com/")) {
+                    GithubTokenStore.load(apApp)?.takeIf { it.isNotBlank() }?.let { token ->
+                        builder.header("Authorization", "Bearer " + token)
+                    }
+                }
+                val request = builder.build()
                 val response = apApp.okhttpClient.newCall(request).execute()
                 if (response.isSuccessful) {
                     return response.body?.string() ?: ""

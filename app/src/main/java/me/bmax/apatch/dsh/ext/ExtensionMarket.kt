@@ -98,6 +98,9 @@ object ExtensionMarket {
     private const val DEFAULT_MIN_API = 1
 
     /** sha256 只认 64 位小写十六进制（目录里也这么登记；大写由调用方先统一）。 */
+    /** 单个扩展包的大小上限。扩展是代码包，几十 MB 已经异常。 */
+    private const val MAX_ZIP_BYTES = 64L * 1024 * 1024
+
     private val SHA256_RE = Regex("^[0-9a-f]{64}$")
 
     private const val HEX = "0123456789abcdef"
@@ -168,6 +171,62 @@ object ExtensionMarket {
         }
 
     /**
+     * 从**链接**安装扩展（.zip）。
+     *
+     * 与市场安装的区别只有「条目从哪来」：这里没有目录索引，id / 版本 / sha256 都
+     * 得从 zip 里读出来。所以流程是：先下到缓存 → 解开 manifest 拿到 id 与版本 →
+     * 再走与市场完全相同的落盘路径（[ExtensionRegistry.installFromDir]）。
+     *
+     * ## 为什么不要求用户填 sha256
+     *
+     * 市场条目要求 sha256 是因为目录由**我们**维护，摘要可以事先算好；用户自己贴的
+     * 链接没有这个前提。但代价要说清楚：不校验摘要意味着下载过程被中间人替换时
+     * 装进去的就是替换后的内容。
+     *
+     * 缓解办法是**信任确认不跳过**：装完仍然要用户明确点「启用」并看到它声明的能力，
+     * 那一步是这道防线真正的落点（见扩展页的启用流程）。
+     *
+     * @param url 直链（https）。不接受 http：明文传输下任何校验都没有意义。
+     */
+    suspend fun installFromUrl(ctx: Context, url: String): Result<ExtensionManifest> =
+        withContext(Dispatchers.IO) {
+            val appCtx = ctx.applicationContext
+            try {
+                Result.success(installFromUrlBlocking(appCtx, url))
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: MarketFailure) {
+                ExtLog.log("链接安装失败：" + url + " —— " + e.message)
+                Result.failure<ExtensionManifest>(e)
+            } catch (e: Exception) {
+                ExtLog.log("链接安装异常：" + url + " —— " + reasonOf(e))
+                Result.failure<ExtensionManifest>(MarketFailure("安装失败：" + reasonOf(e), e))
+            }
+        }
+
+    /**
+     * 从**本地文件**安装扩展（.zip）。
+     *
+     * 比链接安装更可信：文件是用户自己从磁盘选的，没有传输环节。但**不因此跳过任何
+     * 校验** —— zip slip、大小上限、manifest 合法性全都照跑。
+     */
+    suspend fun installFromFile(ctx: Context, uri: android.net.Uri): Result<ExtensionManifest> =
+        withContext(Dispatchers.IO) {
+            val appCtx = ctx.applicationContext
+            try {
+                Result.success(installFromFileBlocking(appCtx, uri))
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: MarketFailure) {
+                ExtLog.log("文件安装失败：" + uri + " —— " + e.message)
+                Result.failure<ExtensionManifest>(e)
+            } catch (e: Exception) {
+                ExtLog.log("文件安装异常：" + uri + " —— " + reasonOf(e))
+                Result.failure<ExtensionManifest>(MarketFailure("安装失败：" + reasonOf(e), e))
+            }
+        }
+
+    /**
      * 已安装的 id → version，给「已安装 / 可更新」判断用。
      *
      * 为什么直接读 [ExtensionRegistry.listInstalled] 而不是自己扫盘：市场与扩展页必须看到
@@ -188,6 +247,113 @@ object ExtensionMarket {
     private fun fetchIndexBlocking(rawUrl: String): List<MarketEntry> {
         val url = parseHttpsUrl(rawUrl, "市场目录地址")
         return parseIndex(httpGetText(url))
+    }
+
+    /**
+     * 链接安装的阻塞实现：下载到缓存 → 解压 → 校验 manifest → 交给 registry。
+     *
+     * **没有 sha256 可校验**（用户自己贴的链接，我们事先不知道摘要）。能做的防线是：
+     *  - 只接受 https（明文下任何校验都没意义）；
+     *  - 大小上限（见 MAX_ZIP_BYTES），防止一个链接把设备存储写满；
+     *  - 解压防 zip slip（复用 [unzip]，与市场安装同一份实现）；
+     *  - manifest 必须能被 [ExtensionLayout] 解析（id 合法、版本非空）。
+     */
+    private fun installFromUrlBlocking(ctx: Context, rawUrl: String): ExtensionManifest {
+        val url = parseHttpsUrl(rawUrl, "扩展下载地址")
+        val work = File(ctx.cacheDir, "ext-link-" + System.currentTimeMillis())
+        if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
+        try {
+            val zip = File(work, "extension.zip")
+            downloadTo(url, zip, expectedSha256 = "")
+            return installFromZip(ctx, zip, work)
+        } finally {
+            // 无论成败都清掉：缓存里留一堆半截 zip 只会占地方
+            work.deleteRecursively()
+        }
+    }
+
+    /**
+     * 文件安装的阻塞实现：把用户选的 uri 复制到缓存 → 解压 → 校验 → 交给 registry。
+     *
+     * 必须先复制到缓存而不是直接从 uri 解压：content:// 的流**不能随机读**，
+     * 而 ZipInputStream 只顺序读一遍就够 —— 但 installFromDir 之后还要再访问一次文件，
+     * 那时 uri 的临时授权可能已经失效。复制一份是最省心的做法。
+     */
+    private fun installFromFileBlocking(ctx: Context, uri: android.net.Uri): ExtensionManifest {
+        val work = File(ctx.cacheDir, "ext-file-" + System.currentTimeMillis())
+        if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
+        try {
+            val zip = File(work, "extension.zip")
+            val stream = ctx.contentResolver.openInputStream(uri)
+                ?: throw MarketFailure("读不到这个文件（可能已被移动或没有访问权限）")
+            stream.use { input ->
+                zip.outputStream().use { output ->
+                    // 边读边计数：不设上限的话，一个超大文件会把缓存写满，
+                    // 而失败发生在写完之后，用户看到的只是"安装失败"。
+                    val buf = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > MAX_ZIP_BYTES) {
+                            throw MarketFailure("文件超过 " + (MAX_ZIP_BYTES / 1024 / 1024) + "MB，拒绝安装")
+                        }
+                        output.write(buf, 0, n)
+                    }
+                }
+            }
+            return installFromZip(ctx, zip, work)
+        } finally {
+            work.deleteRecursively()
+        }
+    }
+
+    /**
+     * 从一个已经落在本地的 zip 装扩展：解压 → 解析 manifest → 交给 registry。
+     *
+     * 与市场安装共用 [unzip] 与 [ExtensionRegistry.installFromDir]，所以 zip slip、
+     * 大小上限、manifest 合法性这三道检查是**同一份代码**，不会因为入口不同而漂移。
+     */
+    private fun installFromZip(ctx: Context, zip: File, work: File): ExtensionManifest {
+        val unpacked = File(work, "unpacked")
+        if (!unpacked.mkdirs()) throw MarketFailure("无法创建解压目录")
+        unzip(zip, unpacked)
+        // 目录里可能只有一层包裹目录（打包时多套了一层），找到真正含 manifest 的那一层
+        val root = findManifestDir(unpacked)
+            ?: throw MarketFailure("压缩包里没有找到扩展清单（extension.json / manifest.json）")
+        // 先读一遍清单：一是确认它真的是扩展包，二是拿到 minAppVersion 做宿主门槛检查
+        // （与市场安装同一道闸，见 installBlocking 的 3b）。
+        val parsed = ExtensionManifest.read(root)
+            ?: throw MarketFailure("安装失败：安装包里没有可用的 manifest.json（缺失或字段不合法）")
+        parsed.minAppVersion?.takeIf { it.isNotBlank() }?.let { required ->
+            if (!DshRuntime.appSatisfies(required)) {
+                throw MarketFailure(
+                    "安装失败：这个扩展要求宿主版本 >= " + required +
+                        "，当前是 " + me.bmax.apatch.BuildConfig.VERSION_NAME,
+                )
+            }
+        }
+        val installed = ExtensionRegistry.installFromDir(ctx, root)
+            ?: throw MarketFailure("扩展安装失败：清单不合法或目录无法写入")
+        ExtLog.log("已安装扩展：" + installed.id + " v" + installed.version)
+        return installed
+    }
+
+    /**
+     * 找到真正含扩展清单的那一层目录。
+     *
+     * 用户打的 zip 经常多套一层（`my-ext/extension.json` 而不是 `extension.json`）。
+     * 只向下找**一层**：再深就不是打包习惯问题，而是目录结构真的不对，
+     * 那种情况应该如实报"没有找到清单"，而不是猜。
+     */
+    private fun findManifestDir(dir: File): File? {
+        if (ExtensionManifest.read(dir) != null) return dir
+        val children = dir.listFiles()?.filter { it.isDirectory } ?: return null
+        // 只有一个子目录时才向下看：多个子目录说明这不像单个扩展的包
+        if (children.size != 1) return null
+        val only = children.first()
+        return if (ExtensionManifest.read(only) != null) only else null
     }
 
     /** 下载 → 校验 → 解压 → 安装 → 清理。同步版：[install] 负责线程与异常边界。 */
