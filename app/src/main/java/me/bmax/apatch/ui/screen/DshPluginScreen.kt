@@ -220,15 +220,35 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         }
     }
 
-    // 扩展市场弹层：放在**页面级**而不是 ExtensionsPane 里 —— 它装完要让列表重读，
+    // 扩展市场：放在**页面级**而不是 ExtensionsPane 里 —— 它装完要让列表重读，
     // 而列表的事实来源在 ExtensionsPane 内部，所以靠 extensionRefresh 这个自增信号从外面捅它。
+    //
+    // ## 必须包在 Dialog 里
+    //
+    // 它现在是**整页**（Scaffold + TopAppBar），而这里与主 Scaffold 是**并列**关系。
+    // 两个 Scaffold 并列在同一个父布局里会互相抢高度：主 Scaffold 已经吃掉全部，
+    // 后一个拿不到任何空间 → 画不出来 → 用户看到的是「点商店按钮没反应」。
+    //
+    // 用 Dialog 把它提到**独立窗口**，尺寸由窗口决定而不是由父布局分配，
+    // 这样它才能真正铺满整屏。usePlatformDefaultWidth = false 是必须的：
+    // 默认 Dialog 会留一圈边距、宽度受限，那正是"看起来像半窗"的另一半原因。
     if (showMarket) {
-        ExtensionMarketSheet(
-            onDismiss = { showMarket = false },
-            // 装完只重读列表、不自动启用：信任确认必须是用户看得见的那一步，
-            // 市场替用户点掉它等于绕过「这个扩展将获得完整权限」的告知。
-            onInstalled = { extensionRefresh++ },
-        )
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showMarket = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
+        ) {
+            androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
+                ExtensionMarketSheet(
+                    onDismiss = { showMarket = false },
+                    // 装完只重读列表、不自动启用：信任确认必须是用户看得见的那一步，
+                    // 市场替用户点掉它等于绕过「这个扩展将获得完整权限」的告知。
+                    onInstalled = { extensionRefresh++ },
+                )
+            }
+        }
     }
 
     Scaffold(

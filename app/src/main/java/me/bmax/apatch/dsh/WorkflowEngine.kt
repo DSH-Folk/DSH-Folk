@@ -82,6 +82,13 @@ internal object WorkflowEngine {
         def: WorkflowDefinition,
         diff: List<WorkflowPatch> = emptyList(),
         allowDangerous: Boolean = false,
+        /**
+         * 从哪个入口开始。null = 用默认（第一张开始卡片）。
+         *
+         * 一个流程可以有多个入口，多入口时**必须**由调用方指定 —— 否则静默跑第一张，
+         * 而用户以为是另一张。UI 侧在 [WorkflowDefinition.triggers] 数量 > 1 时弹窗让用户选。
+         */
+        entryId: String? = null,
     ): StartResult {
         DshRuntime.attach(ctx.applicationContext)
         val runId = WorkflowStore.newRunId()
@@ -202,9 +209,16 @@ internal object WorkflowEngine {
             persist()
         }
 
-        val entry = def.trigger
+        // 指定的入口优先；没指定才回落到默认（第一张）。
+        // 指定的那个不存在时不要静默换一个 —— 那是"点了 A 跑了 B"，
+        // 比失败更难查。走 no_trigger 让用户看到明确原因。
+        val entry = if (entryId != null) {
+            def.nodes.firstOrNull { it.id == entryId && it.type == WorkflowNodeType.TRIGGER }
+        } else {
+            def.trigger
+        }
         if (entry == null) {
-            failRun(ctx, runId, "no_trigger")
+            failRun(ctx, runId, if (entryId != null) "entry_not_found" else "no_trigger")
             return
         }
 

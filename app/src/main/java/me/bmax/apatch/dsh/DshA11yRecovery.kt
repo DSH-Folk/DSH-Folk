@@ -81,11 +81,20 @@ internal object DshA11yRecovery {
     /** 自己刚写过之后忽略 observer 的时长（否则会把自己的写当成"又被关了"）。 */
     private const val SELF_WRITE_GRACE_MS = 1_500L
 
+    /** 自动恢复总闸的 prefs 键。默认 true（见 [autoRecoveryEnabled]）。 */
+    const val KEY_AUTO_RECOVERY = "a11y_auto_recovery"
+
+    private fun prefs(ctx: Context) =
+        ctx.applicationContext.getSharedPreferences(me.bmax.apatch.APApplication.SP_NAME, Context.MODE_PRIVATE)
+
     private val attempts = ArrayDeque<Long>()
 
     @Volatile private var lastWriteAtMs = 0L
 
     @Volatile private var observerInstalled = false
+
+    /** 已注册的 observer。关掉开关时要 unregister，所以必须留引用。 */
+    @Volatile private var registeredObserver: ContentObserver? = null
 
     private val handler by lazy { Handler(Looper.getMainLooper()) }
 
@@ -118,12 +127,48 @@ internal object DshA11yRecovery {
 
     // ───────────────────────── 期望状态 ─────────────────────────
 
+    /**
+     * 自动恢复的**总闸**。
+     *
+     * ## 为什么需要一个独立开关
+     *
+     * 在加它之前，"要不要恢复"完全由另外两个设置隐式决定（自启方式 = 无障碍 /
+     * 原生桥无障碍档位 ≠ OFF）。也就是说：用户开了无障碍能力，就**同时**接受了
+     * 「应用会去写 WRITE_SECURE_SETTINGS 把服务重新打开」这件事 —— 而这是两回事。
+     *
+     * 更麻烦的是它**不可见**：用户在系统设置里关掉无障碍，过一会儿它自己又开了。
+     * 即使意图正确（按应用内设置恢复），用户也不知道存在这个行为，更没法拒绝。
+     * 自动改写系统开关本质上是侵入性的，必须让用户能关掉。
+     *
+     * 默认 **true**：存量用户已经在享受这个行为，默认改成 false 等于悄悄取消
+     * 一个他们可能依赖的可靠性保障。
+     */
+    fun autoRecoveryEnabled(ctx: Context): Boolean =
+        runCatching { prefs(ctx).getBoolean(KEY_AUTO_RECOVERY, true) }.getOrDefault(true)
+
+    /**
+     * 写总闸。
+     *
+     * 关掉时**立刻停掉 observer**（[unregister]）—— 否则监听还在、只是回调里早退，
+     * 那等于"关了但还在盯着"，用户改回开关时行为也说不清。
+     */
+    fun setAutoRecoveryEnabled(ctx: Context, on: Boolean) {
+        prefs(ctx).edit().putBoolean(KEY_AUTO_RECOVERY, on).apply()
+        if (!on) unregister(ctx) else install(ctx)
+    }
+
     /** 按**应用内部设置**算出这两个服务现在该不该在。 */
-    fun wanted(ctx: Context): Wanted = Wanted(
-        autostart = DshAutostart.mode(ctx) == DshAutostart.Mode.ACCESSIBILITY,
-        a11y = DshNativeBridge.enabled(ctx) &&
-            DshNativeBridge.access(ctx, DshNativeBridge.Cap.A11Y) != DshNativeBridge.Access.OFF,
-    )
+    fun wanted(ctx: Context): Wanted {
+        // 总闸关着 → 两个都"不想要"。这一层必须在最前面：
+        // 它同时管住了 observer 回调、onServiceGone、onForeground 与 repairQuietly，
+        // 因为这些入口的第一句都是 wanted(...).any。
+        if (!autoRecoveryEnabled(ctx)) return Wanted(autostart = false, a11y = false)
+        return Wanted(
+            autostart = DshAutostart.mode(ctx) == DshAutostart.Mode.ACCESSIBILITY,
+            a11y = DshNativeBridge.enabled(ctx) &&
+                DshNativeBridge.access(ctx, DshNativeBridge.Cap.A11Y) != DshNativeBridge.Access.OFF,
+        )
+    }
 
     private fun componentOf(ctx: Context, wanted: Wanted): List<ComponentName> = buildList {
         if (wanted.autostart) add(ComponentName(ctx, DshAutostartService::class.java))
@@ -256,17 +301,21 @@ internal object DshA11yRecovery {
      */
     fun install(ctx: Context) {
         val app = ctx.applicationContext
+        // 总闸关着就不挂监听：挂了也只是在回调里早退，那是"关了但还在盯着"。
+        if (!autoRecoveryEnabled(app)) return
         if (observerInstalled) return
         observerInstalled = true
         val observer = object : ContentObserver(handler) {
             override fun onChange(selfChange: Boolean) {
                 // 自己刚写的那一条不是"又被关了"，别去响应它。
                 if (System.currentTimeMillis() - lastWriteAtMs < SELF_WRITE_GRACE_MS) return
+                // wanted() 里已经含了总闸，这一句同时挡住"总闸关着"与"两个都关了"。
                 if (!wanted(app).any) return
                 handler.removeCallbacks(pendingRepair)
                 handler.postDelayed(pendingRepair, DEBOUNCE_MS)
             }
         }
+        registeredObserver = observer
         runCatching {
             app.contentResolver.registerContentObserver(
                 Settings.Secure.getUriFor(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES),
@@ -278,7 +327,36 @@ internal object DshA11yRecovery {
                 false,
                 observer,
             )
-        }.onFailure { Log.w(TAG, "注册无障碍设置监听失败: ${it.message}") }
+        }.onFailure {
+            Log.w(TAG, "注册无障碍设置监听失败: ${it.message}")
+            // 注册失败要把标志复位，否则下次 install 会以为已经挂上了、永远不再试。
+            observerInstalled = false
+            registeredObserver = null
+        }
+    }
+
+    /**
+     * 摘掉 observer，并复位「已安装」标志。
+     *
+     * ## 为什么必须有这个
+     *
+     * [install] 用 `observerInstalled` 做单次保护（重复注册会让一次变更触发多次恢复，
+     * 那本身就是抖动的起点）。但如果**关掉开关时不解绑**，就变成：
+     *  - 监听还在，只是回调里早退 —— 用户以为关了，实际还在盯着；
+     *  - 再次打开开关时 `install` 被 `observerInstalled` 挡住，**再也挂不上**。
+     *
+     * 所以关掉必须真正 unregister + 复位标志，打开才能重新挂。
+     */
+    fun unregister(ctx: Context) {
+        val app = ctx.applicationContext
+        registeredObserver?.let { obs ->
+            runCatching { app.contentResolver.unregisterContentObserver(obs) }
+                .onFailure { Log.w(TAG, "解绑无障碍设置监听失败: ${it.message}") }
+        }
+        registeredObserver = null
+        observerInstalled = false
+        // 顺手取消排队中的恢复：开关刚关掉，不该再有一次"补刀"
+        handler.removeCallbacks(pendingRepair)
     }
 
     /**

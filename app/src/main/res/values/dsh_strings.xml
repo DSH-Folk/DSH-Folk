@@ -1794,6 +1794,8 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_workflow_row_caps">Uses: %1$s</string>
     <string name="dsh_workflow_row_dangerous">Contains dangerous commands: tick to stop per-command prompts for this run</string>
     <string name="dsh_workflow_action_run">Run</string>
+    <string name="dsh_workflow_pick_entry_title">Start from which entry?</string>
+    <string name="dsh_workflow_pick_entry_hint">This workflow has %1$d start cards. Pick the one to run — they are different entry points.</string>
     <string name="dsh_workflow_action_save">Save</string>
     <string name="dsh_workflow_action_edit">Edit</string>
     <string name="dsh_workflow_action_reject">Reject</string>
@@ -2007,6 +2009,8 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_wf_picker_empty">No matching node</string>
     <!-- 无障碍服务自动恢复（DshA11yRecovery） -->
     <string name="dsh_a11y_fix_title">Accessibility stays on</string>
+    <string name="dsh_a11y_fix_auto_title">Restore automatically</string>
+    <string name="dsh_a11y_fix_auto_summary">If the system turns the service off, write it back. Turn this off and once the system disables it, it stays disabled — the app will not switch it back on.</string>
     <string name="dsh_a11y_fix_summary">Restores the accessibility service when the system turns it off, but only while the matching switch inside this app is still on.</string>
     <string name="dsh_a11y_fix_need_permission">Not granted yet. Android has no dialog for this permission — copy the command below and run it once over ADB or a terminal.</string>
     <string name="dsh_a11y_fix_granted">Granted. The service is restored automatically when the system turns it off.</string>

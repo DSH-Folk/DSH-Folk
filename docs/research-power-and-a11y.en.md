@@ -138,6 +138,13 @@ Not a research item here — it ships. Core is `DshA11yRecovery` (304 lines) plu
   reverting, stop and report rather than fight over the same switch.
 - Whether to restore is decided from **in-app intent**, not the system setting — when the
   system shows it off we cannot tell whether the user meant it.
+- There is a **separate master switch** (`a11y_auto_recovery`, on by default). The two intent
+  sources are not the same as consenting to being switched back on — those are two different
+  things. With the master switch off, `wanted()` always reports "neither is wanted", and the
+  observer is genuinely unregistered (rather than staying registered and returning early),
+  re-registering when switched back on. The real problem before it existed: the behaviour was
+  **completely invisible** — all the user saw was "I turned it off in system settings and it came
+  back by itself", with no way to know the mechanism existed or to refuse it.
 
 **Prerequisite**: writing `Settings.Secure` needs `WRITE_SECURE_SETTINGS`, which has no
 runtime prompt (ADB/root only). Without it we **write nothing and do not pretend success**.

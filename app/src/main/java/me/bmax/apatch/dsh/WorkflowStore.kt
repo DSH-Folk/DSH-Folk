@@ -172,12 +172,48 @@ internal object WorkflowStore {
     // ────────────────────────── 工具 ──────────────────────────
 
     /** 原子写：先写 `.tmp` 再 rename（rename 在同一文件系统内是原子的）。 */
+    /**
+     * 原子写：写临时文件 → **fsync** → 用 `rename(2)` 替换目标。
+     *
+     * ## 这里曾经会**永久丢数据**
+     *
+     * 上一版是「`target.delete()` 然后 `tmp.renameTo(target)`」。那**不是**原子操作，
+     * 而且失败路径极坏：delete 已经把旧文件删了，renameTo 一旦失败（跨设备、目录权限、
+     * 目标被占用、磁盘满），新文件没就位、旧文件也没了 —— **工作流直接消失**。
+     * 用户报的「保存工作流后这个工作流直接消失了」就是这个。
+     *
+     * 正确做法是用 `rename(2)` 的覆盖语义：POSIX 保证「同一文件系统内 rename 到已存在的
+     * 文件」是原子的，要么看到旧内容、要么看到新内容，**不存在中间态**。
+     * 所以**不能先 delete**，直接 rename 覆盖即可。
+     *
+     * ## 为什么必须 fsync
+     *
+     * `writeText` 只写进页缓存。断电/进程被杀时，rename 可能已落盘而内容还在缓存里，
+     * 于是得到一个**长度为 0 或半截**的文件 —— 同样是丢数据，只是更难发现。
+     * 先 `fd.sync()` 把内容压到磁盘，再 rename，顺序不能反。
+     *
+     * ## 失败时的兜底
+     *
+     * rename 失败就**保留旧文件**（这正是关键区别：旧版本会先把旧文件删掉）。
+     * 调用方拿到 false 会显示保存失败，用户的数据还在。
+     */
     private fun atomicWrite(target: File, text: String): Boolean = runCatching {
         target.parentFile?.mkdirs()
         val tmp = File(target.parentFile, target.name + ".tmp")
-        tmp.writeText(text, StandardCharsets.UTF_8)
-        if (target.exists()) target.delete()
-        tmp.renameTo(target)
+        java.io.FileOutputStream(tmp).use { out ->
+            out.write(text.toByteArray(StandardCharsets.UTF_8))
+            out.flush()
+            // 内容先落盘：否则断电后 rename 成功、内容为空
+            out.fd.sync()
+        }
+        // 不 delete 目标！rename 本身就覆盖，且是原子的。
+        // 先 delete 会让「rename 失败」变成「新旧都没了」——那正是数据丢失的成因。
+        if (!tmp.renameTo(target)) {
+            // 极少数情况（目标被别的进程持有等）rename 会失败：旧文件仍在，删掉临时文件即可。
+            tmp.delete()
+            return@runCatching false
+        }
+        true
     }.getOrDefault(false)
 
     /** 定义摘要（批准弹窗与列表共用；不含节点细节）。 */

@@ -95,6 +95,9 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
     val prefs = remember { ctx.getSharedPreferences(DshEnv.PREF, android.content.Context.MODE_PRIVATE) }
     var enabled by remember { mutableStateOf(prefs.getBoolean(DshEnv.KEY_WORKFLOW_ENABLED, false)) }
     var listKey by remember { mutableIntStateOf(0) }
+    // 多入口的流程：点「运行」时先弹这个选从哪张开始卡片跑。
+    // 存的是整份定义（弹窗要读 triggers），关闭时置 null。
+    var entryPickerDef by remember { mutableStateOf<WorkflowDefinition?>(null) }
     var detailRun by remember { mutableStateOf<WorkflowRun?>(null) }
     // 点流程主体 → 详情弹窗（名称/描述/可缩放预览/编辑/删除），不在列表行里就地展开。
     var detailDef by remember { mutableStateOf<WorkflowDefinition?>(null) }
@@ -239,15 +242,51 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
                     errors = errors,
                     onOpenDetail = { detailDef = def },
                     onRun = {
+                        // 多入口时先让用户选从哪张开始卡片跑。
+                        //
+                        // 一个流程可以有多张「开始卡片」（对齐点击助手），而 engine 的默认
+                        // 行为是取第一张。多入口时静默取第一张 = 「点了运行，跑的却是另一个入口」，
+                        // 用户完全看不出来 —— 所以这里必须问一次。
+                        val entries = def.triggers
+                        if (entries.size > 1) {
+                            entryPickerDef = def
+                        } else {
+                            scope.launch {
+                                if (withContext(Dispatchers.IO) { awaitPermissions(ctx, def) }) {
+                                    withContext(Dispatchers.IO) {
+                                        WorkflowEngine.start(
+                                            ctx.applicationContext,
+                                            def,
+                                            emptyList(),
+                                            // 页面上的勾选就是「含危险命令也放行」的凭据；没勾就 false。
+                                            allowDangerous = dangerousAck && def.declaresDangerous,
+                                            entryId = entries.firstOrNull()?.id,
+                                        )
+                                    }
+                                    listKey++
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+
+            // 入口选择弹窗：多张「开始卡片」时问一次从哪张开始跑。
+            entryPickerDef?.let { pd ->
+                EntryPickerDialog(
+                    def = pd,
+                    onDismiss = { entryPickerDef = null },
+                    onPick = { entryId ->
+                        entryPickerDef = null
                         scope.launch {
-                            if (withContext(Dispatchers.IO) { awaitPermissions(ctx, def) }) {
+                            if (withContext(Dispatchers.IO) { awaitPermissions(ctx, pd) }) {
                                 withContext(Dispatchers.IO) {
                                     WorkflowEngine.start(
                                         ctx.applicationContext,
-                                        def,
+                                        pd,
                                         emptyList(),
-                                        // 页面上的勾选就是「含危险命令也放行」的凭据；没勾就 false。
-                                        allowDangerous = dangerousAck && def.declaresDangerous,
+                                        allowDangerous = dangerousAck && pd.declaresDangerous,
+                                        entryId = entryId,
                                     )
                                 }
                                 listKey++
@@ -709,3 +748,52 @@ private fun readToolStatus(ctx: android.content.Context): ToolStatus {
 
 /** 让整行可点（行里没有别的可点元素时用它，触摸范围就是整行）。 */
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
+
+/**
+ * 「从哪个入口开始」弹窗。
+ *
+ * 一个流程可以有多张「开始卡片」（对齐点击助手），而 [WorkflowEngine.start] 的默认
+ * 行为是取第一张。多入口时静默取第一张的后果是「点了运行，跑的却是另一个入口」——
+ * 用户从界面上完全看不出来，只会觉得流程行为不对。
+ *
+ * 所以多入口时**必须**问一次。只有一个入口时不弹（问了也是废话）。
+ */
+@Composable
+private fun EntryPickerDialog(
+    def: WorkflowDefinition,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.dsh_workflow_pick_entry_title)) },
+        text = {
+            Column {
+                Text(
+                    text = stringResource(R.string.dsh_workflow_pick_entry_hint, def.triggers.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                // 不滚动：入口数量是人手加的，几十个已经是异常情况；
+                // 真多到滚不动时用户该做的是拆流程，而不是在这个弹窗里找。
+                for (t in def.triggers) {
+                    ListItem(
+                        headlineContent = {
+                            Text(t.name.ifBlank { workflowNodeLabel(t) })
+                        },
+                        supportingContent = t.description.takeIf { it.isNotBlank() }?.let {
+                            { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        },
+                        modifier = Modifier.clickable { onPick(t.id) },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.update_channel_cancel))
+            }
+        },
+    )
+}

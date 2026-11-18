@@ -49,10 +49,27 @@ The container is never started if the runtime has not yet been downloaded — ot
 When the system turns the accessibility service off, `DshA11yRecovery` tries to turn it back
 on. It does exactly one thing: **write the user's original intent back**.
 
-Whether to restore is decided from **in-app intent**, not the system setting (is the autostart
-mode still accessibility, is the native bridge's a11y level still not OFF). The system setting
+Whether to restore is decided from **in-app intent**, not the system setting. The system setting
 cannot tell us whether the user meant it — reading it would turn this into fighting over the
 switch. Turning those off inside the app revokes the intent, and recovery stops immediately.
+
+### There is a separate master switch
+
+Intent comes from two sources (is the autostart mode still accessibility, is the native bridge
+a11y level still not OFF) — but that is not the same as consenting to being switched back on.
+So there is a **separate switch** (`a11y_auto_recovery`, on by default) on the accessibility
+recovery card on the permissions page.
+
+What turning it off means is unambiguous: **once the system disables the service, it stays
+disabled — the app will not switch it back on.** Turning it off also genuinely calls
+`unregisterContentObserver` (rather than staying registered and returning early in the callback),
+and turning it back on registers again.
+
+Why on by default: existing users already have this behaviour, and flipping the default to off
+would silently remove a reliability guarantee they may rely on. But the behaviour itself
+**rewrites a system setting**, which is intrusive and has to be refusable — before this switch
+existed it was completely invisible, and all the user saw was "I turned it off in system
+settings and it came back by itself".
 
 Writing `Settings.Secure` needs `WRITE_SECURE_SETTINGS`, which has no runtime prompt (ADB/root
 only). Without it we **write nothing and do not pretend success** — the UI shows "command not

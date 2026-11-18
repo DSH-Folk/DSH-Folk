@@ -1618,6 +1618,45 @@ console.log("\u2500 #17 用户自己也能建/改流程");
     "编辑页保存用 edited.revision 当前置条件（不是 initial.revision 那个进入时的常量）");
   ok(!/saveIfRevision\(ctx, edited, initial\.revision\)/.test(SRC.editorScreen),
     "不再拿 initial.revision 当保存前置条件（第二次保存起必然失败，保存功能失效）");
+  // ── 原子写不能先 delete ──
+  //
+  // 上一版是「delete 目标 → renameTo」。那**不是**原子操作，且失败路径极坏：
+  // delete 已删掉旧文件，renameTo 一旦失败（目标被占用 / 磁盘满 / 跨设备），
+  // 新文件没就位、旧文件也没了 —— 工作流**直接消失**。用户报的
+  // 「保存工作流后这个工作流直接消失了」就是这个。
+  const awBody = (() => {
+    const at = SRC.store.indexOf("private fun atomicWrite(");
+    const end = SRC.store.indexOf("\n    }", at);
+    return at >= 0 && end > at ? SRC.store.slice(at, end) : "";
+  })();
+  ok(awBody.length > 0, "能定位到 atomicWrite");
+  ok(!/target\.delete\(\)/.test(awBody),
+    "atomicWrite 不先删目标（先删会让 rename 失败变成新旧都没了 = 数据丢失）");
+  ok(/tmp\.renameTo\(target\)/.test(awBody),
+    "atomicWrite 用 rename 覆盖（POSIX 保证同一文件系统内原子）");
+  ok(/\.fd\.sync\(\)|fd\.sync\(\)/.test(awBody),
+    "atomicWrite 先 fsync 再 rename（否则断电后 rename 成功、内容为空）");
+  ok(/if \(!tmp\.renameTo\(target\)\)/.test(awBody),
+    "rename 失败要单独处理（保留旧文件，不能当作已成功）");
+
+  // ── 多入口：未指定入口时要提示选择 ──
+  //
+  // 一个流程可以有多张「开始卡片」（对齐点击助手），而 engine 默认取第一张。
+  // 多入口时静默取第一张 = 「点了运行，跑的却是另一个入口」，用户完全看不出来。
+  ok(/val triggers: List<WorkflowNode>/.test(SRC.models),
+    "WorkflowDefinition 暴露全部入口（不能只有 firstOrNull）");
+  ok(/entryId: String\? = null/.test(SRC.engine),
+    "WorkflowEngine.start 接受 entryId（否则多入口无从指定）");
+  ok(/def\.nodes\.firstOrNull \{ it\.id == entryId && it\.type == WorkflowNodeType\.TRIGGER \}/.test(SRC.engine),
+    "指定的入口不存在时**不**静默换一个（那会变成「点 A 跑 B」）");
+  ok(/entry_not_found/.test(SRC.engine),
+    "入口不存在有独立失败原因（与 no_trigger 分开，否则查不出是哪种）");
+  ok(/if \(entries\.size > 1\)/.test(SRC.screen) && /entryPickerDef = def/.test(SRC.screen),
+    "多入口时先弹选择而不是直接跑");
+  ok(/EntryPickerDialog/.test(SRC.screen),
+    "有入口选择弹窗");
+  ok(/onPick = \{ entryId ->/.test(SRC.screen) && /entryId = entryId/.test(SRC.screen),
+    "选中的入口真的传进 engine（弹窗不能只是个装饰）");
   // 自动保存与手动保存两条路径都要对，只对一条等于半修。
   ok((SRC.editorScreen.match(/saveIfRevision\(ctx, edited, edited\.revision\)/g) || []).length >= 2,
     "自动保存与手动保存都用 edited.revision（只改一条等于半修）");

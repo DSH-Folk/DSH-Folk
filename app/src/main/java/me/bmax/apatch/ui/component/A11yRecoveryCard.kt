@@ -16,6 +16,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +55,8 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var granted by remember { mutableStateOf(DshA11yRecovery.secureSettingsGranted(context)) }
+    // 自动恢复总闸。默认开（存量用户已在享受这个行为，默认关掉等于悄悄取消一项保障）。
+    var autoRecovery by remember { mutableStateOf(DshA11yRecovery.autoRecoveryEnabled(context)) }
     var busy by remember { mutableStateOf(false) }
     val command = remember(context) { DshA11yRecovery.adbGrantCommand(context) }
 
@@ -79,6 +82,35 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(10.dp))
+            // ── 自动恢复总闸 ──
+            //
+            // 放在权限状态**之前**：用户先要知道"这个功能要不要开"，再关心"开了要什么权限"。
+            // 顺序反了会让人以为权限是必须的，而实际上关掉总闸就完全不需要它。
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.dsh_a11y_fix_auto_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.dsh_a11y_fix_auto_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Switch(
+                    checked = autoRecovery,
+                    onCheckedChange = { on ->
+                        autoRecovery = on
+                        // setAutoRecoveryEnabled 内部会 install/unregister：
+                        // 关掉时真正解绑监听（不是"还在盯着但早退"），打开时重新挂上。
+                        DshA11yRecovery.setAutoRecoveryEnabled(context, on)
+                    },
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(

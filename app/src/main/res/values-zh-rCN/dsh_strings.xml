@@ -1768,6 +1768,8 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_workflow_row_caps">会用到：%1$s</string>
     <string name="dsh_workflow_row_dangerous">含危险命令：勾选后本次运行不再逐条确认</string>
     <string name="dsh_workflow_action_run">运行</string>
+    <string name="dsh_workflow_pick_entry_title">从哪个入口开始？</string>
+    <string name="dsh_workflow_pick_entry_hint">这个流程有 %1$d 张开始卡片。选一张作为起点 —— 它们是不同的入口。</string>
     <string name="dsh_workflow_action_save">保存</string>
     <string name="dsh_workflow_action_edit">编辑</string>
     <string name="dsh_workflow_action_reject">拒绝</string>
@@ -1981,6 +1983,8 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_wf_picker_empty">没有匹配的节点</string>
     <!-- 无障碍服务自动恢复（DshA11yRecovery） -->
     <string name="dsh_a11y_fix_title">无障碍服务保持开启</string>
+    <string name="dsh_a11y_fix_auto_title">自动恢复</string>
+    <string name="dsh_a11y_fix_auto_summary">系统把它关掉时，应用会再打开一次。关掉之后系统关了就真的关了，应用不会再改回来。</string>
     <string name="dsh_a11y_fix_summary">系统关掉无障碍服务时自动恢复，但只在应用内对应的开关仍然开启时才会这么做。</string>
     <string name="dsh_a11y_fix_need_permission">尚未授权。Android 没有这项权限的弹窗 —— 复制下面的命令，用 ADB 或终端执行一次。</string>
     <string name="dsh_a11y_fix_granted">已授权。系统关掉服务后会自动恢复。</string>

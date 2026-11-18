@@ -1452,6 +1452,35 @@ console.log("── 限制模式页与弹窗 ──");
         "迁移清单里真的排了 PrivPolicy.migrateOnce（集中不等于弄丢）");
       ok(/PermissionManager\.migrateOnStartup/.test(migList),
         "权限通道迁移也排在启动清单里（原本要等第一次 refresh 才跑，时机太晚）");
+      {
+        // ── 无障碍自动恢复：总闸必须真的约束 wanted() ──
+        //
+        // 加总闸之前，"要不要恢复"完全由另外两个设置隐式决定。用户开了无障碍能力，
+        // 就**同时**接受了「应用会写 WRITE_SECURE_SETTINGS 把服务重新打开」——
+        // 这是两回事，且完全不可见：用户在系统设置里关掉，过一会儿它自己又开了。
+        const rec = code(fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshA11yRecovery.kt", "utf8"));
+        ok(/fun autoRecoveryEnabled\(ctx: Context\): Boolean/.test(rec),
+          "自动恢复有独立总闸（不能只由另外两个开关隐式决定）");
+        ok(/getBoolean\(KEY_AUTO_RECOVERY, true\)/.test(rec),
+          "总闸默认 true（存量用户已在享受该行为，默认关掉等于悄悄取消一项保障）");
+        // 关键：wanted() 必须**先**看总闸，否则 observer / onServiceGone / onForeground 全绕过它
+        const wantedAt = rec.indexOf("fun wanted(ctx: Context)");
+        const wantedBody = wantedAt >= 0 ? rec.slice(wantedAt, rec.indexOf("\n    }", wantedAt)) : "";
+        ok(/if \(!autoRecoveryEnabled\(ctx\)\) return Wanted\(autostart = false, a11y = false\)/.test(wantedBody),
+          "wanted() 受总闸约束（observer / onServiceGone / onForeground 的入口都是它）");
+        // 关掉必须真解绑：只早退不解绑 = "关了但还在盯着"，而且再也挂不上
+        ok(/fun unregister\(ctx: Context\)/.test(rec) &&
+          /unregisterContentObserver/.test(rec) &&
+          /observerInstalled = false/.test(rec),
+          "关掉时真正解绑并复位标志（否则再次打开时 install 被挡住、永远挂不上）");
+        ok(/if \(!on\) unregister\(ctx\) else install\(ctx\)/.test(rec),
+          "setAutoRecoveryEnabled 关掉即解绑、打开即重挂");
+        const card = code(fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/A11yRecoveryCard.kt", "utf8"));
+        ok(/Switch\(/.test(card) && /DshA11yRecovery\.setAutoRecoveryEnabled/.test(card),
+          "恢复卡片上有总闸开关并接到 setAutoRecoveryEnabled");
+        ok(/dsh_a11y_fix_auto_summary/.test(card),
+          "开关带说明（必须讲清「关掉之后系统关了就真的关了」）");
+      }
       // 兜异常必须包住**执行**那一句，而不是文件里随便有 try 就行
       const runAt = migCode.indexOf("fun runAll(");
       const runBody = runAt >= 0 ? migCode.slice(runAt, migCode.indexOf("\n    }", runAt) + 6) : "";

@@ -698,7 +698,24 @@ internal data class WorkflowDefinition(
     fun node(id: String): WorkflowNode? = nodes.firstOrNull { it.id == id }
 
     /** 入口节点（trigger）。校验器保证只有一个。 */
-    val trigger: WorkflowNode? get() = nodes.firstOrNull { it.type == WorkflowNodeType.TRIGGER }
+    /**
+     * 全部入口卡片（开始卡片）。
+     *
+     * 一个流程**可以有多个入口**（对齐点击助手：一个任务可以有多张「开始卡片」）。
+     * 所以取入口不能只用 `firstOrNull` —— 那会在多入口时静默挑第一张，
+     * 用户点「运行」跑的可能不是他想要的那个入口。
+     */
+    val triggers: List<WorkflowNode>
+        get() = nodes.filter { it.type == WorkflowNodeType.TRIGGER }
+
+    /**
+     * 默认入口：第一张开始卡片。
+     *
+     * **只在确定只有一个入口、或调用方明确接受"第一个"时使用**。
+     * 手动运行要走 [triggers] 判数量，多入口时让用户选 —— 见 WorkflowScreen 的
+     * 「选择从哪个入口开始」弹窗。
+     */
+    val trigger: WorkflowNode? get() = triggers.firstOrNull()
 
     /**
      * 控制流出边。**只返回 flow 边** —— 执行器的"下一步走谁"全靠它，
