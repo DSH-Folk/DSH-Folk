@@ -47,6 +47,7 @@ import com.ramcosta.composedestinations.generated.destinations.FunctionSettingsS
 import com.ramcosta.composedestinations.generated.destinations.ThemeStoreScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.UserscriptsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.DshDeepCleanScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.PermissionHubScreenDestination
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
@@ -145,6 +146,10 @@ fun SettingsSearchScreen(navigator: DestinationsNavigator) {
                                 // 搜索结果直接开它
                                 SettingsTarget.DEEP_CLEAN ->
                                     navigator.navigate(DshDeepCleanScreenDestination) { launchSingleTop = true }
+                                // 无障碍自动恢复在「权限管理」页里，不在功能页也不在安全页。
+                                // 不单独指过去的话，用户搜到它、点进去会落在一个没有这张卡的页面上。
+                                SettingsTarget.PERMISSION_HUB ->
+                                    navigator.navigate(PermissionHubScreenDestination) { launchSingleTop = true }
                                 null -> when (category) {
                                     SettingCategory.GENERAL -> navigator.navigate(GeneralSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
                                     SettingCategory.APPEARANCE -> navigator.navigate(AppearanceSettingsScreenDestination(highlightKey)) { launchSingleTop = true }

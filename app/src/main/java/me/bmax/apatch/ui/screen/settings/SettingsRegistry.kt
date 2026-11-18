@@ -29,8 +29,10 @@ enum class SettingsTarget {
     THEME_STORE,
     /** 用户脚本页：不在分类页上，搜索结果要直接开它。 */
     USERSCRIPTS,
-    /** 深度清理页：入口是功能页那张卡的长按，搜索结果也直接开它。 */
+    /** 深度清理页：入口是功能页那张卡，搜索结果也直接开它。 */
     DEEP_CLEAN,
+    /** 权限管理页：无障碍自动恢复等能力开关在那一页里，搜索结果直接开它。 */
+    PERMISSION_HUB,
 }
 
 data class SettingEntry(
@@ -187,6 +189,10 @@ object SettingsRegistry {
             add(SettingEntry("function_permission", R.string.dsh_priv_restrict_title, R.string.dsh_priv_restrict_summary, SettingCategory.SECURITY))
             add(SettingEntry("function_permission", R.string.dsh_native_section, R.string.dsh_native_summary, SettingCategory.SECURITY))
             add(SettingEntry("function_permission", R.string.dsh_adb_section, R.string.dsh_adb_summary, SettingCategory.SECURITY))
+            // 无障碍自动恢复的总闸。之前它在权限页里，但**搜索索引里没有条目** ——
+            // 用户在设置里搜「无障碍」「自动恢复」什么都搜不到，只能一页页翻。
+            // 索引 key 与那张卡所在页一致（function_permission），跳过去才高亮得到。
+            add(SettingEntry("function_a11y_recovery", R.string.dsh_a11y_fix_auto_title, R.string.dsh_a11y_fix_auto_summary, SettingCategory.SECURITY, directTarget = SettingsTarget.PERMISSION_HUB))
             // 共享存储挂在安全页上单独一张卡（不属于原生能力，见 FunctionSettings.kt 的说明）
             add(SettingEntry("function_storage_mount", R.string.dsh_storage_cap_title, R.string.dsh_storage_mount_hint, SettingCategory.SECURITY))
         }

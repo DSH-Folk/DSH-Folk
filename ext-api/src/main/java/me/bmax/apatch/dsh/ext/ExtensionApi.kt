@@ -49,6 +49,51 @@ interface DshExtensionHost {
 
     /** 写进宿主日志（前缀 [ext:扩展id]），便于报障时定位是哪个扩展干的。 */
     fun log(message: String)
+
+    /**
+     * 宿主开关（见 [HostSwitch]）。
+     *
+     * ## 为什么扩展需要改宿主设置
+     *
+     * 有些能力**只能**在宿主层面开：浏览器模式决定 WebView 是否留在应用内加载外部站点，
+     * 那是宿主的加载策略，扩展改不了自己运行的环境。而"给 DSH 开放调试接口"这类扩展
+     * 恰恰依赖它 —— 不开浏览器模式，扩展就永远等不到那些页面。
+     *
+     * ## 这不是无限制的写权限
+     *
+     * 只有 [HostSwitch] 里列出的开关可以被改，而且每个都要在 manifest 的
+     * `declaredCaps` 里声明（用户在启用前会看到它）。扩展**不能**借这个接口改任意 prefs。
+     */
+    val host: ExtensionHostSettings
+}
+
+/**
+ * 扩展能改的宿主开关。**白名单**：加一项就要在宿主侧实现一项。
+ *
+ * 每一项都对应一个真实的宿主设置，且都是「扩展确实需要、但没有别的办法影响」的：
+ *  - [BROWSER_MODE]：WebView 是否在应用内加载外部站点。浏览器调试类扩展必需。
+ */
+enum class HostSwitch(val id: String) {
+    BROWSER_MODE("browser_mode"),
+    ;
+
+    companion object {
+        fun fromId(id: String): HostSwitch? = entries.firstOrNull { it.id == id }
+    }
+}
+
+/** 宿主开关的读写门面。实现由宿主提供。 */
+interface ExtensionHostSettings {
+    /** 读一个开关的当前值。 */
+    fun get(switch: HostSwitch): Boolean
+
+    /**
+     * 写一个开关。
+     *
+     * @return true = 已写入；false = 该扩展没有在 manifest 里声明这个能力，被拒绝。
+     *   拒绝时**不抛异常**：扩展应当据此降级，而不是崩掉整个宿主。
+     */
+    fun set(switch: HostSwitch, on: Boolean): Boolean
 }
 
 /**

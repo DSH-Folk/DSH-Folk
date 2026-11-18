@@ -469,7 +469,7 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
             // 放在这一组的能力卡**之后**：它管的是"服务掉了能不能自动回来"，与上面那张
             // 档位卡是两件事 —— 档位决定 agent 能不能用，这一张决定服务会不会消失。
             if (group.caps.contains(DshNativeBridge.Cap.A11Y)) {
-                item {
+                item(key = "function_a11y_recovery") {
                     A11yRecoveryCard()
                 }
             }

@@ -1660,6 +1660,24 @@ console.log("\u2500 #17 用户自己也能建/改流程");
     "WorkflowEngine.start 接受 entryId（否则多入口无从指定）");
   ok(/def\.nodes\.firstOrNull \{ it\.id == entryId && it\.type == WorkflowNodeType\.TRIGGER \}/.test(SRC.engine),
     "指定的入口不存在时**不**静默换一个（那会变成「点 A 跑 B」）");
+  // ── 读盘不能比写盘更严 ──
+  //
+  // definitionFromJson 曾经要求 name 非空、nodes 键必须存在，否则整份定义返回 null。
+  // 而编辑器允许 name 短暂为空、空模板的 nodes 是空数组 —— 写进去的文件，
+  // 下次读盘时被自己的校验丢掉了。用户看到的是「保存后流程消失」，
+  // 但文件其实好好躺在磁盘上。
+  const dfj = (() => {
+    const at = SRC.models.indexOf("internal fun definitionFromJson(o: JSONObject)");
+    const end = SRC.models.indexOf("\n}", at);
+    return at >= 0 && end > at ? SRC.models.slice(at, end) : "";
+  })();
+  ok(dfj.length > 0, "能定位到 definitionFromJson(JSONObject)");
+  ok(!/if \(id\.isEmpty\(\) \|\| name\.isEmpty\(\)\) return null/.test(dfj),
+    "name 为空不再让整份定义作废（编辑器允许名字短暂为空）");
+  ok(/if \(id\.isEmpty\(\)\) return null/.test(dfj),
+    "id 仍是硬要求（它是文件名）");
+  ok(!/optJSONArray\("nodes"\) \?: return null/.test(dfj),
+    "nodes 缺失当作空图（空模板是合法状态，不是作废）");
   ok(/entry_not_found/.test(SRC.engine),
     "入口不存在有独立失败原因（与 no_trigger 分开，否则查不出是哪种）");
   ok(/if \(entries\.size > 1\)/.test(SRC.screen) && /entryPickerDef = def/.test(SRC.screen),

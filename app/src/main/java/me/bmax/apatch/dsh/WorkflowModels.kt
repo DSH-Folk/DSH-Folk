@@ -922,12 +922,25 @@ internal fun definitionFromJson(raw: String): WorkflowDefinition? = runCatching 
 internal fun definitionFromJson(o: JSONObject): WorkflowDefinition? {
     val id = o.optString("id").trim()
     val name = o.optString("name").trim()
-    if (id.isEmpty() || name.isEmpty()) return null
+    // 只有 id 是硬要求：它是文件名，没有 id 就无从定位。
+    //
+    // name **不再**作为拒绝条件。以前 name 为空就 return null，而编辑器允许流程名
+    // 短暂为空（新建时还没填、或用户清空了输入框）—— 那个瞬间自动保存会把文件写进去，
+    // 下次读盘时 definitionFromJson 返回 null，list() 把它过滤掉：
+    // **流程直接消失**，而文件其实好好躺在磁盘上。用户报的「保存后工作流消失了」
+    // 正是这一类：不是写失败，是读的时候被自己的校验丢掉了。
+    //
+    // 空名字在界面上显示为「未命名」（WorkflowScreen 已有兜底），比整个流程消失好得多。
+    if (id.isEmpty()) return null
     val nodes = mutableListOf<WorkflowNode>()
-    val arr = o.optJSONArray("nodes") ?: return null
-    for (i in 0 until arr.length()) {
-        val n = arr.optJSONObject(i)?.let { nodeFromJson(it) } ?: return null
-        nodes += n
+    // nodes 缺失当作空图，而不是"整份定义作废"：空图是合法状态（新建的空模板），
+    // 它只是暂时还没有卡片。
+    val arr = o.optJSONArray("nodes")
+    if (arr != null) {
+        for (i in 0 until arr.length()) {
+            val n = arr.optJSONObject(i)?.let { nodeFromJson(it) } ?: return null
+            nodes += n
+        }
     }
     val edges = mutableListOf<WorkflowEdge>()
     val dVars = mutableMapOf<String, String>()

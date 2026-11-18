@@ -343,6 +343,21 @@ internal fun DshSettingsScreen(
                 chrootAvailable = chrootOk
                 chrootReason = chrootWhy
                 effectiveSource = resolved
+
+                // ── 已选的后端变得不可用时，**自动选回**一个能用的 ──
+                //
+                // 不加这一步会留下一个矛盾状态：界面上 chroot 仍被选中，而
+                // DshRuntime.runtime() 已经静默回退到 proot 在跑 —— 用户看到的和实际发生的
+                // 不是一回事，而他没有任何提示。
+                //
+                // 回退目标选 proot 而不是 proroot：proot 是唯一**永远**可用的后端
+                // （它不依赖 root、不依赖架构），回退到一个也可能不可用的选项等于没回退。
+                val cur = runtimeId
+                val needFallback = (cur == "chroot" && !chrootOk) || (cur == "proroot" && !ok)
+                if (needFallback) {
+                    runtimeId = "proot"
+                    DshRuntime.setRuntimeId("proot")
+                }
             }
         }
     }
