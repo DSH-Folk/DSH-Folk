@@ -737,6 +737,23 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "DshEnv.webviewDebug 走能力推导");
   ok(!/fun setWebviewDebug\(ctx: Context, on: Boolean\)/.test(envRaw),
     "宿主不再提供调试通道的写入入口（否则扩展能自举）");
+  // ── 内置扩展：能力必须有东西可声明 ──
+  //
+  // 上一版把通道改成"装一个声明了能力的扩展即可"，但**扩展市场的索引是空的**
+  // （extensions: []），用户按提示去商店什么也找不到。能力由扩展声明驱动是对的，
+  // 但必须真的有一个扩展随 APK 来。
+  const builtinRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/BuiltinExtensions.kt", "utf8");
+  ok(/object BuiltinExtensions/.test(builtinRaw), "有内置扩展机制");
+  ok(/"host:webview-debug"/.test(builtinRaw),
+    "内置的浏览器桥扩展声明了 webview-debug 能力（否则通道永远开不起来）");
+  ok(/BROWSER_BRIDGE_ID/.test(builtinRaw), "内置扩展有稳定 id");
+  ok(/if \(dir\.isDirectory\) return@runCatching/.test(builtinRaw),
+    "目录已存在就完全不动（否则用户禁用了它、重启又回来）");
+  ok(/ExtensionRegistry\.setEnabled\(app, id, true\)/.test(builtinRaw),
+    "首次写入时默认启用（随 APK 来 + 能力在信任确认里可见 = 用户已同意）");
+  const appRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8");
+  ok(/BuiltinExtensions\.ensureInstalled\(this\)[\s\S]{0,120}ExtensionEngine\.bootstrap\(this\)/.test(appRaw),
+    "内置扩展在 bootstrap 之前落盘（bootstrap 只加载已存在的扩展）");
   ok(/WebView\.setWebContentsDebuggingEnabled\(true\)/.test(webuiRaw),
     "开启时真的打开 WebView 调试");
   ok(/if \(DshEnv\.webviewDebug\(this@DshWebUiActivity\)\) \{/.test(webuiRaw),

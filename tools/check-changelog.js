@@ -376,6 +376,19 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
     "令牌只对 api.github.com 发送（跟着 gh-proxy 发出去等于把凭据交给中间人）");
   ok(apiRaw.includes('Authorization') && apiRaw.includes('Bearer '), "带 Bearer 头");
   const gen = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt"));
+  // ── 搜索索引的文案必须与卡片上的文案一致 ──
+  //
+  // 踩过一次：无障碍那张卡的标题是「无障碍服务保持开启」，而索引里用了它**内层开关**
+  // 的文案「自动恢复」。用户照着卡片上的字去搜「无障碍」，什么也搜不到 ——
+  // 索引里的字和界面上的字不是同一批。
+  const regRaw = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt");
+  const a11yEntry = regRaw.match(/SettingEntry\("function_a11y_recovery",\s*R\.string\.(\w+),\s*R\.string\.(\w+)/);
+  ok(a11yEntry !== null, "无障碍恢复在搜索索引里（否则搜「无障碍」找不到）");
+  if (a11yEntry) {
+    ok(a11yEntry[1] === "dsh_a11y_fix_title",
+      "索引用卡片标题 dsh_a11y_fix_title（=「无障碍服务保持开启」），不是内层开关的「自动恢复」");
+    ok(a11yEntry[2] === "dsh_a11y_fix_summary", "索引用卡片摘要，不是子选项的说明");
+  }
   ok(/GithubTokenDialog/.test(gen), "设置页有令牌输入弹窗");
   ok(/settings_github_token_readonly_hint/.test(gen),
     "明确建议只读令牌（我们只读 Releases/元数据，写权限是纯风险）");

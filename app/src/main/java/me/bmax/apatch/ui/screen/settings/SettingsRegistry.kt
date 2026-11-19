@@ -189,10 +189,16 @@ object SettingsRegistry {
             add(SettingEntry("function_permission", R.string.dsh_priv_restrict_title, R.string.dsh_priv_restrict_summary, SettingCategory.SECURITY))
             add(SettingEntry("function_permission", R.string.dsh_native_section, R.string.dsh_native_summary, SettingCategory.SECURITY))
             add(SettingEntry("function_permission", R.string.dsh_adb_section, R.string.dsh_adb_summary, SettingCategory.SECURITY))
-            // 无障碍自动恢复的总闸。之前它在权限页里，但**搜索索引里没有条目** ——
-            // 用户在设置里搜「无障碍」「自动恢复」什么都搜不到，只能一页页翻。
-            // 索引 key 与那张卡所在页一致（function_permission），跳过去才高亮得到。
-            add(SettingEntry("function_a11y_recovery", R.string.dsh_a11y_fix_auto_title, R.string.dsh_a11y_fix_auto_summary, SettingCategory.SECURITY, directTarget = SettingsTarget.PERMISSION_HUB))
+            // 无障碍自动恢复。
+            //
+            // **标题必须用卡片标题（dsh_a11y_fix_title =「无障碍服务保持开启」），
+            // 不能用内层开关的文案（「自动恢复」）。** 第一版我用了后者，结果用户在
+            // 设置里搜「无障碍」仍然搜不到 —— 索引里的字和卡片上的字不是同一批，
+            // 而用户只会照着卡片上的字去搜。
+            //
+            // 摘要用卡片摘要（它解释了"只在应用内开关仍开着时才恢复"这个前提），
+            // 而不是开关那句"关掉之后就不会再改回来" —— 后者是子选项的细节。
+            add(SettingEntry("function_a11y_recovery", R.string.dsh_a11y_fix_title, R.string.dsh_a11y_fix_summary, SettingCategory.SECURITY, directTarget = SettingsTarget.PERMISSION_HUB))
             // 共享存储挂在安全页上单独一张卡（不属于原生能力，见 FunctionSettings.kt 的说明）
             add(SettingEntry("function_storage_mount", R.string.dsh_storage_cap_title, R.string.dsh_storage_mount_hint, SettingCategory.SECURITY))
         }
