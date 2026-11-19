@@ -690,6 +690,200 @@ internal object DshRuntimeScripts {
     """.trimIndent()
 
     /**
+     * 容器里的 `dsh-browser`：通过 Chrome DevTools 协议控制应用内的 WebView。
+     *
+     * ## 它解决什么问题
+     *
+     * 浏览器模式把外链留在应用内的 WebView 里加载，但容器里的 dsh 对那个 WebView
+     * **一无所知** —— 它只知道自己是个 HTTP 服务端。这个 CLI 把 WebView 的调试通道
+     * 接出来，于是 agent 能读页面、执行 JS、截屏，真正"操作浏览器"。
+     *
+     * ## 怎么找到 WebView
+     *
+     * 读 `/root/.dsh/fs-bridge.json` 里的 `webviewSocket`（宿主在 WebView 建好时写入）。
+     * 没有这个字段 = 用户没开调试通道，直接报错退出，不猜。
+     *
+     * ## 为什么先探 HTTP 再连 socket
+     *
+     * DevTools 协议的入口是 `http://<socket>/json/version`。在容器里没有 adb，
+     * 连抽象 socket 需要 Android 侧的转发 —— 那正是宿主该做的事。所以这个 CLI
+     * **只做协议侧**（发 HTTP / 收 WebSocket），传输由宿主或用户配的 adb forward 负责。
+     * 它接受 `--endpoint` 覆盖默认地址，这样用户用 `adb forward tcp:9222` 之后
+     * 直接 `dsh-browser --endpoint http://127.0.0.1:9222` 就能用。
+     */
+    val BROWSER_CLI_SCRIPT = """
+        #!/usr/bin/env node
+        const fs = require('fs');
+        const http = require('http');
+        const CFG = '/root/.dsh/fs-bridge.json';
+
+        function usage() {
+          console.error([
+            'usage: dsh-browser <command> [options]',
+            '',
+            '  targets                          列出可调试的页面',
+            '  version                          打印 WebView 的 DevTools 版本',
+            '  eval <js>                        在页面里执行 JS，打印结果',
+            '  shot <file>                      截屏保存为 PNG',
+            '',
+            'options:',
+            '  --endpoint <url>   DevTools 地址（默认由 adb forward 提供）',
+            '',
+            '需要先在应用里打开「WebView 调试通道」，并做一次端口转发：',
+            '  adb forward tcp:9222 localabstract:<webviewSocket>',
+            'socket 名可以在应用设置里看到。',
+          ].join('\n'));
+        }
+
+        function fail(msg) { console.error('dsh-browser: ' + msg); process.exit(1); }
+
+        const argv = process.argv.slice(2);
+        if (argv.length === 0 || argv[0] === '-h' || argv[0] === '--help') { usage(); process.exit(argv.length ? 0 : 1); }
+
+        let endpoint = '';
+        const rest = [];
+        for (let i = 0; i < argv.length; i++) {
+          if (argv[i] === '--endpoint') { endpoint = argv[++i] || ''; }
+          else rest.push(argv[i]);
+        }
+
+        if (!endpoint) {
+          let socket = '';
+          try {
+            if (fs.existsSync(CFG)) socket = JSON.parse(fs.readFileSync(CFG, 'utf8')).webviewSocket || '';
+          } catch (e) { /* 配置坏了就当作没开 */ }
+          if (!socket) {
+            fail('WebView 调试通道没有开启。请在应用设置里打开它，或用 --endpoint 指定 adb forward 的地址。');
+          }
+          // 抽象 socket 不能直接 HTTP 访问，必须经 adb forward。
+          // 这里只提示，不猜一个端口 —— 猜错了报的错更难懂。
+          fail('检测到 socket ' + socket + '，但它需要先转发：\n' +
+               '  adb forward tcp:9222 localabstract:' + socket + '\n' +
+               '然后用 --endpoint http://127.0.0.1:9222 重试。');
+        }
+
+        /**
+         * 最小 CDP 客户端：手写 WebSocket 握手 + 单帧收发。
+         *
+         * ## 为什么不引 ws 依赖
+         *
+         * 容器里 node_modules 确实有 ws（dsh 的依赖），但那是**运行时的内部细节**：
+         * dsh 换版本、换打包方式都可能让它消失，而那时这个 CLI 会静默坏掉。
+         * 手写一份只够发一条命令的实现（约 40 行），比绑一个不受控的依赖稳。
+         *
+         * 只支持：客户端发起、文本帧、无分片、payload < 64KB。CDP 的单条响应
+         * 基本都在这个范围内；截屏 base64 可能超，所以 shot 走的是分片读取。
+         */
+        function cdp(wsUrl, method, params) {
+          return new Promise(function (resolve, reject) {
+            const u = new URL(wsUrl);
+            const key = require('crypto').randomBytes(16).toString('base64');
+            const req = http.request({
+              host: u.hostname, port: u.port || 80, path: u.pathname + (u.search || ''),
+              headers: {
+                'Connection': 'Upgrade', 'Upgrade': 'websocket',
+                'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': key,
+              },
+            });
+            req.on('upgrade', function (res, socket) {
+              let buf = Buffer.alloc(0);
+              let done = false;
+              const send = function (obj) {
+                const payload = Buffer.from(JSON.stringify(obj), 'utf8');
+                const mask = require('crypto').randomBytes(4);
+                const len = payload.length;
+                let header;
+                if (len < 126) {
+                  header = Buffer.from([0x81, 0x80 | len]);
+                } else if (len < 65536) {
+                  header = Buffer.alloc(4); header[0] = 0x81; header[1] = 0x80 | 126; header.writeUInt16BE(len, 2);
+                } else {
+                  header = Buffer.alloc(10); header[0] = 0x81; header[1] = 0x80 | 127;
+                  header.writeUInt32BE(0, 2); header.writeUInt32BE(len, 6);
+                }
+                const masked = Buffer.alloc(len);
+                for (let i = 0; i < len; i++) masked[i] = payload[i] ^ mask[i % 4];
+                socket.write(Buffer.concat([header, mask, masked]));
+              };
+              socket.on('data', function (chunk) {
+                buf = Buffer.concat([buf, chunk]);
+                while (buf.length >= 2 && !done) {
+                  const opcode = buf[0] & 0x0f;
+                  let off = 2;
+                  let len = buf[1] & 0x7f;
+                  if (len === 126) { if (buf.length < 4) return; len = buf.readUInt16BE(2); off = 4; }
+                  else if (len === 127) { if (buf.length < 10) return; len = Number(buf.readBigUInt64BE(2)); off = 10; }
+                  if (buf.length < off + len) return;
+                  const data = buf.slice(off, off + len);
+                  buf = buf.slice(off + len);
+                  if (opcode === 0x8) { if (!done) { done = true; reject(new Error('WebSocket 被关闭')); } return; }
+                  if (opcode !== 0x1) continue;
+                  let msg;
+                  try { msg = JSON.parse(data.toString('utf8')); } catch (e) { continue; }
+                  if (msg.id === 1) { done = true; socket.end(); resolve(msg.result || {}); }
+                }
+              });
+              socket.on('error', reject);
+              send({ id: 1, method: method, params: params });
+            });
+            req.on('error', reject);
+            req.end();
+          });
+        }
+
+        function get(path) {
+          return new Promise(function (resolve, reject) {
+            const u = new URL(path, endpoint);
+            const r = http.get(u, function (res) {
+              const chunks = [];
+              res.on('data', function (c) { chunks.push(c); });
+              res.on('end', function () { resolve(Buffer.concat(chunks).toString('utf8')); });
+            });
+            r.on('error', reject);
+          });
+        }
+
+        (async function () {
+          const cmd = rest[0];
+          try {
+            if (cmd === 'version') {
+              console.log(await get('/json/version'));
+            } else if (cmd === 'targets') {
+              console.log(await get('/json/list'));
+            } else if (cmd === 'eval' || cmd === 'shot') {
+              // 走 CDP：先问 /json/list 拿到页面 WebSocket 地址，再发一条命令。
+              const list = JSON.parse(await get('/json/list'));
+              const page = list.find(function (t) { return t.type === 'page' && t.webSocketDebuggerUrl; });
+              if (!page) fail('没有可调试的页面（WebView 可能还没加载内容）');
+              const method = cmd === 'eval' ? 'Runtime.evaluate' : 'Page.captureScreenshot';
+              const params = cmd === 'eval'
+                ? { expression: rest[1] || '', returnByValue: true, awaitPromise: true }
+                : { format: 'png' };
+              if (cmd === 'eval' && !rest[1]) fail('eval 需要一个 JS 表达式');
+              const result = await cdp(page.webSocketDebuggerUrl, method, params);
+              if (cmd === 'eval') {
+                const r = result.result || {};
+                if (r.exceptionDetails) fail('页面里抛了异常：' + JSON.stringify(r.exceptionDetails));
+                const v = r.result && r.result.value;
+                console.log(typeof v === 'string' ? v : JSON.stringify(v));
+              } else {
+                const data = (result.data || '');
+                if (!data) fail('截屏返回空');
+                const out = rest[1] || '/root/shot.png';
+                fs.writeFileSync(out, Buffer.from(data, 'base64'));
+                console.log(out);
+              }
+            } else {
+              usage();
+              process.exitCode = 1;
+            }
+          } catch (e) {
+            fail('请求失败：' + (e && e.message ? e.message : String(e)));
+          }
+        })();
+    """.trimIndent()
+
+    /**
      * 容器里的 `dsh-workflow`：建流程 / 跑流程 / 查状态 / 取消。
      *
      * 与 `dsh-fs` / `dsh-native` / `dsh-saf` 完全同一条路（同一个回环端口与 token），所以

@@ -67,6 +67,7 @@ object DshRuntime : DshRuntimeHost {
     private val FS_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.FS_BRIDGE_CLI_SCRIPT
     private val SAF_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.SAF_BRIDGE_CLI_SCRIPT
     private val NATIVE_CLI_SCRIPT: String get() = DshRuntimeScripts.NATIVE_CLI_SCRIPT
+    private val BROWSER_CLI_SCRIPT: String get() = DshRuntimeScripts.BROWSER_CLI_SCRIPT
     private val WORKFLOW_CLI_SCRIPT: String get() = DshRuntimeScripts.WORKFLOW_CLI_SCRIPT
     private val WORKFLOW_DSL_DOC: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC
     private val WORKFLOW_SAMPLES: Map<String, String> get() = DshRuntimeScripts.WORKFLOW_SAMPLES
@@ -1559,12 +1560,25 @@ object DshRuntime : DshRuntimeHost {
         return t
     }
 
-    /** 把端口 + token 写进容器内配置文件，供 `dsh-fs` 读。 */
+    /**
+     * 把端口 + token（以及 WebView 调试 socket 名）写进容器内配置文件。
+     *
+     * `dsh-fs` / `dsh-saf` / `dsh-native` / `dsh-browser` 都读这一份。
+     *
+     * 调试 socket 名只在开着时才写：没开的时候容器里根本连不上，
+     * 写一个空名字只会让 `dsh-browser` 报"找不到"，不如不写、让它报"没启用"。
+     */
     private fun writeFsBridgeConfig(port: Int, token: String) {
         runCatching {
             DshEnv.fsBridgeConfig(appContext).parentFile?.mkdirs()
+            val socket = DshEnv.webviewDebugSocket(appContext)
+            val extra = if (socket.isNotEmpty()) {
+                ",\"webviewSocket\":\"" + socket + "\""
+            } else {
+                ""
+            }
             DshEnv.fsBridgeConfig(appContext).writeText(
-                "{\"port\":$port,\"token\":\"$token\"}",
+                "{\"port\":$port,\"token\":\"$token\"" + extra + "}",
                 StandardCharsets.UTF_8,
             )
         }
@@ -1607,6 +1621,9 @@ object DshRuntime : DshRuntimeHost {
             "dsh-native" to NATIVE_CLI_SCRIPT,
             "dsh-saf" to SAF_BRIDGE_CLI_SCRIPT,
             "dsh-workflow" to WORKFLOW_CLI_SCRIPT,
+            // 浏览器控制：只在开了调试通道时才有东西可连，但脚本本身总是装上 ——
+            // 否则用户开了开关还得等下一次运行时初始化才拿得到命令。
+            "dsh-browser" to BROWSER_CLI_SCRIPT,
         )) {
             runCatching {
                 DshRuntimeFiles.writeScript(File(bin, name), script)

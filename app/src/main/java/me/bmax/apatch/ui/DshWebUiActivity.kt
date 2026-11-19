@@ -538,6 +538,28 @@ class DshWebUiActivity : AppCompatActivity() {
                                 // 本地回环页面用不到文件访问，关掉少一条攻击面
                                 settings.allowFileAccess = false
                                 settings.allowContentAccess = false
+
+                                // ── WebView 远程调试（CDP）──
+                                //
+                                // 打开后 WebView 在本地监听抽象 unix socket，Chrome DevTools 协议走它。
+                                // 容器里的 dsh 通过 adb forward 或直连抽象 socket 就能读页面 / 执行 JS / 截屏。
+                                //
+                                // **默认关**：这是一条完整的浏览器控制通道，拿到它就能读写页面里的一切
+                                // （含登录态与正在编辑的内容）。只在用户主动开时才开。
+                                //
+                                // 必须在这里（WebView 实例创建时）设：setWebContentsDebuggingEnabled 是**进程级**
+                                // 静态开关，但对「设置之后创建」的 WebView 才生效，已经建好的那个不会补上。
+                                if (DshEnv.webviewDebug(this@DshWebUiActivity)) {
+                                    android.webkit.WebView.setWebContentsDebuggingEnabled(true)
+                                    // 记下 socket 名，供容器里的 dsh-browser 找到这个 WebView。
+                                    // 名字规则由 Chromium 固定：webview_devtools_remote_<pid>，pid 是**本进程**的。
+                                    // 它是抽象命名空间 socket（没有文件系统路径），容器里通过桥配置拿到名字后，
+                                    // 用 adb forward 或直连都能访问。
+                                    DshEnv.setWebviewDebugSocket(
+                                        this@DshWebUiActivity,
+                                        "webview_devtools_remote_" + android.os.Process.myPid(),
+                                    )
+                                }
                                 // blob: 下载的桥。只在 loadUrl 的回环地址上注入
                                 // （onPageStarted 里按 origin 校验），别的来源拿不到它
                                 addJavascriptInterface(BlobBridge(), BLOB_BRIDGE)

@@ -75,6 +75,17 @@ interface DshExtensionHost {
  */
 enum class HostSwitch(val id: String) {
     BROWSER_MODE("browser_mode"),
+
+    /**
+     * WebView 远程调试通道（CDP）。
+     *
+     * 开了它，容器里的 dsh 才能通过 Chrome DevTools 协议控制应用内的 WebView ——
+     * 读 DOM、执行 JS、截屏、拦截请求。这是「给 DSH 开放浏览器 API」的实现基础。
+     *
+     * 依赖 [BROWSER_MODE]：不开浏览器模式时 WebView 只加载回环的 dsh 页面，
+     * 容器自己就是那个页面的服务端，不需要调试通道。
+     */
+    WEBVIEW_DEBUG("webview_debug"),
     ;
 
     companion object {

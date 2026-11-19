@@ -35,11 +35,13 @@ internal class ExtensionHostImpl(
     override val host: ExtensionHostSettings = object : ExtensionHostSettings {
         override fun get(switch: HostSwitch): Boolean = when (switch) {
             HostSwitch.BROWSER_MODE -> DshEnv.browserMode(appContext)
+            HostSwitch.WEBVIEW_DEBUG -> DshEnv.webviewDebug(appContext)
         }
 
         override fun set(switch: HostSwitch, on: Boolean): Boolean {
             val cap = when (switch) {
                 HostSwitch.BROWSER_MODE -> CAP_HOST_BROWSER_MODE
+                HostSwitch.WEBVIEW_DEBUG -> CAP_HOST_WEBVIEW_DEBUG
             }
             if (cap !in declaredCaps) {
                 ExtLog.log("[" + id + "] 拒绝修改 " + switch.id + "：manifest 未声明 " + cap)
@@ -47,6 +49,7 @@ internal class ExtensionHostImpl(
             }
             when (switch) {
                 HostSwitch.BROWSER_MODE -> DshEnv.setBrowserMode(appContext, on)
+                HostSwitch.WEBVIEW_DEBUG -> DshEnv.setWebviewDebug(appContext, on)
             }
             ExtLog.log("[" + id + "] 设置 " + switch.id + " = " + on)
             return true
@@ -61,5 +64,8 @@ internal class ExtensionHostImpl(
          * 开浏览器模式 = 应用内会加载第三方网页。
          */
         const val CAP_HOST_BROWSER_MODE = "host:browser-mode"
+
+        /** 扩展声明「我要开 WebView 调试通道」。开了等于把整个浏览器的控制权交给容器。 */
+        const val CAP_HOST_WEBVIEW_DEBUG = "host:webview-debug"
     }
 }

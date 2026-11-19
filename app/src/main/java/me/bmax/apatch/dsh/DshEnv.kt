@@ -447,6 +447,56 @@ object DshEnv {
     fun browserMode(ctx: Context): Boolean =
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_BROWSER_MODE, false)
 
+    /**
+     * WebView 远程调试通道（CDP）。**默认关**。
+     *
+     * ## 它是什么
+     *
+     * 打开后 WebView 会在本地监听一个 unix domain socket（抽象命名空间，
+     * 形如 `@webview_devtools_remote_<pid>`），Chrome DevTools 协议就走它。
+     * 容器里的 dsh 可以 `adb forward` 或直接连抽象 socket 来读页面、执行 JS、截屏。
+     *
+     * ## 为什么默认关
+     *
+     * 这是一条**完整的浏览器控制通道**：拿到它就能读写页面里的一切，包括登录态与
+     * 正在编辑的内容。它不该在用户没主动要的时候开着。
+     *
+     * ## 与浏览器模式的关系
+     *
+     * 两者独立：浏览器模式决定「外链是否留在应用内」，调试通道决定「容器能不能控制
+     * 这个 WebView」。但调试通道**只在浏览器模式开着时有意义** —— 不开浏览器模式时
+     * WebView 只加载回环的 dsh 页面，容器自己就是那个页面的服务端，不需要调试通道。
+     */
+    const val KEY_WEBVIEW_DEBUG = "webui_webview_debug"
+
+    /**
+     * WebView 调试 socket 的**抽象命名空间名**，形如 `webview_devtools_remote_<pid>`。
+     *
+     * 由 [me.bmax.apatch.ui.DshWebUiActivity] 在 WebView 建好后写进来（那时才有 pid），
+     * 由桥配置写进容器，供 `dsh-browser` 找到它。
+     *
+     * 为什么不在这里现算：pid 是 WebView 所在进程的，而应用可能重启、进程号会变。
+     * 存一份"最后一次真正开起来的那个"比猜更可靠。
+     */
+    const val KEY_WEBVIEW_DEBUG_SOCKET = "webui_webview_debug_socket"
+
+    fun webviewDebugSocket(ctx: Context): String =
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getString(KEY_WEBVIEW_DEBUG_SOCKET, "").orEmpty()
+
+    fun setWebviewDebugSocket(ctx: Context, name: String) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putString(KEY_WEBVIEW_DEBUG_SOCKET, name).apply()
+    }
+
+    fun webviewDebug(ctx: Context): Boolean =
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_WEBVIEW_DEBUG, false)
+
+    fun setWebviewDebug(ctx: Context, on: Boolean) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_WEBVIEW_DEBUG, on).apply()
+    }
+
     fun setBrowserMode(ctx: Context, on: Boolean) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
             .putBoolean(KEY_BROWSER_MODE, on).apply()

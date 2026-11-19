@@ -712,7 +712,40 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   ok(fallbacks.length === 1 && fallbacks[0] === "injectScriptsNow",
     `回落只有一个入口（${fallbacks.join(", ") || "一个都没有"}）`);
   ok((webui.match(/evaluateJavascript\(/g) || []).length <= 3,
+
     "逐段 evaluateJavascript 的地方收拢了（回落 + 内边距数值推送等少量几处）");
+}
+
+
+// ── WebView 调试通道（给容器里的 dsh-browser 用）──
+{
+  const webuiRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt", "utf8");
+  const envRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt", "utf8");
+  const scriptsRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8");
+  const rtRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8");
+
+  ok(/const val KEY_WEBVIEW_DEBUG = "webui_webview_debug"/.test(envRaw),
+    "调试通道有独立开关（它是一条完整的浏览器控制通道）");
+  ok(/getBoolean\(KEY_WEBVIEW_DEBUG, false\)/.test(envRaw),
+    "默认关（拿到它就能读写页面里的一切，含登录态）");
+  ok(/WebView\.setWebContentsDebuggingEnabled\(true\)/.test(webuiRaw),
+    "开启时真的打开 WebView 调试");
+  ok(/if \(DshEnv\.webviewDebug\(this@DshWebUiActivity\)\) \{/.test(webuiRaw),
+    "调试开关受设置约束（不能无条件开）");
+  ok(/setWebviewDebugSocket/.test(webuiRaw) && /webview_devtools_remote_/.test(webuiRaw),
+    "记录 WebView 调试 socket 名（Chromium 的命名规则 webview_devtools_remote_<pid>）");
+  ok(/webviewSocket/.test(rtRaw),
+    "socket 名写进 fs-bridge.json（容器里的 CLI 靠它定位）");
+  ok(/val BROWSER_CLI_SCRIPT/.test(scriptsRaw), "容器里有 dsh-browser CLI");
+  ok(/"dsh-browser" to BROWSER_CLI_SCRIPT/.test(rtRaw), "CLI 会被装进 /usr/local/bin");
+  ok(/function cdp\(wsUrl, method, params\)/.test(scriptsRaw),
+    "自带最小 CDP 客户端（不绑运行时内部的 ws 依赖，那会在升级时静默坏掉）");
+  ok(/Sec-WebSocket-Version/.test(scriptsRaw) && /Sec-WebSocket-Key/.test(scriptsRaw),
+    "真的做 WebSocket 握手（不是假装支持）");
+  ok(/Runtime\.evaluate/.test(scriptsRaw) && /Page\.captureScreenshot/.test(scriptsRaw),
+    "eval 与 shot 都接到真实 CDP 方法上");
+  ok(/WebView 调试通道没有开启/.test(scriptsRaw),
+    "没开时明确报错（猜一个端口只会让错误更难懂）");
 }
 
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);
