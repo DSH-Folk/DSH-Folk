@@ -444,8 +444,23 @@ object DshEnv {
      */
     const val KEY_BROWSER_MODE = "webui_browser_mode"
 
+    /**
+     * 浏览器模式当前是否生效。
+     *
+     * = 用户设置 **或** 有已启用的扩展声明了 `host:browser-mode`。
+     *
+     * ## 为什么扩展能让它强制为真
+     *
+     * 声明那个能力的扩展是在说"没有浏览器模式我就没法工作"。所以启用它就必须让浏览器
+     * 模式真的开着 —— 否则用户装了扩展、启用、然后什么也没发生，而界面上又没有任何
+     * 提示告诉他"你还得去设置里开个开关"。
+     *
+     * 注意是**或**不是覆盖：用户自己开着浏览器模式时，禁用那个扩展不会把它关掉
+     * （他可能自己在用）。
+     */
     fun browserMode(ctx: Context): Boolean =
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_BROWSER_MODE, false)
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_BROWSER_MODE, false) ||
+            me.bmax.apatch.dsh.ext.ExtensionCaps.requiresBrowserMode(ctx)
 
     /**
      * WebView 远程调试通道（CDP）。**由扩展声明驱动**。

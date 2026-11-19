@@ -737,23 +737,19 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "DshEnv.webviewDebug 走能力推导");
   ok(!/fun setWebviewDebug\(ctx: Context, on: Boolean\)/.test(envRaw),
     "宿主不再提供调试通道的写入入口（否则扩展能自举）");
-  // ── 内置扩展：能力必须有东西可声明 ──
+  // ── 扩展驱动：能力由扩展声明，不内置 ──
   //
-  // 上一版把通道改成"装一个声明了能力的扩展即可"，但**扩展市场的索引是空的**
-  // （extensions: []），用户按提示去商店什么也找不到。能力由扩展声明驱动是对的，
-  // 但必须真的有一个扩展随 APK 来。
-  const builtinRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/BuiltinExtensions.kt", "utf8");
-  ok(/object BuiltinExtensions/.test(builtinRaw), "有内置扩展机制");
-  ok(/"host:webview-debug"/.test(builtinRaw),
-    "内置的浏览器桥扩展声明了 webview-debug 能力（否则通道永远开不起来）");
-  ok(/BROWSER_BRIDGE_ID/.test(builtinRaw), "内置扩展有稳定 id");
-  ok(/if \(dir\.isDirectory\) return@runCatching/.test(builtinRaw),
-    "目录已存在就完全不动（否则用户禁用了它、重启又回来）");
-  ok(/ExtensionRegistry\.setEnabled\(app, id, true\)/.test(builtinRaw),
-    "首次写入时默认启用（随 APK 来 + 能力在信任确认里可见 = 用户已同意）");
-  const appRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8");
-  ok(/BuiltinExtensions\.ensureInstalled\(this\)[\s\S]{0,120}ExtensionEngine\.bootstrap\(this\)/.test(appRaw),
-    "内置扩展在 bootstrap 之前落盘（bootstrap 只加载已存在的扩展）");
+  // 上一版我把浏览器桥做成内置并默认启用，那是错的：这个扩展要用户自己装。
+  // 宿主只负责"声明了就生效"，不负责替用户预装。
+  ok(!/object BuiltinExtensions/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8")),
+    "不内置扩展（浏览器桥要用户自行安装）");
+  ok(!fs.existsSync("app/src/main/java/me/bmax/apatch/dsh/ext/BuiltinExtensions.kt"),
+    "没有内置扩展机制");
+  // 开启扩展强制启用浏览器模式
+  ok(/fun requiresBrowserMode\(ctx: Context\): Boolean = hasCap\(ctx, BROWSER_MODE_CAP\)/.test(capsRaw),
+    "能从扩展声明推导「需要浏览器模式」");
+  ok(/getBoolean\(KEY_BROWSER_MODE, false\) \|\|[\s\S]{0,80}requiresBrowserMode\(ctx\)/.test(envRaw),
+    "扩展声明了 host:browser-mode 时浏览器模式强制为真");
   ok(/WebView\.setWebContentsDebuggingEnabled\(true\)/.test(webuiRaw),
     "开启时真的打开 WebView 调试");
   ok(/if \(DshEnv\.webviewDebug\(this@DshWebUiActivity\)\) \{/.test(webuiRaw),

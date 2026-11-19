@@ -162,6 +162,8 @@ internal fun DshSettingsScreen(
     // 浏览器模式：外链在应用内打开。rememberSaveable 而不是 remember ——
     // 配置变更（旋屏、深色切换）后开关状态不该跳回磁盘上的旧值。
     var browserMode by rememberSaveable { mutableStateOf(DshEnv.browserMode(context)) }
+    // 是否有已启用的扩展声明了 host:browser-mode（此时开关只读）。
+    val browserModeForced = remember { me.bmax.apatch.dsh.ext.ExtensionCaps.requiresBrowserMode(context) }
     // 离开应用时自动缩成画中画小窗（默认开）：只管「自动」这条路，手动按钮不受它影响。
     // 读的是**副开关自己的原始值**（不是 DshEnv.webuiPipAuto —— 那个已经把主开关乘进去了），
     // 否则主开关关着时这一行会显示成「本来就是关的」。
@@ -663,6 +665,7 @@ internal fun DshSettingsScreen(
                         dshPrefs.edit().putBoolean(DshEnv.KEY_WEBUI_PIP_AUTO, on).apply()
                     },
                     browserMode = browserMode,
+                    browserModeForced = browserModeForced,
                     onBrowserModeChange = { on ->
                         browserMode = on
                         // 写 prefs 就够了，不用强制重载 WebView：这个开关只影响**下一次**

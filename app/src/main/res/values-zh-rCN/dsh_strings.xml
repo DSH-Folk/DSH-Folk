@@ -1921,7 +1921,8 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_webui_browser_mode">浏览器模式</string>
     <string name="dsh_webui_browser_mode_summary">让网页留在应用内打开，可叠一条导航栏；用户脚本在外部网页上也生效。</string>
     <string name="dsh_webui_browser_mode_switch">在应用内打开外部链接</string>
-    <string name="dsh_webui_debug_hint">启用内置的「浏览器桥」扩展后，容器里的 dsh 就能操作这个浏览器。启用它即打开 WebView 调试通道，禁用或卸载即关闭 —— 没有单独的开关。在「扩展」页管理它。</string>
+    <string name="dsh_webui_browser_mode_forced">已安装的扩展需要它，因此强制开启。想改这一项，请先禁用或卸载那个扩展。</string>
+    <string name="dsh_webui_debug_hint">想让 dsh 操作这个浏览器，请安装一个声明了「WebView 调试」能力的扩展（扩展 → 扩展市场，或从链接/文件安装）。启用该扩展会自动打开浏览器模式并开启调试通道，这里没有单独的开关。</string>
     <string name="dsh_webui_browser_mode_off_hint">浏览器模式未开启：请到「设置 → 功能 → 浏览器模式」打开</string>
     <string name="dsh_webui_browser_mode_switch_summary">关闭时外部链接交给系统浏览器（默认，最安全）。开启后 App 会访问第三方网站，宿主会在进入外部站点前卸掉与网页通信的桥。</string>
     <!-- 原生能力目录：工作流卡片用 -->

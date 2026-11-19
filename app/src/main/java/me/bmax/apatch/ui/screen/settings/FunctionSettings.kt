@@ -391,6 +391,8 @@ fun FunctionSettingsContent(
     onWebuiPipMainChange: (Boolean) -> Unit,
     /** 浏览器模式：外链在应用内打开（见 DshEnv.KEY_BROWSER_MODE）。 */
     browserMode: Boolean,
+    /** 浏览器模式是否被扩展强制要求（此时开关只读）。 */
+    browserModeForced: Boolean,
     onBrowserModeChange: (Boolean) -> Unit,
     /** 画中画副开关：离开应用时自动缩成小窗（默认开）。主开关关掉时置灰。 */
     webuiPipAuto: Boolean,
@@ -1086,13 +1088,19 @@ fun FunctionSettingsContent(
                                     summary = stringResource(R.string.dsh_webui_browser_mode_summary),
                                 )
                                 Spacer(Modifier.height(8.dp))
+                                // 有扩展要求浏览器模式时，这个开关是**只读**的：
+                                // 显示为开、点不动，并在摘要里说明原因。
+                                // 让用户能点关会立刻产生矛盾（关掉后扩展又把它拉起来）。
                                 PipSwitchRow(
                                     title = stringResource(R.string.dsh_webui_browser_mode_switch),
-                                    summary = stringResource(R.string.dsh_webui_browser_mode_switch_summary),
+                                    summary = stringResource(
+                                        if (browserModeForced) R.string.dsh_webui_browser_mode_forced
+                                        else R.string.dsh_webui_browser_mode_switch_summary,
+                                    ),
                                     checked = browserMode,
                                     // 只在内置 WebUI 模式下有意义：选「系统浏览器」时
                                     // 外链根本不经过 WebView，这条开关点了不会有任何变化。
-                                    enabled = webuiMode == DshWebUi.MODE_IN_APP,
+                                    enabled = webuiMode == DshWebUi.MODE_IN_APP && !browserModeForced,
                                     onCheckedChange = onBrowserModeChange,
                                 )
                                 // 调试通道**没有开关**：它由「已启用的扩展声明了 host:webview-debug」推导。

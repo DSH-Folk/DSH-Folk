@@ -35,6 +35,24 @@ object ExtensionCaps {
     fun hasWebviewDebug(ctx: Context): Boolean = hasCap(ctx, WEBVIEW_DEBUG_CAP)
 
     /**
+     * 是否有已启用的扩展**要求**浏览器模式。
+     *
+     * ## 「要求」与「使用」的区别
+     *
+     * 声明 `host:browser-mode` 的扩展是在说：**没有浏览器模式我就没法工作**。
+     * 所以开启它要**强制**打开浏览器模式，而不是"用户自己去设置里开"。
+     * 理由：这个扩展的全部价值就是操作应用内的浏览器，浏览器模式关着时它装上了也
+     * 什么都不会发生 —— 那正是"装了没反应"这类最难自查的问题。
+     *
+     * 反过来，禁用或卸载这个扩展时**不自动关掉**浏览器模式：
+     * 用户可能自己在用它浏览网页，替他关掉是另一种意外。
+     */
+    fun requiresBrowserMode(ctx: Context): Boolean = hasCap(ctx, BROWSER_MODE_CAP)
+
+    /** 扩展声明「我需要浏览器模式」。 */
+    const val BROWSER_MODE_CAP = "host:browser-mode"
+
+    /**
      * 是否有已启用的扩展声明了 [cap]。
      *
      * **读盘失败一律当作"没有"**：这是安全相关的判定，宁可少开一个通道，
