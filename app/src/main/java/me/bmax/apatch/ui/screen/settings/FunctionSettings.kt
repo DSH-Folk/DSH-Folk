@@ -391,9 +391,6 @@ fun FunctionSettingsContent(
     onWebuiPipMainChange: (Boolean) -> Unit,
     /** 浏览器模式：外链在应用内打开（见 DshEnv.KEY_BROWSER_MODE）。 */
     browserMode: Boolean,
-    /** WebView 调试通道是否开启（给容器里的 dsh-browser 用）。 */
-    webviewDebug: Boolean,
-    onWebviewDebugChange: (Boolean) -> Unit,
     onBrowserModeChange: (Boolean) -> Unit,
     /** 画中画副开关：离开应用时自动缩成小窗（默认开）。主开关关掉时置灰。 */
     webuiPipAuto: Boolean,
@@ -1098,22 +1095,18 @@ fun FunctionSettingsContent(
                                     enabled = webuiMode == DshWebUi.MODE_IN_APP,
                                     onCheckedChange = onBrowserModeChange,
                                 )
-                                Spacer(Modifier.height(8.dp))
-                                // WebView 调试通道。
+                                // 调试通道**没有开关**：它由「已启用的扩展声明了 host:webview-debug」推导。
                                 //
-                                // 与浏览器模式分开：浏览器模式决定「外链是否留在应用内」，
-                                // 调试通道决定「容器能不能控制这个 WebView」。前者是给人用的，
-                                // 后者是给 agent 用的。
-                                //
-                                // 只在浏览器模式开着时可点：不开浏览器模式时 WebView 只加载
-                                // 回环的 dsh 页面，容器自己就是那个页面的服务端，不需要调试通道。
-                                PipSwitchRow(
-                                    title = stringResource(R.string.dsh_webui_debug_switch),
-                                    summary = stringResource(R.string.dsh_webui_debug_switch_summary),
-                                    checked = webviewDebug,
-                                    enabled = webuiMode == DshWebUi.MODE_IN_APP && browserMode,
-                                    onCheckedChange = onWebviewDebugChange,
-                                )
+                                // 这里只说明"想用该装什么"。把它做成宿主开关会留下半生效状态：
+                                // 开关开着却没扩展用、或装了扩展但开关没开 —— 两种都让用户困惑为什么不能用。
+                                if (browserMode) {
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.dsh_webui_debug_hint),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }

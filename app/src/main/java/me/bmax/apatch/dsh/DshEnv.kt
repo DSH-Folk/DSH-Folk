@@ -448,7 +448,7 @@ object DshEnv {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_BROWSER_MODE, false)
 
     /**
-     * WebView 远程调试通道（CDP）。**默认关**。
+     * WebView 远程调试通道（CDP）。**由扩展声明驱动**。
      *
      * ## 它是什么
      *
@@ -490,12 +490,7 @@ object DshEnv {
     }
 
     fun webviewDebug(ctx: Context): Boolean =
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_WEBVIEW_DEBUG, false)
-
-    fun setWebviewDebug(ctx: Context, on: Boolean) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_WEBVIEW_DEBUG, on).apply()
-    }
+        me.bmax.apatch.dsh.ext.ExtensionCaps.hasWebviewDebug(ctx)
 
     fun setBrowserMode(ctx: Context, on: Boolean) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit()

@@ -724,10 +724,19 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   const scriptsRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8");
   const rtRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8");
 
-  ok(/const val KEY_WEBVIEW_DEBUG = "webui_webview_debug"/.test(envRaw),
-    "调试通道有独立开关（它是一条完整的浏览器控制通道）");
-  ok(/getBoolean\(KEY_WEBVIEW_DEBUG, false\)/.test(envRaw),
-    "默认关（拿到它就能读写页面里的一切，含登录态）");
+  // 调试通道**不是宿主开关**，而是由「已启用的扩展声明了能力」推导。
+  // 做成开关会留下半生效状态：开着却没扩展用、或装了扩展但开关没开。
+  const capsRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionCaps.kt", "utf8");
+  ok(/fun hasWebviewDebug\(ctx: Context\): Boolean = hasCap\(ctx, WEBVIEW_DEBUG_CAP\)/.test(capsRaw),
+    "调试通道由已启用扩展的能力声明推导（不是宿主开关）");
+  ok(/\.filter \{ it\.enabled \}/.test(capsRaw),
+    "只认**已启用**的扩展（禁用/卸载即关闭通道）");
+  ok(/getOrDefault\(false\)/.test(capsRaw),
+    "读盘失败当作没有（安全相关判定，不能默认放行）");
+  ok(/me\.bmax\.apatch\.dsh\.ext\.ExtensionCaps\.hasWebviewDebug\(ctx\)/.test(envRaw),
+    "DshEnv.webviewDebug 走能力推导");
+  ok(!/fun setWebviewDebug\(ctx: Context, on: Boolean\)/.test(envRaw),
+    "宿主不再提供调试通道的写入入口（否则扩展能自举）");
   ok(/WebView\.setWebContentsDebuggingEnabled\(true\)/.test(webuiRaw),
     "开启时真的打开 WebView 调试");
   ok(/if \(DshEnv\.webviewDebug\(this@DshWebUiActivity\)\) \{/.test(webuiRaw),

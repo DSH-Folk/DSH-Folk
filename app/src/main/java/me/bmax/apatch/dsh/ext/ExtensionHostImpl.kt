@@ -49,7 +49,10 @@ internal class ExtensionHostImpl(
             }
             when (switch) {
                 HostSwitch.BROWSER_MODE -> DshEnv.setBrowserMode(appContext, on)
-                HostSwitch.WEBVIEW_DEBUG -> DshEnv.setWebviewDebug(appContext, on)
+                // 调试通道**不可写**：它由「已启用的扩展声明了 host:webview-debug」推导。
+                // 允许扩展自己写它就等于自举 —— 一个扩展能单方面把自己需要的通道打开，
+                // 而用户在启用前看到的告知就失去了约束力。这里只读不写。
+                HostSwitch.WEBVIEW_DEBUG -> Unit
             }
             ExtLog.log("[" + id + "] 设置 " + switch.id + " = " + on)
             return true
