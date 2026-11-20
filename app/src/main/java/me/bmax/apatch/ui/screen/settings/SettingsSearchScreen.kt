@@ -58,7 +58,10 @@ fun SettingsSearchScreen(navigator: DestinationsNavigator) {
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
 
-    val resolvedEntries = remember {
+    // 依赖扩展注册表：扩展可能在本次组合之后才注册设置项（异步加载），
+    // 而 remember {} 会把它挡在外面 —— 表现是"扩展装了，但设置里搜不到"。
+    val extSettingKeys = me.bmax.apatch.dsh.ext.ExtensionUiRegistry.settingItems().map { it.key }
+    val resolvedEntries = remember(extSettingKeys) {
         SettingsRegistry.resolveAll(context.resources)
     }
 
@@ -150,7 +153,15 @@ fun SettingsSearchScreen(navigator: DestinationsNavigator) {
                                 // 不单独指过去的话，用户搜到它、点进去会落在一个没有这张卡的页面上。
                                 SettingsTarget.PERMISSION_HUB ->
                                     navigator.navigate(PermissionHubScreenDestination) { launchSingleTop = true }
-                                null -> when (category) {
+                                null -> {
+                                    // 扩展注册的设置项：宿主不知道它在哪个页面（它可能根本没有页面），
+                                    // 所以直接调扩展给的 onClick。没有 onClick 的条目是纯展示项，
+                                    // 点了什么也不做 —— 比跳到某个不相关的页面好。
+                                    val ext = me.bmax.apatch.dsh.ext.ExtensionUiRegistry
+                                        .settingItems().firstOrNull { it.key == highlightKey }
+                                    if (ext != null) {
+                                        ext.onClick?.invoke()
+                                    } else when (category) {
                                     SettingCategory.GENERAL -> navigator.navigate(GeneralSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
                                     SettingCategory.APPEARANCE -> navigator.navigate(AppearanceSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
                                     SettingCategory.BEHAVIOR -> navigator.navigate(BehaviorSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
@@ -160,6 +171,7 @@ fun SettingsSearchScreen(navigator: DestinationsNavigator) {
                                     SettingCategory.MULTIMEDIA -> navigator.navigate(MultimediaSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
                                     SettingCategory.FUNCTION -> navigator.navigate(FunctionSettingsScreenDestination(highlightKey)) { launchSingleTop = true }
                                 }
+                                    }
                             }
                         },
                     )

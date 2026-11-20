@@ -72,6 +72,21 @@ internal class AppExtensionPlatform(
             PlatformResult.success(m.invoke(target, *args))
         }.getOrElse { unwrap(it, capability + "." + method) }
 
+    /**
+     * 调门面**自身**的方法（exec / execCapture / execStreaming / log / state）。
+     *
+     * 与 [invoke] 的区别：那个是"先拿能力对象，再在对象上调"；这个是直接在 DshPlatform
+     * 上调 —— 那几个方法不属于任何子系统，`getters` 里找不到它们。
+     */
+    override fun call(method: String, vararg args: Any?): PlatformResult = runCatching {
+        val m = findMethod(DshPlatform::class.java, method, args)
+            ?: return PlatformResult.failure(
+                "门面上没有这个方法：" + method + "（参数个数 " + args.size + "）",
+            )
+        m.isAccessible = true
+        PlatformResult.success(m.invoke(facade, *args))
+    }.getOrElse { unwrap(it, method) }
+
     override fun property(capability: String, name: String): PlatformResult = runCatching {
         val target = getters[capability]?.invoke(facade)
             ?: return PlatformResult.failure("没有这个宿主能力：" + capability)

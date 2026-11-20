@@ -243,6 +243,59 @@ object ExtensionUiRegistry {
      *
      * 重复注册按 id 覆盖（重新加载一个扩展时不该留下旧面板）。
      */
+    /**
+     * 扩展注册的**设置项**。
+     *
+     * 与 [Slot.SETTINGS_FUNCTION]（往功能页插一块 UI）的区别：这是往**搜索索引与分类页**
+     * 里加一条真正的设置条目 —— 用户能在设置里搜到它、能跳到它所在的页面，
+     * 就像宿主自带的 93 条一样。
+     *
+     * 为什么需要这个：宿主有 8 个分类、93 条设置项，全靠 SettingsRegistry 里写死。
+     * 扩展如果只能在功能页末尾插一块 UI，那"设置项本身"就永远只有宿主能定义 ——
+     * 这与「现有功能都可由扩展实现」矛盾。
+     */
+    data class SettingItem(
+        /** 稳定 key，用于搜索与高亮。建议加扩展前缀避免撞车。 */
+        val key: String,
+        /** 标题（已是最终文案，不走资源 id —— 扩展的资源宿主读不到）。 */
+        val title: String,
+        /** 摘要，可为空。 */
+        val summary: String = "",
+        /** 分类 id，见 [SettingsCategory]；不认识的值会被归到 FUNCTION。 */
+        val category: String = "function",
+        /** 点击时回调。为空表示这条只是展示（例如状态项）。 */
+        val onClick: (() -> Unit)? = null,
+        /** 这条设置所属的扩展 id，用于展示与清理。 */
+        val ownerId: String = "",
+    )
+
+    /** 宿主设置分类的 id 清单（与 SettingsRegistry 的 key 一致）。 */
+    object SettingsCategory {
+        const val GENERAL = "general"
+        const val APPEARANCE = "appearance"
+        const val BEHAVIOR = "behavior"
+        const val SECURITY = "security"
+        const val BACKUP = "backup"
+        const val MODULE = "module"
+        const val MULTIMEDIA = "multimedia"
+        const val FUNCTION = "function"
+    }
+
+    private val settingItems = CopyOnWriteArrayList<SettingItem>()
+
+    /**
+     * 注册一条设置项。同 key 后注册的覆盖先注册的（由启用顺序决定，行为可预期）。
+     */
+    fun registerSetting(extensionId: String, item: SettingItem) {
+        if (ExtensionGate.isLatched()) return
+        settingItems.removeIf { it.key == item.key }
+        settingItems.add(item.copy(ownerId = extensionId))
+    }
+
+    /** 全部扩展设置项（宿主设置页与搜索索引都会读它）。 */
+    fun settingItems(): List<SettingItem> =
+        if (ExtensionGate.isLatched()) emptyList() else settingItems.toList()
+
     fun registerConfigPanel(extensionId: String, title: String = "", content: SlotContent) {
         if (ExtensionGate.isLatched()) {
             ExtLog.log("[ext:" + extensionId + "] registerConfigPanel 被熔断拦截，未注册")
@@ -315,6 +368,7 @@ object ExtensionUiRegistry {
 
     /** 撤掉某个扩展注册的全部界面内容（槽位 / 整屏 / 外壳 / 色板 / 配置面板）。 */
     fun unregisterAll(extensionId: String) {
+        settingItems.removeIf { it.ownerId == extensionId }
         for (list in slots.values) list.removeIf { it.extensionId == extensionId }
         for (list in overrides.values) list.removeIf { it.extensionId == extensionId }
         shells.removeIf { it.extensionId == extensionId }

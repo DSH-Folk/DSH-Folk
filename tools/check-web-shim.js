@@ -838,5 +838,37 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "预览走 peekManifest：解压读清单就返回，不调 installFromDir");
 }
 
+
+// ── 覆盖度审计：宿主能力必须对扩展可达 ──
+{
+  const apiR = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
+  const platR = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt", "utf8");
+  const uiR = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionUiRegistry.kt", "utf8");
+  const regR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt", "utf8");
+  const srchR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsSearchScreen.kt", "utf8");
+
+  // DshPlatform 上有 5 个直接挂在门面上的方法（exec/execCapture/execStreaming/log/state），
+  // 它们不属于任何子系统，capabilities() 列不出来。没有 call() 就永远调不到。
+  ok(/fun call\(method: String, vararg args: Any\?\): PlatformResult/.test(apiR),
+    "能调门面自身的方法（exec/state 这类不属于任何子系统）");
+  // 钉住真的把 facade 传进 invoke：只测签名的话，实现里调错对象也仍绿。
+  ok(/override fun call\(method: String, vararg args: Any\?\): PlatformResult = runCatching \{[\s\S]{0,400}m\.invoke\(facade, \*args\)/.test(platR),
+    "门面方法真的在 DshPlatform 实例上调（不是某个能力对象）");
+
+  // 设置项：宿主 93 条写死在 SettingsRegistry 里，扩展必须能加自己的
+  ok(/fun registerSetting\(extensionId: String, item: SettingItem\)/.test(uiR),
+    "扩展能注册设置项（否则设置项永远只有宿主能定义）");
+  ok(/fun settingItems\(\): List<SettingItem>/.test(uiR), "宿主读得到扩展注册的设置项");
+  ok(/object SettingsCategory/.test(uiR), "扩展设置项有分类 id 可用");
+  ok(/settingItems\.removeIf \{ it\.ownerId == extensionId \}/.test(uiR),
+    "卸载扩展时摘掉它的设置项");
+  // 钉住 return 那一行：settingItems() 在别处也出现（注释与变量声明），只测词会假绿。
+  ok(/return fromHost \+ fromExtensions/.test(regR),
+    "搜索索引真的把扩展设置项合并进返回值（用户能搜到）");
+  ok(/remember\(extSettingKeys\)/.test(srchR),
+    "搜索结果依赖扩展注册表（否则异步注册的条目搜不到）");
+  ok(/ext\.onClick\?\.invoke\(\)/.test(srchR), "扩展设置项点击走它自己的回调");
+}
+
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);
 process.exit(bad === 0 ? 0 : 1);

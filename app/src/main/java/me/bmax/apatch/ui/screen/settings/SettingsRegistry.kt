@@ -206,7 +206,7 @@ object SettingsRegistry {
 
     /** Resolve all strings once for fast search filtering. Called once per screen composition. */
     fun resolveAll(resources: Resources): List<ResolvedEntry> {
-        return allSettings.map { entry ->
+        val fromHost = allSettings.map { entry ->
             ResolvedEntry(
                 entry = entry,
                 title = safeGetString(resources, entry.titleResId),
@@ -214,6 +214,31 @@ object SettingsRegistry {
                 categoryName = safeGetString(resources, entry.category.labelResId),
             )
         }
+        // 扩展注册的设置项。
+        //
+        // 扩展条目没有资源 id（文案是运行期字符串），所以单独走一条路径拼出 ResolvedEntry。
+        // 这样搜索结果里两者是**同一种东西** —— 用户不需要知道这条是宿主自带还是扩展加的。
+        //
+        // 分类按 id 找宿主枚举；扩展传了不认识的值时归到 FUNCTION ——
+        // 宁可出现在一个"不太对"的分类里，也不要让它彻底消失（用户会以为没装上）。
+        val fromExtensions = me.bmax.apatch.dsh.ext.ExtensionUiRegistry.settingItems().map { item ->
+            val cat = SettingCategory.entries.firstOrNull { it.key == item.category }
+                ?: SettingCategory.FUNCTION
+            ResolvedEntry(
+                entry = SettingEntry(
+                    key = item.key,
+                    // 0 是占位：title/summary 已经是解析好的字符串，搜索与渲染都读那两个字段。
+                    titleResId = 0,
+                    summaryResId = null,
+                    category = cat,
+                    directTarget = null,
+                ),
+                title = item.title,
+                summary = item.summary,
+                categoryName = safeGetString(resources, cat.labelResId),
+            )
+        }
+        return fromHost + fromExtensions
     }
 
     private fun safeGetString(res: Resources, id: Int): String {

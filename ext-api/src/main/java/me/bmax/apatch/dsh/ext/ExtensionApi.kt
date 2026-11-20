@@ -234,6 +234,18 @@ interface ExtensionPlatform {
     fun invoke(capability: String, method: String, vararg args: Any?): PlatformResult
 
     /**
+     * 直接调**门面自身**的方法（不属于任何能力子系统的那些）。
+     *
+     * 宿主的门面上除了 33 个能力属性，还有几个直接挂在门面上的方法：
+     * `exec` / `execCapture` / `execStreaming` / `log` / `state`。它们不属于某个子系统，
+     * 所以 [capabilities] 列不出来 —— 但它们是最常用的（跑命令、读状态）。
+     *
+     * @param method 方法名。
+     * @param args 实参。
+     */
+    fun call(method: String, vararg args: Any?): PlatformResult
+
+    /**
      * 读一个宿主能力上的属性（Kotlin 的 val / var，对应 getter）。
      *
      * 例如 `property("runtime", "state")` 拿到 StateFlow。
