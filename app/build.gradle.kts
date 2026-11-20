@@ -224,6 +224,18 @@ dependencies {
     // 扩展 API 契约模块：扩展市场里的第三方扩展要能依赖它（:app 是 application，不能被依赖，
     // 所以契约必须单独成库模块）。详见 ext-api/build.gradle.kts 顶部注释。
     implementation(project(":ext-api"))
+    // 架构重构（Batch A）：内建扩展模块。
+    //
+    // 现在它们还是空壳，但先把依赖关系钉住 —— 这样后续每迁一个文件进模块，
+    // 编译期就能立刻发现"某个类还留在 :app 里"或"跨模块引用了不该引的东西"。
+    // 等到最后才加依赖的话，那些问题会一次性爆发，且很难定位是哪个迁移引入的。
+    implementation(project(":core-kernel"))
+    implementation(project(":ext-workflow"))
+    implementation(project(":ext-display"))
+    implementation(project(":ext-userscripts"))
+    implementation(project(":ext-backup"))
+    implementation(project(":ext-device-caps"))
+    implementation(project(":ext-theme-media"))
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
