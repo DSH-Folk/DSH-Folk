@@ -445,6 +445,25 @@ for (const name of SEAMS) {
   }
 }
 
+// CI 的触发路径必须覆盖**所有** Gradle 模块。
+//
+// 漏掉的表现极其隐蔽：推上去一条 run 都没有，改动静默不被编译，而 GitHub 上
+// 看起来一切正常（没有红色）。Batch C 把文件迁进 :core-kernel 时就是这么漏的 ——
+// 迁移提交 push 完，CI 列表里连一条 run 都没多。
+{
+  const settings = read("settings.gradle.kts");
+  const modules = [...settings.matchAll(/^include\(":(.+?)"\)/gm)].map((m) => m[1]);
+  must(modules.length > 0, "settings.gradle.kts 里能解析出模块清单");
+  const wf = read(".github/workflows/build.yml");
+  const pathsLine = (wf.split("\n").find((l) => l.includes("paths: [") && l.includes("app/**")) || "");
+  must(pathsLine.length > 0, "build.yml 有 paths 过滤行");
+  for (const m of modules) {
+    // :app 对应 app/**；其余模块名就是目录名
+    must(pathsLine.includes("'" + m + "/**'"),
+      `build.yml 的触发路径覆盖 :${m}（漏了的话改它不会触发 CI）`);
+  }
+}
+
 // 测试必须真的会被执行 —— 否则写再多测试也只是"编译不过的注释"。
 //
 // 真实教训：`ExtensionBootPipelineTest` 放在 :ext-api，而被测类还在 :app，

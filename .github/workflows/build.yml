@@ -8,10 +8,14 @@ on:
     # 改了门禁自然要跑一次验证 —— 否则只改门禁的提交会静默地谁都不验。
     # 实测踩过：一次只改 displayserver/ 与 tools/ 的推送没有触发任何构建，于是那次修复
     # 根本没被编译过（列表里连一条 run 都没有）。
-    paths: [ 'app/**', 'ext-api/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
+    # 新增 Gradle 模块时必须同步这里 —— 漏了的表现是「推上去一条 run 都没有」，
+    # 改动静默不被编译（Batch C 把文件迁进 :core-kernel 时就是这么漏的）。
+    paths: [ 'app/**', 'ext-api/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'ext-device-caps/**', 'ext-theme-media/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
   pull_request:
     branches: [ main, develop ]
-    paths: [ 'app/**', 'ext-api/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
+    # 新增 Gradle 模块时必须同步这里 —— 漏了的表现是「推上去一条 run 都没有」，
+    # 改动静默不被编译（Batch C 把文件迁进 :core-kernel 时就是这么漏的）。
+    paths: [ 'app/**', 'ext-api/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'ext-device-caps/**', 'ext-theme-media/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
   workflow_dispatch:
     inputs:
       build_type:
