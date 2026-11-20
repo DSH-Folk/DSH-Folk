@@ -59,4 +59,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.core)
+
+    // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
+    // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。
+    testImplementation(libs.junit)
 }

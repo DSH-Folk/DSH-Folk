@@ -12,6 +12,7 @@ material3 = "1.5.0-beta02"
 materialKolor = "5.0.1"
 shizuku = "13.1.5"
 termux = "0.118.0"
+junit = "4.13.2"
 
 [plugins]
 agp-app = { id = "com.android.application", version.ref = "agp" }
@@ -23,6 +24,8 @@ lsplugin-resopt = { id = "org.lsposed.lsplugin.resopt", version = "1.6" }
 kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 [libraries]
+# 整个仓库此前零单测；Batch B 起各模块要有真正的 JUnit 4 测试。
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.8.0" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version = "1.2.0" }

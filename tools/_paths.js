@@ -56,6 +56,27 @@ const SOURCE_ROOTS = [
 ];
 
 /**
+ * 剥掉源码目录前缀，只留包路径。
+ *
+ * `app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt` → `dsh/DshEnv.kt`
+ * `dsh/DshEnv.kt` → 原样返回
+ *
+ * 任何模块的源码根都是 `<module>/src/main/java/me/bmax/apatch`，所以前缀不同、
+ * 包路径相同 —— 剥掉之后就能拿包路径去每个模块试。
+ *
+ * 只剥 `SOURCE_ROOTS` 里登记过的模块前缀。像 `displayserver/` 这种**不是**模块源码根的
+ * 目录（它有自己的构建，且刻意与 app 源码树分离）不该被剥 —— 剥了会把两个不同的树
+ * 混成一个，反向断言（"这个类不该在 displayserver 里"）就会失去意义。
+ */
+function stripSourcePrefix(p) {
+  const clean = String(p).replace(/^\/+/, "");
+  for (const root of SOURCE_ROOTS) {
+    if (clean.startsWith(root + "/")) return clean.slice(root.length + 1);
+  }
+  return clean;
+}
+
+/**
  * 解析成绝对路径。找不到抛异常（见文件头）。
  *
  * @param {string} p 仓库相对路径或逻辑名
@@ -79,16 +100,21 @@ function resolve(p) {
   }
 
   // 3) 逻辑名：逐模块找
+  //
+  // 老脚本传的是**完整路径**（`app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt`）。
+  // 文件搬进 `core-kernel/` 后模块变了、包路径没变，所以先把源码前缀剥掉再逐模块拼 ——
+  // 这样"只换模块不改包"的迁移零配置命中，MOVED 只留给真正改名或拆分的文件。
+  const logical = stripSourcePrefix(clean);
   const tried = [];
   for (const root of SOURCE_ROOTS) {
-    const abs = path.join(ROOT, root, clean);
-    tried.push(root + "/" + clean);
+    const abs = path.join(ROOT, root, logical);
+    tried.push(root + "/" + logical);
     if (fs.existsSync(abs)) return abs;
   }
 
   throw new Error(
     "[_paths] 找不到 " + clean + "，试过：\n  " + tried.join("\n  ") +
-    "\n如果这个文件已经搬到别的模块，请在 tools/_paths.js 的 MOVED 里登记。",
+    "\n如果这个文件已经搬到别的模块，请确认包路径没变（变了就登记到 MOVED）。",
   );
 }
 
@@ -97,12 +123,31 @@ function read(p) {
   return fs.readFileSync(resolve(p), "utf8");
 }
 
-/** 是否存在（不抛）。 */
+/**
+ * 这个**确切路径**是否存在（不抛）。
+ *
+ * 与 [resolve] 的关键区别：**不做模块回退**。
+ *
+ * 为什么必须这样：不少断言是反向的 —— 「这个文件只该在 app 源码树里，不该在 displayserver 里」：
+ *
+ *     must(!exists('displayserver/src/main/java/.../IDisplayService.java'), ...)
+ *
+ * 如果 exists 也走模块搜索，它会把 `displayserver/` 前缀剥掉、在 `app/` 里找到同名文件，
+ * 于是"不该存在"判成"存在"，断言假红（更糟的情况是反向的断言假绿）。
+ * "存在"就该只回答"这个路径存在吗"。
+ *
+ * MOVED 仍然生效：登记过的改名要能被问到。
+ */
 function exists(p) {
-  try { resolve(p); return true; } catch (_) { return false; }
+  const clean = String(p).replace(/^\/+/, "");
+  const direct = path.join(ROOT, clean);
+  if (fs.existsSync(direct)) return true;
+  const moved = MOVED[clean];
+  if (moved && fs.existsSync(path.join(ROOT, moved))) return true;
+  return false;
 }
 
 /** 仓库根。 */
 function repoRoot() { return ROOT; }
 
-module.exports = { resolve, read, exists, repoRoot, MOVED, SOURCE_ROOTS };
+module.exports = { resolve, read, exists, repoRoot, stripSourcePrefix, MOVED, SOURCE_ROOTS };

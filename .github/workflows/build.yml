@@ -160,6 +160,8 @@ jobs:
       #   而那在 App 侧完全看不出来。
       - name: Static source checks
         run: |
+          # 放在最前：它挂了，后面脚本读文件都可能是错的
+          node tools/check-paths.js
           node tools/check-version-naming.js
           node tools/check-changelog.js
           node tools/check-kotlin-comments.js
