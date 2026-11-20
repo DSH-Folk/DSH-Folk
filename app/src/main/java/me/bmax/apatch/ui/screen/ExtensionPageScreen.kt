@@ -48,9 +48,9 @@ import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExtensionPageScreen(
+    navigator: DestinationsNavigator,
     /** 要渲染哪个扩展页面（[ExtensionUiRegistry.Page.id]）。 */
     pageId: String,
-    navigator: DestinationsNavigator,
 ) {
     // 依赖注册表快照：扩展是异步加载的，进页面时可能刚好注册完。
     val page = ExtensionUiRegistry.page(pageId)

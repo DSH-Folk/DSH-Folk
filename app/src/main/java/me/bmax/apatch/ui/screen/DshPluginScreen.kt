@@ -667,6 +667,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     GROUP_EXTENSIONS -> ExtensionsPane(
                         modifier = Modifier.weight(1f),
                         snackBarHost = snackBarHost,
+                        navigator = navigator,
                         filter = extensionFilter,
                         externalRefresh = extensionRefresh,
                     )
@@ -1020,6 +1021,8 @@ private fun DshPluginList(
 private fun ExtensionsPane(
     modifier: Modifier = Modifier,
     snackBarHost: SnackbarHostState,
+    /** 打开扩展注册的整页用（宿主预留的通用路由）。 */
+    navigator: DestinationsNavigator,
     /** 顶栏搜索框里的词（由插件页统一持有，与脚本页各用各的）。 */
     filter: String = "",
     /** 外部要求重读列表的信号（市场装完一个扩展之后会 +1）。 */
