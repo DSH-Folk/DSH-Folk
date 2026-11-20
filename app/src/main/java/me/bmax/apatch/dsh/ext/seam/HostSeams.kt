@@ -14,7 +14,6 @@ import me.bmax.apatch.dsh.ext.ExtensionSeams
  * 其余 7 个无状态，从总线取（这样扩展可以替换它们）。
  */
 internal class HostSeams(
-    ctx: Context,
     /**
      * 必须是 `private val`，不能只是构造参数。
      *
