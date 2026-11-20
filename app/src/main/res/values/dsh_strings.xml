@@ -158,6 +158,9 @@
     <string name="dsh_ext_warn_revoke">You can disable or remove it any time on the Extensions page. Removing it also revokes anything it installed into the container.</string>
     <string name="dsh_ext_warn_confirm">Install anyway</string>
     <string name="dsh_ext_settings_group">From extensions</string>
+    <string name="dsh_ext_page_missing_title">Extension page</string>
+    <string name="dsh_ext_page_missing_body">This page is provided by an extension that is not loaded right now (%1$s). It may have been disabled or removed.</string>
+    <string name="dsh_ext_pages_title">Pages</string>
     <string name="dsh_ext_installed_ok">Installed %1$s. Enable it when you are ready.</string>
     <string name="dsh_ext_market_install">Install</string>
     <string name="dsh_ext_market_installed">Installed</string>

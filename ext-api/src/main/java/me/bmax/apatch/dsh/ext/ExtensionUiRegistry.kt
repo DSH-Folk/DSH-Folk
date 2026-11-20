@@ -281,6 +281,50 @@ object ExtensionUiRegistry {
         const val FUNCTION = "function"
     }
 
+    /**
+     * 扩展注册的**整页**。
+     *
+     * 与 [Slot] 的区别：槽位是"往宿主的页面里插一块"，页面是"扩展自己的一页"。
+     * 用户能导航到它、能用系统返回键退出，和宿主自带页面同级。
+     *
+     * ## 为什么不是往生成的导航图里加路由
+     *
+     * 宿主的导航图由 compose-destinations 的 KSP 在**编译期**生成
+     * （`NavGraphs.root` 是生成的 object），`DestinationsNavHost` 只接受一个固定的
+     * NavGraphSpec，没有运行时追加路由的入口。
+     *
+     * 所以走另一条路：宿主有一个**通用路由**（`ExtensionPageDestination`），
+     * 它接受一个扩展页面 id，然后从本注册表取出对应的 Composable 渲染。
+     * 对用户来说这就是一个正常页面；对扩展来说不用碰任何导航代码。
+     */
+    data class Page(
+        /** 稳定 id，宿主用它导航。建议加扩展前缀避免撞车。 */
+        val id: String,
+        /** 页面标题（宿主顶栏显示）。 */
+        val title: String,
+        /** 内容。给一个 Modifier，扩展负责画满它。 */
+        val content: SlotContent,
+        /** 所属扩展 id，用于展示与清理。 */
+        val ownerId: String = "",
+    )
+
+    private val pages = CopyOnWriteArrayList<Page>()
+
+    /** 注册一个整页。同 id 后注册的覆盖先注册的。 */
+    fun registerPage(extensionId: String, page: Page) {
+        if (ExtensionGate.isLatched()) return
+        pages.removeIf { it.id == page.id }
+        pages.add(page.copy(ownerId = extensionId))
+    }
+
+    /** 按 id 取页面（宿主通用路由用）。 */
+    fun page(id: String): Page? =
+        if (ExtensionGate.isLatched()) null else pages.firstOrNull { it.id == id }
+
+    /** 全部扩展页面（宿主可据此做入口列表）。 */
+    fun pages(): List<Page> =
+        if (ExtensionGate.isLatched()) emptyList() else pages.toList()
+
     private val settingItems = CopyOnWriteArrayList<SettingItem>()
 
     /**
@@ -369,6 +413,7 @@ object ExtensionUiRegistry {
     /** 撤掉某个扩展注册的全部界面内容（槽位 / 整屏 / 外壳 / 色板 / 配置面板）。 */
     fun unregisterAll(extensionId: String) {
         settingItems.removeIf { it.ownerId == extensionId }
+        pages.removeIf { it.ownerId == extensionId }
         for (list in slots.values) list.removeIf { it.extensionId == extensionId }
         for (list in overrides.values) list.removeIf { it.extensionId == extensionId }
         shells.removeIf { it.extensionId == extensionId }

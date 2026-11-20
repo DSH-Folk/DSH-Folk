@@ -82,6 +82,7 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.DshPluginStoreScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ScriptMarketScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import me.bmax.apatch.ui.screen.ExtensionPageScreenDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1214,6 +1215,11 @@ private fun ExtensionsPane(
         ExtensionDetailSheet(
             record = rec,
             onDismiss = { detailId = null },
+            onOpenPage = { pageId ->
+                navigator.navigate(ExtensionPageScreenDestination(pageId = pageId)) {
+                    launchSingleTop = true
+                }
+            },
         )
     }
 
@@ -1791,6 +1797,8 @@ internal fun formatCount(n: Long): String = when {
 private fun ExtensionDetailSheet(
     record: ExtensionRecord,
     onDismiss: () -> Unit,
+    /** 打开该扩展注册的整页（没有页面时为 null）。 */
+    onOpenPage: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1855,6 +1863,31 @@ private fun ExtensionDetailSheet(
                     )
                 }
             }
+            // 扩展注册的整页入口。
+            //
+            // 只在这个扩展真的注册了页面时才显示：画一个点了没反应的按钮，
+            // 比不显示更糟（用户会以为功能坏了）。
+            val pages = ExtensionUiRegistry.pages().filter { it.ownerId == record.id }
+            if (pages.isNotEmpty() && onOpenPage != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.dsh_ext_pages_title),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Spacer(Modifier.height(6.dp))
+                for (pg in pages) {
+                    TextButton(
+                        onClick = {
+                            onDismiss()
+                            onOpenPage(pg.id)
+                        },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Text(pg.title.ifEmpty { pg.id })
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
         }
     }

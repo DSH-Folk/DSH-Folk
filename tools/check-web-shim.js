@@ -903,5 +903,30 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "八个分类页都渲染扩展设置项" + (missing.length ? "（缺：" + missing.join(", ") + "）" : ""));
 }
 
+
+// ── 页面级替换：扩展能注册整页并导航过去 ──
+{
+  const uiR2 = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionUiRegistry.kt", "utf8");
+  const pageR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/ExtensionPageScreen.kt", "utf8");
+  const pluginR2 = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt", "utf8");
+
+  ok(/data class Page\(/.test(uiR2), "扩展能注册整页（id + 标题 + 内容）");
+  ok(/fun registerPage\(extensionId: String, page: Page\)/.test(uiR2), "注册入口");
+  ok(/fun page\(id: String\): Page\?/.test(uiR2), "宿主按 id 取页面");
+  ok(/pages\.removeIf \{ it\.ownerId == extensionId \}/.test(uiR2), "卸载时摘掉页面");
+
+  // 通用路由：宿主预留一个路由承接任意扩展页面
+  ok(/@Destination<RootGraph>/.test(pageR) && /fun ExtensionPageScreen\(/.test(pageR),
+    "有承载扩展页面的通用路由");
+  ok(/pageId: String,/.test(pageR), "路由参数是扩展页面 id");
+  ok(/page\.content\(Modifier\.fillMaxSize\(\)\)/.test(pageR), "真的渲染扩展给的 Composable");
+  // 页面不存在时不能白屏或崩
+  ok(/dsh_ext_page_missing_body/.test(pageR), "页面不存在时给说明（不白屏、不崩溃）");
+  // 入口接线
+  ok(/ExtensionPageScreenDestination\(pageId = pageId\)/.test(pluginR2), "扩展详情能导航到扩展页面");
+  ok(/ExtensionUiRegistry\.pages\(\)\.filter \{ it\.ownerId == record\.id \}/.test(pluginR2),
+    "只列出这个扩展自己的页面（没页面就不画按钮）");
+}
+
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);
 process.exit(bad === 0 ? 0 : 1);
