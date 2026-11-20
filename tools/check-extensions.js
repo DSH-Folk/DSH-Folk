@@ -14,12 +14,20 @@ const errors = [];
 const root = path.resolve(__dirname, '..');
 const read = (p) => require("./_paths.js").read(p);
 const exists = (p) => require("./_paths.js").exists(p);
+// 跨模块查找（迁移期间文件可能已搬进 :core-kernel）
+const findable = (p) => require("./_paths.js").findable(p);
 const must = (c, m) => { if (!c) errors.push(m); };
 
 // 扩展系统分成两个模块，门禁也得分开看：
 //   :ext-api —— 契约（第三方扩展编译时依赖它，所以这里不许出现任何宿主类型）
 //   :app     —— 宿主实现（熔断、加载、编排、36 项门面）
-const EXT = 'app/src/main/java/me/bmax/apatch/dsh/ext/';
+// 扩展系统的源码逻辑前缀。
+//
+// 不再写死 `app/src/main/java/...`：Batch C 起 ExtensionEngine / ExtensionLoader /
+// ExtensionRegistry / ExtensionSafetyGuard 迁进 :core-kernel，写死的话这些断言会
+// 直接读不到文件。传逻辑名给 read()/exists()，由 tools/_paths.js 跨模块解析 ——
+// 迁移期间两处位置都认。
+const EXT = 'dsh/ext/';
 const API = 'ext-api/src/main/java/me/bmax/apatch/dsh/ext/';
 
 const apiFiles = [
@@ -32,7 +40,7 @@ const appFiles = [
   'AppExtensionFs.kt', 'ExtensionHostImpl.kt',
 ];
 for (const f of apiFiles) must(exists(API + f), '缺契约文件 ext-api/' + f);
-for (const f of appFiles) must(exists(EXT + f), '缺宿主实现 app/.../ext/' + f);
+for (const f of appFiles) must(findable(EXT + f), '缺宿主实现 ' + f);
 
 const guard = read(EXT + 'ExtensionSafetyGuard.kt');
 const loader = read(EXT + 'ExtensionLoader.kt');

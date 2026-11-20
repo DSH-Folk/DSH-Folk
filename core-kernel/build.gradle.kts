@@ -25,7 +25,11 @@ val androidCompileSdkVersion: Int by rootProject.extra
 val androidMinSdkVersion: Int by rootProject.extra
 
 android {
-    namespace = "me.bmax.apatch.kernel"
+    // namespace 必须是 me.bmax.apatch —— 迁进来的代码在 me.bmax.apatch.dsh.* /
+    // me.bmax.apatch.util.* 包下，namespace 只影响 R 类与 BuildConfig 的生成包名。
+    // 写成 me.bmax.apatch.kernel 的话这些源文件不在 namespace 下，AGP 仍能编译，
+    // 但 R 类会生成到 kernel 包、而代码里 import 的是 me.bmax.apatch.R —— 找不到。
+    namespace = "me.bmax.apatch"
     compileSdk = androidCompileSdkVersion
 
     defaultConfig {
@@ -58,6 +62,11 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.core)
+    // 运行时/容器/日志这套用到的 AndroidX 组件
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
 
     // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
     // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。

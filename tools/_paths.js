@@ -147,7 +147,18 @@ function exists(p) {
   return false;
 }
 
+/**
+ * 能不能解析到这个文件（**会**跨模块查找，与 [exists] 不同）。
+ *
+ * 两个函数的区别要说清，否则会互相误用：
+ *  - [exists]：这个**确切路径**存在吗？用于反向断言（"这个类不该在 displayserver 里"）。
+ *  - [findable]：这个名字的文件**在某处**存在吗？用于"迁移期间两处位置都认"的断言。
+ */
+function findable(p) {
+  try { resolve(p); return true; } catch (_) { return false; }
+}
+
 /** 仓库根。 */
 function repoRoot() { return ROOT; }
 
-module.exports = { resolve, read, exists, repoRoot, stripSourcePrefix, MOVED, SOURCE_ROOTS };
+module.exports = { resolve, read, exists, findable, repoRoot, stripSourcePrefix, MOVED, SOURCE_ROOTS };

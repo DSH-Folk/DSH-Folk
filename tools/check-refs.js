@@ -10,7 +10,18 @@ const fs = require("fs");
 const { read, exists } = require("./_paths.js");
 const path = require("path");
 
-const ROOT = "app/src/main/java/me/bmax/apatch";
+// 源码根候选（重构期间文件会分散在 app/ 与各模块里）。
+//
+// 不再写死 app/：Batch C 起 dsh/ 下的文件逐个迁进 :core-kernel，
+// 写死的话 walk 会漏掉迁移后的文件（断言范围缩小 = 假绿）。
+const SOURCE_ROOTS = require("./_paths.js").SOURCE_ROOTS
+  .map((r) => path.join(require("./_paths.js").repoRoot(), r))
+  .filter((d) => fs.existsSync(d));
+
+/**
+ * 逻辑名 → 绝对路径。走 _paths 的解析（含跨模块回退）。
+ */
+const resolve = (rel) => require("./_paths.js").resolve(rel);
 const TARGETS = [
   "dsh/DshCamera.kt",
   "dsh/DshPersonalData.kt",
@@ -77,13 +88,16 @@ for (const [obj, rel] of Object.entries(OBJECTS)) {
 
 // 扫全树，找 Obj.member 形式的调用
 const allKt = [];
-(function walk(dir) {
+function walk(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p);
     else if (e.name.endsWith(".kt")) allKt.push(p);
   }
-})(ROOT);
+}
+// 每个源码根都走一遍：迁移期间文件分散在 app/ 与各模块里，
+// 只 walk 一个根会漏掉迁移后的文件（断言范围缩小 = 假绿）。
+for (const root of SOURCE_ROOTS) walk(root);
 
 const problems = [];
 for (const file of allKt) {
@@ -167,7 +181,7 @@ const KNOWN = {
   PendingIntent: "android.app.PendingIntent",
 };
 for (const rel of TARGETS) {
-  const file = path.join(ROOT, rel);
+  const file = resolve(rel);
   const src = fs.readFileSync(file, "utf8");
   const code = src.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
   const imports = new Set([...src.matchAll(/^import (.+)$/gm)].map((m) => m[1].trim()));
@@ -191,7 +205,7 @@ for (const rel of TARGETS) {
 // ── 3. 未使用的 import（编译警告，但也是真噪音） ──
 console.log("\n── 未使用的 import ──");
 for (const rel of TARGETS) {
-  const file = path.join(ROOT, rel);
+  const file = resolve(rel);
   const src = fs.readFileSync(file, "utf8");
   const body = src.slice(src.lastIndexOf("\nimport ") + 1);
   const unused = [];
