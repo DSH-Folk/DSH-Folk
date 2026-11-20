@@ -870,5 +870,38 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   ok(/ext\.onClick\?\.invoke\(\)/.test(srchR), "扩展设置项点击走它自己的回调");
 }
 
+
+// ── 扩展设置项必须在分类页上真的渲染出来 ──
+{
+  const renderer = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionSettingItems.kt", "utf8");
+  ok(/fun ExtensionSettingItems\(/.test(renderer), "有把扩展设置项渲染进分类页的组件");
+  ok(/ExtensionUiRegistry\.settingItems\(\)\.filter \{ it\.category == category \}/.test(renderer),
+    "按分类筛选（扩展项只出现在它声明的那个分类）");
+  ok(/remember\(ExtensionUiRegistry\.settingItems\(\)\.size\)/.test(renderer),
+    "依赖注册表大小（扩展异步注册后不用重启就可见）");
+  // 钉住 onClick 的接线：`item.onClick?.invoke()` 在 onCheckedChange 里也有，
+  // 只测那一句的话，onClick 传 null 仍然绿。
+  ok(/onClick = item\.onClick,/.test(renderer), "点击接到扩展给的回调（不是只画个样子）");
+
+  // 八个分类页都必须真的调用它 —— 组件存在但没人调，等于没做。
+  const pages = [
+    ["GeneralSettings", "GENERAL"], ["AppearanceSettings", "APPEARANCE"],
+    ["BehaviorSettings", "BEHAVIOR"], ["SecuritySettings", "SECURITY"],
+    ["BackupSettings", "BACKUP"], ["ModuleSettings", "MODULE"],
+    ["MultimediaSettings", "MULTIMEDIA"], ["FunctionSettings", "FUNCTION"],
+  ];
+  const missing = [];
+  for (const [page, cat] of pages) {
+    const src = fs.readFileSync(
+      "app/src/main/java/me/bmax/apatch/ui/screen/settings/" + page + ".kt", "utf8",
+    );
+    if (!new RegExp("ExtensionSettingItems\\(\\s*\\n?\\s*category = me\\.bmax\\.apatch\\.dsh\\.ext\\.ExtensionUiRegistry\\.SettingsCategory\\." + cat).test(src)) {
+      missing.push(page);
+    }
+  }
+  ok(missing.length === 0,
+    "八个分类页都渲染扩展设置项" + (missing.length ? "（缺：" + missing.join(", ") + "）" : ""));
+}
+
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);
 process.exit(bad === 0 ? 0 : 1);

@@ -29,6 +29,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.screen.settings.multimedia.MultimediaDialogs
 import me.bmax.apatch.ui.component.SliderSettingCard
+import me.bmax.apatch.ui.component.ExtensionSettingItems
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
@@ -823,5 +824,16 @@ fun MultimediaSettingsContent(
         showStartupSourceDialog = showStartupSourceDialogState,
         showStartupPresetDialog = showStartupPresetDialogState,
         showVibrationScopeDialog = showVibrationScopeDialogState,
+    )
+
+    // 扩展注册到这个分类的设置项。
+    //
+    // 宿主自带条目原样保留、扩展条目追加在末尾 —— 不把 93 条改造成数据驱动，
+    // 因为每条都带着自己的状态与确认流程（生物识别、DPI 重启、更新通道二次确认…），
+    // 塞进通用渲染器会让它长成一个 if-else 怪物。详见 ExtensionSettingItems 的说明。
+    ExtensionSettingItems(
+        category = me.bmax.apatch.dsh.ext.ExtensionUiRegistry.SettingsCategory.MULTIMEDIA,
+        flat = flat,
+        highlightKey = highlightKey,
     )
 }

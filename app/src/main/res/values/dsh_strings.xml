@@ -157,6 +157,7 @@
     <string name="dsh_ext_warn_target">Extension: %1$s</string>
     <string name="dsh_ext_warn_revoke">You can disable or remove it any time on the Extensions page. Removing it also revokes anything it installed into the container.</string>
     <string name="dsh_ext_warn_confirm">Install anyway</string>
+    <string name="dsh_ext_settings_group">From extensions</string>
     <string name="dsh_ext_installed_ok">Installed %1$s. Enable it when you are ready.</string>
     <string name="dsh_ext_market_install">Install</string>
     <string name="dsh_ext_market_installed">Installed</string>

@@ -149,6 +149,7 @@
     <string name="dsh_ext_warn_target">扩展：%1$s</string>
     <string name="dsh_ext_warn_revoke">你可以随时在「扩展」页禁用它或卸载它。卸载时会一并收回它装进容器的东西。</string>
     <string name="dsh_ext_warn_confirm">仍然安装</string>
+    <string name="dsh_ext_settings_group">来自扩展</string>
     <string name="dsh_ext_installed_ok">已安装 %1$s，准备好后再启用它。</string>
     <string name="dsh_ext_market_install">安装</string>
     <string name="dsh_ext_market_installed">已安装</string>
