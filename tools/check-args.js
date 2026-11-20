@@ -9,6 +9,7 @@
 // 只处理**全命名参数**的调用（Compose 里的大函数基本都是这么调的），位置参数一律跳过 ——
 // 那需要真的做类型推断，超出文本分析能做的范围。
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -136,8 +137,8 @@ for (const [fn, declFile, callFile] of PAIRS) {
     ok(false, `调用点文件不存在：${callFile}（配对表过期了，改指向或删掉这一条）`);
     continue;
   }
-  const decl = fs.readFileSync(path.join(ROOT, declFile), "utf8");
-  const call = fs.readFileSync(path.join(ROOT, callFile), "utf8");
+  const decl = read(declFile);
+  const call = read(callFile);
 
   // ── 声明 ──
   const declAt = decl.indexOf(`fun ${fn}(`);

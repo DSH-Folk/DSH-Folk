@@ -18,6 +18,7 @@
 "use strict";
 
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const PATH = "app/src/main/java/me/bmax/apatch/util/LogEvent.kt";
 
 let failed = 0;
@@ -36,7 +37,7 @@ if (!fs.existsSync(PATH)) {
   console.log("  ✗ 找不到 " + PATH);
   process.exit(1);
 }
-const raw = fs.readFileSync(PATH, "utf8");
+const raw = read(PATH);
 // 注释会让「出现过某个字符串」这类判据失效
 const code = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 
@@ -191,8 +192,8 @@ ok(!/system\/dropbox \/sys\/fs\/pstore[\s\S]{0,80}head -1/.test(code),
 
 console.log("── 诊断来源：dsh 的日志都要能进归档 ──");
 // 起服务时会清空 dsh 的日志，所以必须轮转留一份 —— 否则「重启之后再采集」只有本次运行的内容
-const runtime = (fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8"));
-const env = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt", "utf8");
+const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
+const env = read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt");
 ok(/fun serverLogPrev\(ctx: Context\): File = File\(ctx\.filesDir, "logs\/dsh-web\.prev\.log"\)/.test(env),
   "DshEnv 提供「上一次运行」的日志路径");
 ok(/fun clearLog\(\)[\s\S]{0,500}?copyTo\(DshEnv\.serverLogPrev\(appContext\), overwrite = true\)/.test(runtime),
@@ -203,7 +204,7 @@ ok(/fun tailPrevLog\(lines: Int = 2000\)/.test(runtime), "DshRuntime 能读回�
 // 文件、按行首时间戳合并、按 [now − 用户选择窗口, 最新一条] 闭区间裁切」的 dsh.log 覆盖。
 ok(!/dsh-prev\.log/.test(code) && !/tailPrevLog\(2000\)/.test(code),
   "归档不再单独放 dsh-prev.log（按行数 tail(2000) 那条旧路已撤）");
-ok(fs.existsSync("app/src/main/java/me/bmax/apatch/dsh/DshLogWindow.kt") &&
+ok(exists("app/src/main/java/me/bmax/apatch/dsh/DshLogWindow.kt") &&
   /me\.bmax\.apatch\.dsh\.DshRuntime\.windowedLog\(window\.minutes\)/.test(code),
   "归档的 dsh.log 改走新的窗口裁切（DshLogWindow 存在，并且被 LogEvent 的 windowedLog 调用）");
 ok(/fun appLogFiles\(\)[\s\S]{0,200}?DshEnv\.logFiles\(appContext\)/.test(runtime) &&
@@ -283,7 +284,7 @@ ok(/redactInPlace\(auditLogFile, notes\)/.test(code),
 }
 
 // 前端页面报错也要有一份落进 dsh 日志：logcat 只覆盖最近几分钟，还要看采集时机
-const webui = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt", "utf8");
+const webui = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
 ok(/onConsoleMessage[\s\S]{0,2000}?DshRuntime\.appendLog\(\"\[page\] \" \+ line\)/.test(webui),
   "WebView 的页面报错落进 dsh 日志（不只是 logcat）");
 
@@ -291,7 +292,7 @@ ok(/onConsoleMessage[\s\S]{0,2000}?DshRuntime\.appendLog\(\"\[page\] \" \+ line\
 // "含能力调用记录"只在文件头里写着 —— 那是给读报告的人看的，不是给做决定的人看的。
 console.log("── 发送前的披露 ──");
 {
-  const ui = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt", "utf8");
+  const ui = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt");
   ok(/stringResource\(R\.string\.dsh_log_window_includes\)/.test(ui),
     "发送日志对话框引用披露文案（说了却没人看到 = 没说）");
   for (const loc of ["app/src/main/res/values/strings_dsh_placeholder", "app/src/main/res/values/dsh_strings.xml", "app/src/main/res/values-zh-rCN/dsh_strings.xml"]) {
@@ -341,7 +342,7 @@ ok(
 // 都是这次设计里不能退掉的形状。
 console.log("── 日志时间窗口裁切（DshLogWindow） ──");
 {
-  const lw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshLogWindow.kt", "utf8");
+  const lw = read("app/src/main/java/me/bmax/apatch/dsh/DshLogWindow.kt");
   const lwCode = lw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 
   // ① 闭区间：Kotlin 的 `..` 两端都含（写 until/`< since` 就是开区间，边界那一行会漏掉）
@@ -376,7 +377,7 @@ console.log("── 日志时间窗口裁切（DshLogWindow） ──");
 // basic.txt 里，但那份要解压、翻文件；横幅只要厂商 + 型号 + Android 版本这三样。
 console.log("── 启动日志里的设备信息 ──");
 {
-  const runtime = (fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8"));
+  const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
   const zh = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8");
   ok(/name="dsh_log_device"/.test(zh), "dsh_log_device 有中文文案");
   ok(/logInfo\(\s*R\.string\.dsh_log_device,/.test(runtime) &&

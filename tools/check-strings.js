@@ -11,6 +11,7 @@
 //     报的是 "Invalid unicode escape sequence" 并给出合并后文件的行号，极难定位）；
 //  4. 代码里引用的 R.string.dsh_* 都存在，且带参调用的键真的有占位符。
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -18,7 +19,7 @@ const EN = "app/src/main/res/values/dsh_strings.xml";
 const ZH = "app/src/main/res/values-zh-rCN/dsh_strings.xml";
 
 function parse(file) {
-  const raw = fs.readFileSync(path.join(ROOT, file), "utf8");
+  const raw = read(file);
   const map = new Map();
   const untranslatable = new Set();
   for (const m of raw.matchAll(/<string name="([^"]+)"([^>]*)>([\s\S]*?)<\/string>/g)) {
@@ -69,7 +70,7 @@ const XML_FILES = [
 ];
 let xmlEscBad = 0;
 for (const rel of XML_FILES) {
-  const raw = fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const raw = read(rel);
   for (const m of raw.matchAll(/<(string|item)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
     const value = m[2];
     const body = value.replace(/\\'/g, "").replace(/\\"/g, "").replace(/\\\\/g, "");
@@ -94,7 +95,7 @@ if (xmlEscBad) fail += xmlEscBad;
 // 于是违规只出现在单一语言里，逐行读 diff 时很容易滑过去。
 let xmlCommentBad = 0;
 for (const rel of XML_FILES) {
-  const raw = fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const raw = read(rel);
   for (const m of raw.matchAll(/<!--([\s\S]*?)-->/g)) {
     if (m[1].includes("--")) {
       const line = raw.slice(0, m.index).split("\n").length;

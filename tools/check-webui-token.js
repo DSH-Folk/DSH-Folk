@@ -10,11 +10,12 @@
 //  2. 只订阅 token 这一项（map + distinctUntilChanged）——订阅整份 state 会让启动期间的
 //     progress/message 每次变化都重组整个页面。
 const fs = require('fs');
+const { read, exists } = require("./_paths.js");
 const path = require('path');
 
 const errors = [];
 const root = path.resolve(__dirname, '..');
-const src = fs.readFileSync(path.join(root, 'app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt'), 'utf8');
+const src = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
 const must = (c, m) => { if (!c) errors.push(m); };
 
 must(/private var loadedWebToken: String\? = null/.test(src), '缺 loadedWebToken：无法判断要不要重载');

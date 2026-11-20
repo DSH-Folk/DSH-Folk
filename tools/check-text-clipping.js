@@ -23,6 +23,7 @@
  */
 "use strict";
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 
 const ROOT = "app/src/main/java";
@@ -100,7 +101,7 @@ ok(
 
 // 反向自检：这条规则必须在真出过问题的地方保持有效 —— 更新提示框的正文不能再被限高
 {
-  const upd = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/UpdateDialog.kt", "utf8");
+  const upd = read("app/src/main/java/me/bmax/apatch/ui/component/UpdateDialog.kt");
   ok(
     !/text\s*=\s*status\.notes[\s\S]{0,400}?heightIn\(\s*max/.test(upd),
     "更新提示框的 release 正文没有再被限高（用户看到的「更新内容显示不全」就是它）",

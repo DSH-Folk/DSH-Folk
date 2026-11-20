@@ -2,7 +2,8 @@
 // 判据从 DshImportWizard.kt 里按标记抽出来，再在 Node 里复刻一遍语义 —— 纯文本断言抓不住
 // 「两步共用一套判据」这种错，只有把状态跑一遍才抓得住。
 const fs = require('fs');
-const src = fs.readFileSync('app/src/main/java/me/bmax/apatch/dsh/DshImportWizard.kt', 'utf8');
+const { read, exists } = require("./_paths.js");
+const src = read("app/src/main/java/me/bmax/apatch/dsh/DshImportWizard.kt");
 const bodyOf = (fn) => {
   const m = src.match(new RegExp('fun ' + fn + '\\([\\s\\S]*?\\n    \\}'));
   if (!m) throw new Error('抽不出 ' + fn);

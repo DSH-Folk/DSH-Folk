@@ -9,6 +9,7 @@
 //   6. 无障碍服务的配置没有申请读取屏幕内容
 //   7. manifest 里三处注册齐全且属性正确
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 const A = "app/src/main/java/me/bmax/apatch/dsh/DshAutostart.kt";
 const SVC = "app/src/main/java/me/bmax/apatch/dsh/DshAutostartService.kt";
@@ -106,7 +107,7 @@ for (const m of modes) {
 }
 ok(missStr.length === 0, `每种方式都有标题与说明（${modes.length * 2} 条）` + (missStr.length ? " → 缺 " + missStr.join(",") : ""));
 // 界面上四个单选项一个不少
-const ui = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
+const ui = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
 // 用 search 而不是 indexOf 常量串：这些 item 后来都带上了 `, visible = …` 参数，写死的整串
 // 一个都匹配不到，切片成了空串 —— 下面三条断言于是全部失败，却一个字都不提真正的原因
 // （标记失效）。空切片本身也要拦住，否则以后同样的失效还得靠人去猜。

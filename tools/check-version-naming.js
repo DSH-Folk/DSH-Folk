@@ -37,7 +37,7 @@ const ok = (cond, msg) => {
     failures++;
   }
 };
-const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
+const read = (p) => require("./_paths.js").read(p);
 
 console.log("版本号命名规范");
 

@@ -20,7 +20,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+const read = (p) => require("./_paths.js").read(p);
 
 const OWN = read("app/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt");
 const A11Y = read("app/src/main/java/me/bmax/apatch/dsh/DshA11y.kt");

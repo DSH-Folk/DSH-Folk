@@ -37,7 +37,7 @@ function eq(actual, expected, msg) {
 function code(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
-const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
+const read = (p) => require("./_paths.js").read(p);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1) 接线：manifest 收任意文件

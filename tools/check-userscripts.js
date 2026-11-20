@@ -22,6 +22,7 @@
  * 源码锚点：Kotlin 改了而这里没跟上时，锚点先报。
  */
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const vm = require("vm");
 
 const SRC_US = "app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt";
@@ -47,16 +48,16 @@ function eq(actual, expected, label) {
   ok(a === e, label + (a === e ? "" : `（期望 ${e}，实际 ${a}）`));
 }
 
-const us = fs.readFileSync(SRC_US, "utf8");
-const webui = fs.readFileSync(SRC_WEBUI, "utf8");
-const env = fs.readFileSync(SRC_ENV, "utf8");
-const moduleSrc = fs.readFileSync(SRC_MODULE, "utf8");
+const us = read(SRC_US);
+const webui = read(SRC_WEBUI);
+const env = read(SRC_ENV);
+const moduleSrc = read(SRC_MODULE);
 const fnScreen = fs.readFileSync(
   "app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt",
   "utf8",
 );
-const moduleScreen = fs.readFileSync(SRC_MODULE_SCREEN, "utf8");
-const screen = fs.readFileSync(SRC_SCREEN, "utf8");
+const moduleScreen = read(SRC_MODULE_SCREEN);
+const screen = read(SRC_SCREEN);
 
 console.log("\n── 元数据解析：对表 ──");
 
@@ -416,7 +417,7 @@ ok(/File\(dir\(ctx\), "\$id\.user\.js"\)\.delete\(\)/.test(us) && /setEnabled\(c
   "删 = 删文件 + 从启用名单里去掉");
 
 // ── 注入管道：内置（WebScripts.kt 的注册表）与导入的脚本走同一条路 ──
-const webScripts = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/WebScripts.kt", "utf8");
+const webScripts = read("app/src/main/java/me/bmax/apatch/dsh/WebScripts.kt");
 
 ok(/private fun installScripts\(view: WebView, url: String\): Boolean/.test(webui) &&
   /scripts\.forEach \{ WebViewCompat\.addDocumentStartJavaScript\(view, it, rules\) \}/.test(webui),
@@ -542,7 +543,7 @@ ok(/GROUP_EXTENSIONS -> ExtensionsPane\(/.test(pluginHome) &&
 // 占位页不该给「点了没反应」的控件：扩展页没有可搜的东西，放大镜就不该在（与那颗
 // 「按了没反应的隐藏内置」是同一种毛病）。判据落在 SearchAppBar 的新参数上。
 {
-  const searchBar = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/SearchBar.kt", "utf8");
+  const searchBar = read("app/src/main/java/me/bmax/apatch/ui/component/SearchBar.kt");
   ok(/searchEnabled: Boolean = true/.test(searchBar) && /if \(searchEnabled\) \{/.test(searchBar),
     "SearchAppBar 支持「这一页没有可搜的东西」：不画放大镜");
   // 扩展页从「暂不可用」占位升级为真实管理页之后，它**也有可搜的东西了**（名称/id/说明/能力），
@@ -563,7 +564,7 @@ ok(/if \(group == GROUP_SCRIPTS\) \{\s*\n\s*IconButton\(onClick = \{\s*\n\s*val 
 ok(/getBoolean\(KEY_USERSCRIPTS_HIDE_BUILTINS, true\)/.test(env),
   "「隐藏内置」的默认值是 true（默认隐藏，想用的人按那只眼睛放出来）");
 // 用户：「插件页（插件组）：缺少链接安装按钮，把插件商店的从GitHub链接安装移除」。
-const store = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginStoreScreen.kt", "utf8");
+const store = read("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginStoreScreen.kt");
 ok(/labelRes = R\.string\.dsh_plugin_install_link/.test(pluginHome) &&
   /showLinkInstall = true/.test(pluginHome) &&
   /DshPluginRepo\.normalizeInstallSpec\(linkInput\)/.test(pluginHome),
@@ -578,7 +579,7 @@ ok(!/showLinkInstall/.test(store) && !/normalizeInstallSpec/.test(store) &&
 //   商店与本地 .tgz 一起收进 ＋。
 // 于是「＋ 环绕菜单」现在有三处宿主（用户脚本页、插件首页脚本组、插件首页插件组），实现只有一份
 // （ui/component/AddMenuFab.kt）。三份各写一遍的话，落点、动效与读屏名很快就会各长各的。
-const addMenu = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/AddMenuFab.kt", "utf8");
+const addMenu = read("app/src/main/java/me/bmax/apatch/ui/component/AddMenuFab.kt");
 ok(/internal fun AddMenuFab\(entries: List<AddMenuEntry>\)/.test(addMenu) &&
   /internal class AddMenuEntry\(/.test(addMenu) &&
   /Icons\.Filled\.Add/.test(addMenu) && /Icons\.Filled\.Close/.test(addMenu) &&
@@ -609,7 +610,7 @@ ok(addWrap.length > 0 && /AddMenuFab\(/.test(addWrap) &&
 ok(/UserscriptAddFab\(/.test(pluginHome) && /AddMenuFab\(/.test(pluginHome) &&
   /onOpenMarket = \{ navigator\.navigate\(ScriptMarketScreenDestination\(initialQuery = ""\)\)( \{ launchSingleTop = true \})? \}/.test(pluginHome),
   "插件首页两组都用同一个 ＋（脚本组三颗、插件组两颗）");
-const marketScreen = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/ScriptMarketScreen.kt", "utf8");
+const marketScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/ScriptMarketScreen.kt");
 ok(/@Destination<RootGraph>/.test(marketScreen) && /ScriptMarket\./.test(marketScreen) &&
   !/revealMarket/.test(screen) && !/scrollState\.animateScrollTo\(/.test(screen) &&
   !/marketQuery/.test(screen),
@@ -623,12 +624,12 @@ ok(/filter = scriptFilter/.test(pluginHome) && /val shown = if \(filter\.isBlank
   "一个搜索栏管两组：脚本那组用它过滤「我装的」");
 // 悬浮球里那个入口按用户要求撤掉了 —— 连同它专用的 AppNavigation 一跳。留着反向断言：
 // 同一个功能两处表达的旧形态不能再回来（入口只该是插件首页那一组 + 设置搜索）。
-const webuiAct = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt", "utf8");
-const mainAct = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt", "utf8");
+const webuiAct = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
+const mainAct = read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt");
 ok(!/onOpenScripts/.test(webuiAct) && !/Icons\.Outlined\.Extension/.test(webuiAct),
   "WebUI 悬浮球里的用户脚本入口已删（要去那一页走插件首页或设置搜索）");
 ok(!/AppNavigation/.test(webuiAct) && !/AppNavigation/.test(mainAct) &&
-  !fs.existsSync("app/src/main/java/me/bmax/apatch/ui/AppNavigation.kt"),
+  !exists("app/src/main/java/me/bmax/apatch/ui/AppNavigation.kt"),
   "连带撤掉 AppNavigation 那一跳：它只为悬浮球而写，没有第二个调用方");
 // 用户报「用户脚本的卡片没对齐插件页」：脚本页那一列是带 verticalScroll 的 Column（每行自己加
 // padding），插件页是 LazyColumn（contentPadding 左右 16dp + spacedBy 12dp）。所以几何要一对：
@@ -658,8 +659,8 @@ ok(builtinRow.length > 0 && /R\.string\.dsh_plugin_builtin_label/.test(builtinRo
 // 用户报「脚本页缺少更新和移除按钮」+ 要一个脚本详情页。三件事的实质：
 // 更新必须知道来源（Script 原来没有来源字段，id 含正文 hash，重新 install 会留下两份），
 // 所以来源存 prefs、更新拉新→装新→删旧→搬开关；没有来源的（文件导入/旧版本装的）不假造原地更新。
-const userscripts = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt", "utf8");
-const detail = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/ScriptDetailScreen.kt", "utf8");
+const userscripts = read("app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt");
+const detail = read("app/src/main/java/me/bmax/apatch/ui/screen/ScriptDetailScreen.kt");
 ok(/val source: String\? = null/.test(userscripts) &&
   /fun sourceOf\(/.test(userscripts) &&
   /fun update\(ctx: Context, id: String\): UpdateOutcome/.test(userscripts) &&
@@ -717,9 +718,9 @@ ok(/Userscripts\.prepare\(context, it\)/.test(screen) &&
   !/Userscripts\.install\(/.test(screen),
   "本地文件与链接都先 prepare（查同名/比版本/算差异）再弹确认框，页面里不再直接 install");
 {
-  const usLib = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt", "utf8");
-  const pendingHost = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/UserscriptInstall.kt", "utf8");
-  const marketCode = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/ScriptMarketScreen.kt", "utf8");
+  const usLib = read("app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt");
+  const pendingHost = read("app/src/main/java/me/bmax/apatch/ui/component/UserscriptInstall.kt");
+  const marketCode = read("app/src/main/java/me/bmax/apatch/ui/screen/ScriptMarketScreen.kt");
   ok(/fun findByTitle\(/.test(usLib) && /fun prepare\(/.test(usLib) && /fun prepareFromUrl\(/.test(usLib) &&
     /fun commit\(/.test(usLib) && /fun diffLines\(/.test(usLib),
     "引擎侧有 findByTitle / prepare / prepareFromUrl / commit / diffLines 五件事");
@@ -758,7 +759,7 @@ ok(!/dsh_userscripts_paste/.test(screen) && !/dsh_userscripts_pick/.test(screen)
 // 清单开了能力、菜单里有按钮、进得去才进（进不去弹引导）、引导能跳到设置、小窗里不画悬浮球。
 {
   const manifest = fs.readFileSync("app/src/main/AndroidManifest.xml", "utf8");
-  const activity = fs.readFileSync(SRC_WEBUI, "utf8");
+  const activity = read(SRC_WEBUI);
   const zhS = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8");
   const enS = fs.readFileSync("app/src/main/res/values/dsh_strings.xml", "utf8");
   const block = manifest.slice(
@@ -854,9 +855,9 @@ ok(!/dsh_userscripts_paste/.test(screen) && !/dsh_userscripts_pick/.test(screen)
     "开关存在且默认开（getBoolean 的默认值是 true）");
   ok(/onUserLeaveHint\(\)[\s\S]{0,300}DshEnv\.webuiPipAuto\(this\)/.test(activity),
     "12 以下那条自动路径也读这个开关，关掉后静默不动");
-  const funcSettings = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
-  const funcScreen = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt", "utf8");
-  const registry = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt", "utf8");
+  const funcSettings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
+  const funcScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+  const registry = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt");
   ok(/R\.string\.dsh_webui_pip_auto\b/.test(funcSettings) && /checked = webuiPipAuto/.test(funcSettings) &&
     /putBoolean\(DshEnv\.KEY_WEBUI_PIP_AUTO, on\)/.test(funcScreen) &&
     /SettingEntry\("function_webui_pip_auto"/.test(registry),

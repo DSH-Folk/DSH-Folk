@@ -7,6 +7,7 @@
 //   3. 调了别的文件里 private 的成员
 // 这三类都能靠文本分析抓到大半。
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 
 const ROOT = "app/src/main/java/me/bmax/apatch";
@@ -70,7 +71,7 @@ const OBJECTS = {
 };
 const cache = {};
 for (const [obj, rel] of Object.entries(OBJECTS)) {
-  const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const src = read(rel);
   cache[obj] = { src, members: members(src), privates: privates(src) };
 }
 

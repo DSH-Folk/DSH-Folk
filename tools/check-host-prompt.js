@@ -21,6 +21,7 @@
  *   2. 真的 import 容器里那份 .mjs 并调用它的 render()，证明段落非空。
  */
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 let n = 0;
 let bad = 0;
@@ -223,7 +224,7 @@ console.log("\u2500 #2 ensurePatchRow 自愈：被 dsh-config-manager 压平后�
 // ─────────────────────────────────────────────────────────────────────────────
 // 3) Kotlin 侧的关键步骤（防止 JS 复刻与实现漂移）
 // ─────────────────────────────────────────────────────────────────────────────
-const hostPrompt = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt", "utf8");
+const hostPrompt = read("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt");
 const hpCode = code(hostPrompt);
 
 console.log("\u2500 #3 DshHostPrompt.kt：判据改成缩进，且不再早退");

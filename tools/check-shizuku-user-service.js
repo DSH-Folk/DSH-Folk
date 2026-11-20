@@ -13,6 +13,7 @@
 //
 // 用法：node tools/check-shizuku-user-service.js
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 let bad = 0;
 function must(cond, msg) {
@@ -80,11 +81,11 @@ const AIDL = "app/src/main/aidl/me/bmax/apatch/dsh/IDshShellService.aidl";
 const MANIFEST = "app/src/main/AndroidManifest.xml";
 const PROGUARD = "app/proguard-rules.pro";
 
-const svc = fs.readFileSync(SERVICE, "utf8");
-const cli = fs.readFileSync(CLIENT, "utf8");
-const aidl = fs.readFileSync(AIDL, "utf8");
-const manifest = fs.readFileSync(MANIFEST, "utf8");
-const proguard = fs.readFileSync(PROGUARD, "utf8");
+const svc = read(SERVICE);
+const cli = read(CLIENT);
+const aidl = read(AIDL);
+const manifest = read(MANIFEST);
+const proguard = read(PROGUARD);
 
 console.log("── 服务类形态 ──");
 // 必须自己就是 Binder。写成 Service 的话 Shizuku 反射拿到的实例不是 IBinder，

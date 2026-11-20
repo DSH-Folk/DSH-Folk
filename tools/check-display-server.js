@@ -29,8 +29,8 @@ const zlib = require('zlib');
 const errors = [];
 const must = (c, m) => { if (!c) errors.push(m); };
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const exists = (p) => fs.existsSync(path.join(root, p));
+const read = (p) => require("./_paths.js").read(p);
+const exists = (p) => require("./_paths.js").exists(p);
 /** 剥掉注释再断言「不该出现 / 必须出现 X」，避免命中解释用的注释（与其它门禁同一约定）。 */
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
@@ -497,7 +497,7 @@ for (const f of SHARED) {
   must(callSites >= 2, `ensureFsBridgeCli() 只有 ${callSites} 处调用（定义之外一处都没有？）`);
   // 比较逻辑已搬进 DshRuntimeFiles.writeIfChanged（阶段 4 拆分），这里认「写入器里按内容比对」
   // 且 ensureFsBridgeCli 确实调它 —— 行为断言，不绑死在哪个函数里。
-  const writer = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeFiles.kt", "utf8");
+  const writer = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeFiles.kt");
   must(/readText\(\)\s*\}\s*\.getOrNull\(\)\s*==\s*text/.test(writer) &&
     /DshRuntimeFiles\.writeScript\(/.test(rt),
     'ensureFsBridgeCli 必须按内容比对再写（每次启动都会调用它，无脑重写会白磨盘）');

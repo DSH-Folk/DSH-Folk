@@ -12,7 +12,7 @@ const path = require('path');
 
 const errors = [];
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => require("./_paths.js").read(p);
 const must = (c, m) => { if (!c) errors.push(m); };
 
 const env = read('app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt');
@@ -224,9 +224,9 @@ console.log('check-race-channel: 通过');
   const fs2 = require('fs');
   const p2 = require('path');
   const rootDir = p2.resolve(__dirname, '..');
-  const src = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/dsh/DshSource.kt'), 'utf8');
-  const repos = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt'), 'utf8');
-  const settings2 = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt'), 'utf8');
+  const src = read("app/src/main/java/me/bmax/apatch/dsh/DshSource.kt");
+  const repos = read("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt");
+  const settings2 = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   const builder = fs2.readFileSync(p2.join(rootDir, 'runtime-builder/build-rootfs.sh'), 'utf8');
   const extra = [];
   const want = (c, m) => { if (!c) extra.push(m); };
@@ -245,7 +245,7 @@ console.log('check-race-channel: 通过');
   want(!/GH_MIRROR_PREFIXES/.test(repos), '插件里不该再留第二份前缀清单（GH_MIRROR_PREFIXES）');
   want(/for \(id in DshSource\.allSourceIds\(\)\)/.test(settings2),
     '弹窗的镜像勾选必须按 DshSource.allSourceIds() 渲染（加线路自动出现）');
-  want(/DshSource\.setEnabledMirrors\(/.test(fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt'), 'utf8')),
+  want(/DshSource\.setEnabledMirrors\(/.test(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt")),
     '勾选必须写回 DshSource.setEnabledMirrors');
   want(!/function_download_source/.test(settings2),
     '旧的「运行时下载源」卡片必须已移除（下载源只能在竞速弹窗里设，两处设就会互相打架）');
@@ -254,11 +254,11 @@ console.log('check-race-channel: 通过');
   want(/SOURCE_GHPROXY_MAIN to "https:\/\/gh-proxy\.org\/"/.test(src) && /private fun migrateLegacySourceChoice/.test(src),
     '新增线路必须在 MIRRORS 里，且老固定源选择要有迁移（不许把用户的明确选择悄悄重置成全选）');
 // 下载候选必须收敛到 DshSource.proxyCandidates（各消费点不许再写死两条线路）
-  const dshRuntime = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt'), 'utf8') +
-    "\n" + fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt'), 'utf8') +
-    "\n" + fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt'), 'utf8');
-  const appUpdater2 = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/util/AppUpdater.kt'), 'utf8');
-  const updateChecker = fs2.readFileSync(p2.join(rootDir, 'app/src/main/java/me/bmax/apatch/util/UpdateChecker.kt'), 'utf8');
+  const dshRuntime = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") +
+    "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt") +
+    "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt");
+  const appUpdater2 = read("app/src/main/java/me/bmax/apatch/util/AppUpdater.kt");
+  const updateChecker = read("app/src/main/java/me/bmax/apatch/util/UpdateChecker.kt");
   want(/fun proxyCandidates\(url: String\): List<String>/.test(src), '缺 DshSource.proxyCandidates');
   want(/DshSource\.proxyCandidates\(meta\.url\)/.test(dshRuntime),
     '运行时下载必须用 DshSource.proxyCandidates（只认 metadata.mirrors 会让新增线路永远用不上）');

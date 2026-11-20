@@ -18,12 +18,13 @@
  * 两条都是**静默失败**型：不崩、不报错、只有一个不像原因的提示，所以钉成静态检查。
  */
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 const SRC_WEBUI = "app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt";
 const MANIFEST = "app/src/main/AndroidManifest.xml";
 
-const webui = fs.readFileSync(SRC_WEBUI, "utf8");
-const manifest = fs.readFileSync(MANIFEST, "utf8");
+const webui = read(SRC_WEBUI);
+const manifest = read(MANIFEST);
 
 let n = 0;
 let bad = 0;

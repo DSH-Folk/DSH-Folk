@@ -7,7 +7,7 @@ function ok(cond, msg) {
   if (cond) { console.log("  \u2713 " + msg); }
   else { bad++; console.log("  \u2717 " + msg); }
 }
-function read(p) { return fs.readFileSync(p, "utf8"); }
+const { read, exists } = require("./_paths.js");
 /** 剥 Kotlin 注释：`must not appear` 类断言必须扫剥过的文本（文档里会提到被禁的写法）。 */
 function code(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");

@@ -3,6 +3,7 @@
 // 测不到的是 Android 框架调用本身（没有设备也没有 SDK），能测的是决策逻辑 ——
 // 而错误几乎都在决策上：单位换算、边界钳制、权限分流、降级顺序。
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 let n = 0;
 let bad = 0;
@@ -24,12 +25,12 @@ function code(s) {
 }
 
 const SRC = {
-  sys: fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshSystemCtl.kt", "utf8"),
-  cam: fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshCamera.kt", "utf8"),
-  pd: fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshPersonalData.kt", "utf8"),
-  ds: fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshDeviceSense.kt", "utf8"),
-  bridge: fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt", "utf8"),
-  rt: (fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8")),
+  sys: read("app/src/main/java/me/bmax/apatch/dsh/DshSystemCtl.kt"),
+  cam: read("app/src/main/java/me/bmax/apatch/dsh/DshCamera.kt"),
+  pd: read("app/src/main/java/me/bmax/apatch/dsh/DshPersonalData.kt"),
+  ds: read("app/src/main/java/me/bmax/apatch/dsh/DshDeviceSense.kt"),
+  bridge: read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt"),
+  rt: (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt")),
 };
 const CODE = Object.fromEntries(Object.entries(SRC).map(([k, v]) => [k, code(v)]));
 
@@ -183,7 +184,7 @@ const dndLine = SRC.bridge.slice(SRC.bridge.indexOf("NOTIFICATION_POLICY("), SRC
 ok(dndLine.includes("false"), "勿扰页面的 perAppUri 是 false（它不接受 package: uri）");
 ok(SRC.sys.includes("canWrite"), "用 Settings.System.canWrite 而不是 checkSelfPermission");
 // 这个查询在 PermissionUtils 里（桥只调它），别在 DshSystemCtl 里找
-ok(fs.readFileSync("app/src/main/java/me/bmax/apatch/util/PermissionUtils.kt", "utf8")
+ok(read("app/src/main/java/me/bmax/apatch/util/PermissionUtils.kt")
   .includes("isNotificationPolicyAccessGranted"), "勿扰用 isNotificationPolicyAccessGranted 判断");
 
 // ───────────────── 系统设置写入的诚实性 ─────────────────
@@ -304,7 +305,7 @@ console.log("\n── profile 声明自愈：拼接的 JS 真跑一遍 ──");
 const os = require("os");
 const path = require("path");
 const cp = require("child_process");
-const repo = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt", "utf8");
+const repo = read("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt");
 /** 把 Kotlin 源码里一段「A + B + C」的字符串字面量按 Kotlin 规则反转义后拼回原文。 */
 function kotlinJs(from, to) {
   const seg = repo.slice(repo.indexOf(from), repo.indexOf(to));
@@ -439,9 +440,9 @@ ok(SRC.rt.includes("dsh_log_bundle_unresolvable_user"),
 // 这里复刻 PrivPolicy.needsConfirm 并逐格对拍，同时检查它没有被写成两处。
 console.log("── 限制模式与两张清单 ──");
 {
-  const privSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt", "utf8");
+  const privSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt");
   const privCode = code(privSrc);
-  const shellSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt", "utf8");
+  const shellSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   // 复刻体：判定只有两个来源。这一行比旧的三档 when 短得多，但错了就是"每次调用都静默放行"
   // 或者"永远弹窗"，所以照旧逐格对拍。
   const needs = (restrictMode, capRestricted, danger) => danger || (restrictMode && capRestricted);
@@ -503,7 +504,7 @@ console.log("── 限制模式与两张清单 ──");
 // 走宿主不需要确认、走脚本要确认」——用户看到的行为取决于代码路径，这最难查。
 console.log("\n── 只读白名单：Kotlin ↔ adb-shell.py ──");
 {
-  const shell = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt", "utf8");
+  const shell = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   const py = fs.readFileSync("app/src/main/assets/adb-shell.py", "utf8");
 
   const kotlinCmds = (() => {
@@ -572,7 +573,7 @@ console.log("\n── 只读白名单：Kotlin ↔ adb-shell.py ──");
 // ───────────────── 特权：风险分级 ─────────────────
 console.log("\n── 特权风险分级 ──");
 {
-  const shell = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt", "utf8");
+  const shell = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   const dangerous = (() => {
     const at = shell.indexOf("private val DANGEROUS_CMDS = setOf(");
     return [...shell.slice(at, shell.indexOf(")", at)).matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
@@ -598,7 +599,7 @@ console.log("\n── 特权风险分级 ──");
 // ───────────────── 特权：通道约束与审计 ─────────────────
 console.log("\n── 特权通道约束 ──");
 {
-  const shell = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt", "utf8");
+  const shell = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   ok(/ABD_WRITE_DISABLED|adb_write_disabled/.test(shell), "ADB 通道的写开关会被拦下");
   ok(/adb_root_disabled/.test(shell), "ADB 通道的 root 开关会被拦下（reason 能指路到设置页）");
   ok(/runtime_missing/.test(shell), "ADB 通道要容器内脚本，rootfs 不在时会说清楚");
@@ -622,7 +623,7 @@ console.log("\n── 特权通道约束 ──");
 
   // root 的「已验证」以前只有点「刷新权限」才会写，于是老用户升级后必须先手动点一次、
   // 再被系统弹一次 su 授权框 —— 而他几个月前就授权过了。现在应用自己验一次。
-  const perm = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/PermissionManager.kt", "utf8");
+  const perm = read("app/src/main/java/me/bmax/apatch/dsh/PermissionManager.kt");
   const autoVerify = perm.slice(perm.indexOf("fun autoVerifyRoot"), perm.indexOf("private fun verifyRoot"));
   ok(autoVerify.length > 0, "存在 autoVerifyRoot");
   ok(/if \(preferred != null && preferred != Channel\.ROOT\) return/.test(autoVerify),
@@ -681,7 +682,7 @@ console.log("\n── 特权通道约束 ──");
   // FunctionSettingsContent 传的那几个 lambda）。权限相关的 UI 搬进「权限管理 → 特权通道」
   // 之后，它们整体搬到了 PrivilegedChannelScreen —— 断言跟着搬，意图一个字不改。
   // 每条都要求「锚点必须找到」：切片为空时若只查 includes，会静默通过。
-  const channel = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt", "utf8");
+  const channel = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt");
   const sliceBetween = (src, from, to) => {
     const a = src.indexOf(from);
     const b = src.indexOf(to);
@@ -706,13 +707,13 @@ console.log("\n── 特权通道约束 ──");
   // Shizuku 侧只能走用户服务：newProcess 的返回类型是库内部可见的，直接调编译不过
   ok(/DshShizukuShell\.exec\(/.test(shell), "Shizuku 通道走用户服务");
   ok(!/Shizuku\.newProcess/.test(code(shell)), "没有直接调被限制的 Shizuku.newProcess");
-  const shizuku = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshShizukuShell.kt", "utf8");
+  const shizuku = read("app/src/main/java/me/bmax/apatch/dsh/DshShizukuShell.kt");
   ok(/Shizuku\.bindUserService\(/.test(shizuku) && /Shizuku\.unbindUserService\(/.test(shizuku),
     "用户服务有绑定也有解绑");
   // 这个版本的 bindUserService 返回 void：成功只看有没有抛，以及连接回调会不会来
   ok(/runCatching \{\s*\n\s*Shizuku\.bindUserService\(/.test(shizuku) && !/bindUserService\([^)]*\) == 0/.test(shizuku),
     "绑定按「有没有抛 + 等连接回调」判断，而不是比较返回值");
-  const shizukuSvc = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshShizukuShellService.kt", "utf8");
+  const shizukuSvc = read("app/src/main/java/me/bmax/apatch/dsh/DshShizukuShellService.kt");
   // 现在不是「读完再 clip」，而是边读边丢（CappedLines）：内存也一起省了（P2-1b），
   // 但「用户服务侧自己截断」这条不变量不变。
   ok(/MAX_CHARS/.test(shizukuSvc) && /CappedLines/.test(shizukuSvc),
@@ -823,8 +824,8 @@ console.log("\n── 特权通道约束 ──");
 // ───────────────── 无障碍：动作风险与服务开关 ─────────────────
 console.log("\n── 无障碍 ──");
 {
-  const a11y = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshA11y.kt", "utf8");
-  const svc = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshA11yService.kt", "utf8");
+  const a11y = read("app/src/main/java/me/bmax/apatch/dsh/DshA11y.kt");
+  const svc = read("app/src/main/java/me/bmax/apatch/dsh/DshA11yService.kt");
   const xml = fs.readFileSync("app/src/main/res/xml/dsh_a11y.xml", "utf8");
   const auto = fs.readFileSync("app/src/main/res/xml/dsh_autostart_a11y.xml", "utf8");
   const manifest = fs.readFileSync("app/src/main/AndroidManifest.xml", "utf8");
@@ -1092,8 +1093,8 @@ console.log("\n── 无障碍 ──");
 
 console.log("─ 预装/安装日志降噪");
 {
-  const repo = fs.readFileSync('app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt', 'utf8');
-  const filter = fs.readFileSync('app/src/main/java/me/bmax/apatch/dsh/DshPluginLogFilter.kt', 'utf8');
+  const repo = read("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt");
+  const filter = read("app/src/main/java/me/bmax/apatch/dsh/DshPluginLogFilter.kt");
   // 用户现场：预装一个插件就铺一屏 pnpm peer WARN（missing peer cordis/react/…）
   // 与 Progress 刷屏，还有我们自己的 [DSH-Folk-exit] 0。那些 peer 本来就该是缺的
   // （由 dsh 运行时提供），不该按错误量级展示。
@@ -1177,10 +1178,10 @@ console.log("─ 预装/安装日志降噪");
 // 现在能力列表搬进了次级页（权限管理 → 分类），那个结构没有了，但**意图要换个地方守住**：
 // 状态必须出现在用户看得见的那一层，而且总开关本身必须仍然够得着 —— 整块搬走最容易把它一起搬丢。
 console.log("─ 原生能力桥：关掉时的状态必须出现在看得见的那一层");
-const settingsSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
-const screenSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt", "utf8");
-const hubSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt", "utf8");
-const capsSrc = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt", "utf8");
+const settingsSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
+const screenSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+const hubSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt");
+const capsSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt");
 {
   ok(!/for \(group in CapGroup\.entries\)/.test(settingsSrc),
     "能力档位不再内联在安全页上（搬进了权限管理的次级页）");
@@ -1236,7 +1237,7 @@ ok(/保留/.test(nativeZh),
 // "No usable native binding found for node-addon-require-builtin-linux-arm64-gnu"。
 // 这个开关必须放在 applyEnv（所有 exec 路径共用）里，而不是只加在 startServer 那一处。
 {
-  const runtime = (fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8"));
+  const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
   const envFn = (runtime.match(/private fun applyEnv\(pb: ProcessBuilder\) \{[\s\S]*?\n    \}/) || [""])[0];
   ok(envFn.length > 0, "找到 applyEnv（容器环境构造的唯一入口）");
   ok(/env\["NARB_DISABLE_NATIVE_CACHE"\] = "1"/.test(envFn),
@@ -1254,9 +1255,9 @@ ok(/保留/.test(nativeZh),
 // 分组页时，参数还留在 FunctionSettingsContent 的签名里、调用方也还在传值 —— 编译不报错，
 // 但页面上已经没有任何地方渲染它。用户在设置里翻遍也找不到预览页，只会以为虚拟屏没做。
 {
-  const settings = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
-  const screen = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt", "utf8");
-  const caps = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt", "utf8");
+  const settings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
+  const screen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+  const caps = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt");
 
   ok(/DisplayPreviewScreenDestination/.test(caps) && /dsh_display_preview_open/.test(caps),
     "虚拟屏预览入口渲染在分组页上（否则预览页没有任何入口，功能等于没做）");
@@ -1273,7 +1274,7 @@ ok(/保留/.test(nativeZh),
 // 共享存储、虚拟屏预览 —— 每次都是「功能搬去了次级页，接口留在原地」，而因为参数还在、
 // 调用方还在传，编译与静态检查全都不报错。
 {
-  const settings = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
+  const settings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   const sig = settings.match(/fun FunctionSettingsContent\(([\s\S]*?)\n\) \{/);
   ok(sig !== null, "解析到 FunctionSettingsContent 的签名");
   if (sig) {
@@ -1294,7 +1295,7 @@ ok(/保留/.test(nativeZh),
 // （`internal` 不在此列：nativeCapTitleRes 等是跨文件共用的入口，本文件内只出现一次正常。）
 // 局限：函数只在 KDoc 里被 `[name]` 提及时会算 2 次 —— 漏报可接受，误报不可接受。
 {
-  const settings = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
+  const settings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   const privates = [...settings.matchAll(/^private fun ([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
   ok(privates.length > 5, `解析出 ${privates.length} 个私有顶层函数（解析失败会让下面这条形同虚设）`);
   const dead = privates.filter(
@@ -1310,7 +1311,7 @@ ok(/保留/.test(nativeZh),
 // 根本没配置？），也没有任何地方能点进去把它修好 —— 三种完全不同的处境被糊成一句
 // 「不可用」，下一步动作只能靠猜。
 {
-  const ch = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt", "utf8");
+  const ch = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt");
   const readyStart = ch.indexOf("private fun readinessOf(");
   const readyBlock = readyStart < 0 ? "" : ch.slice(readyStart, readyStart + 1200);
   ok(readyBlock.length > 0, "找到通道就绪判定 readinessOf");
@@ -1355,7 +1356,7 @@ ok(/保留/.test(nativeZh),
 console.log("── 限制模式页与弹窗 ──");
 {
   const page = code(
-    fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/RestrictModeScreen.kt", "utf8"),
+    read("app/src/main/java/me/bmax/apatch/ui/screen/settings/RestrictModeScreen.kt"),
   );
   ok(/PrivPolicy\.setRestrictMode\(context\.applicationContext, want\)/.test(page), "清单页有总开关");
   ok(/PrivPolicy\.setCapRestricted\(context\.applicationContext, cap, want\)/.test(page),
@@ -1380,7 +1381,7 @@ console.log("── 限制模式页与弹窗 ──");
   }
   {
     const hub = code(
-      fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt", "utf8"),
+      read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt"),
     );
     // 位置必须排在分类循环**之后**（它是一个开关 + 两张跨全部能力的清单，不是一个能力分类）。
     // 定位靠这一行自己的特征（图标），不靠字符串：那个串在 searchHits 里也有一份。
@@ -1397,13 +1398,13 @@ console.log("── 限制模式页与弹窗 ──");
       "总页那一行显示的是真实状态（开关 + 清单条目数），不是写死的文案");
   }
   const capsCode = code(
-    fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt", "utf8"),
+    read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionCapsScreens.kt"),
   );
   ok(!/dsh_priv_trust_title/.test(capsCode) && !/onToggleTrust/.test(capsCode),
     "能力卡上不再放同一颗开关（一处管理，避免两个入口各说各话）");
   {
     const ch = code(
-      fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt", "utf8"),
+      read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionChannelScreens.kt"),
     );
     ok(!/PrivStrictness/.test(ch) && /dsh_priv_restrict_title/.test(ch) &&
       /PrivPolicy\.setRestrictMode\(context\.applicationContext, on\)/.test(ch),
@@ -1413,7 +1414,7 @@ console.log("── 限制模式页与弹窗 ──");
   }
   {
     const dlg = code(
-      fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ElevationRequestDialog.kt", "utf8"),
+      read("app/src/main/java/me/bmax/apatch/ui/component/ElevationRequestDialog.kt"),
     );
     ok(!/allowTrusted/.test(dlg) && !/dsh_native_elevate_trust/.test(dlg),
       "弹窗没有第三个按钮（名单只在一处管理，挂在弹窗上等于第二个入口）");
@@ -1423,14 +1424,14 @@ console.log("── 限制模式页与弹窗 ──");
       "「允许（长期）」只在档位不够时给（它动的是档位，不是「还问不问」）");
   }
   {
-    const home = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/Home.kt", "utf8");
+    const home = read("app/src/main/java/me/bmax/apatch/ui/screen/Home.kt");
     const noticeAt = home.indexOf("else if (showPolicyNotice)");
     const changeAt = home.indexOf("else if (showChangelog)");
     ok(noticeAt > 0 && changeAt > 0 && noticeAt > changeAt,
       "策略变更说明排在更新内容**之后**（同一串互斥分支，不会两个弹窗叠在一起）");
     ok(/PrivPolicy\.policyNoticePending/.test(home) && /PrivPolicy\.consumePolicyNotice/.test(home),
       "提示读真实标志位、弹过即清（不依赖「这版更新说明还没看过」）");
-    const app = fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8");
+    const app = read("app/src/main/java/me/bmax/apatch/APatchApp.kt");
     // 迁移入口从「APatchApp 里直接调 PrivPolicy.migrateOnce」改成「集中到 StartupMigrations」。
     // 断言必须跟着改，否则门禁会把旧结构当成规范：谁按新结构整理代码谁红。
     ok(/StartupMigrations\.runAll\(this\)/.test(app),
@@ -1441,7 +1442,7 @@ console.log("── 限制模式页与弹窗 ──");
       // 断言扫**剥过注释**的文本、且只扫 MIGRATIONS 清单那一段：
       // 否则注释里提到 PrivPolicy.migrateOnce 就能让断言假绿 —— 而「删掉那一条迁移、
       // 注释里还留着说明」恰恰是最容易发生的真实回归。
-      const rawMig = fs.readFileSync("app/src/main/java/me/bmax/apatch/util/StartupMigrations.kt", "utf8");
+      const rawMig = read("app/src/main/java/me/bmax/apatch/util/StartupMigrations.kt");
       const migCode = rawMig
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/\/\/[^\n]*/g, "");
@@ -1458,7 +1459,7 @@ console.log("── 限制模式页与弹窗 ──");
         // 加总闸之前，"要不要恢复"完全由另外两个设置隐式决定。用户开了无障碍能力，
         // 就**同时**接受了「应用会写 WRITE_SECURE_SETTINGS 把服务重新打开」——
         // 这是两回事，且完全不可见：用户在系统设置里关掉，过一会儿它自己又开了。
-        const rec = code(fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshA11yRecovery.kt", "utf8"));
+        const rec = code(read("app/src/main/java/me/bmax/apatch/dsh/DshA11yRecovery.kt"));
         ok(/fun autoRecoveryEnabled\(ctx: Context\): Boolean/.test(rec),
           "自动恢复有独立总闸（不能只由另外两个开关隐式决定）");
         ok(/getBoolean\(KEY_AUTO_RECOVERY, true\)/.test(rec),
@@ -1475,7 +1476,7 @@ console.log("── 限制模式页与弹窗 ──");
           "关掉时真正解绑并复位标志（否则再次打开时 install 被挡住、永远挂不上）");
         ok(/if \(!on\) unregister\(ctx\) else install\(ctx\)/.test(rec),
           "setAutoRecoveryEnabled 关掉即解绑、打开即重挂");
-        const card = code(fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/A11yRecoveryCard.kt", "utf8"));
+        const card = code(read("app/src/main/java/me/bmax/apatch/ui/component/A11yRecoveryCard.kt"));
         ok(/Switch\(/.test(card) && /DshA11yRecovery\.setAutoRecoveryEnabled/.test(card),
           "恢复卡片上有总闸开关并接到 setAutoRecoveryEnabled");
         ok(/dsh_a11y_fix_auto_summary/.test(card),
@@ -1489,7 +1490,7 @@ console.log("── 限制模式页与弹窗 ──");
     }
   }
   {
-    const facts = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt", "utf8");
+    const facts = read("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt");
     ok(/\.put\("restrictMode", PrivPolicy\.restrictMode\(ctx\)\)/.test(facts) &&
       /\.put\(\s*\n?\s*"restrictedCaps"/.test(facts),
       "事实文件带上限制模式与能力清单");
@@ -1509,9 +1510,9 @@ console.log("── 限制模式页与弹窗 ──");
 // 某个开关不见了。所以这里把「分类枚举」「分类→卡片映射」「搜索用的卡片标题表」三份数据钉死
 // 在同一批 key 上：任意一处漏一张卡或写错一个 key，都会在这里失败。
 {
-  const settings = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt", "utf8");
-  const screen = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt", "utf8");
-  const hubScreen = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt", "utf8");
+  const settings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
+  const screen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+  const hubScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt");
 
   const want = [
     ["STARTUP", "startup", "dsh_function_group_startup"],
@@ -1535,8 +1536,8 @@ console.log("── 限制模式页与弹窗 ──");
   };
   // settings 就是 FunctionSettings.kt 的全文，直接用它匹配入口层那一段
   const hubContent = settings;
-  const screenCode = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt", "utf8");
-  const permHub = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt", "utf8");
+  const screenCode = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
+  const permHub = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/PermissionHubScreen.kt");
 
   // 安全页取舍（真机反馈）：权限正文已经内联，所以入口卡与共享存储大卡都不再出现在这一页；
   // 共享存储在权限正文里变成一行开关；无线 ADB 只在「特权通道选的就是它」时出现。
@@ -1604,7 +1605,7 @@ console.log("── 限制模式页与弹窗 ──");
   // 用户：「卡片与两边没什么边距 —— 连在一起了」。HubCard 是这两个入口页共用的那一份，
   // 边距只能有一处：给 16dp（与 SplicedColumnGroup 同一套），而不是各调用点自己加。
   {
-    const hubList = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/HubList.kt", "utf8");
+    const hubList = read("app/src/main/java/me/bmax/apatch/ui/component/HubList.kt");
     ok(/ExpressiveCard\(modifier = Modifier\.padding\(horizontal = 16\.dp\)\)/.test(hubList),
       "入口页的卡片两侧留 16dp（不再顶到屏幕两边）");
   }
@@ -1640,7 +1641,7 @@ console.log("── 限制模式页与弹窗 ──");
 //
 // 这类「只在某些设备/字号下看得见」的布局回归，肉眼审代码很难发现，所以钉住。
 {
-  const home = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/HomeDsh.kt", "utf8");
+  const home = read("app/src/main/java/me/bmax/apatch/ui/screen/HomeDsh.kt");
   // 从第一张卡的调用往前 900 字符（够覆盖 Row 与上面那几行注释）、往后 1600 字符（够到第二张卡）
   const at = home.indexOf("DshSmallCard(");
   const rowBlock = at > 0 ? home.slice(Math.max(0, at - 900), at + 1600) : "";

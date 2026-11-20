@@ -13,7 +13,7 @@ const path = require('path');
 
 const errors = [];
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => require("./_paths.js").read(p);
 const must = (c, m) => { if (!c) errors.push(m); };
 
 const repo = read('app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt');

@@ -25,7 +25,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+const read = (p) => require("./_paths.js").read(p);
 
 const RT = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
 const MODELS = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt");

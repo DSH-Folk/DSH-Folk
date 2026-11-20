@@ -12,6 +12,7 @@
 //   7. 需要运行时权限的能力，其权限都在 AndroidManifest 里声明过
 //   8. 走特殊权限的能力不同时要求运行时权限（两条路互斥，混了就会走错分支）
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 const BRIDGE = "app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt";
 const UI = "app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt";
@@ -19,11 +20,11 @@ const MANIFEST = "app/src/main/AndroidManifest.xml";
 const STRINGS = "app/src/main/res/values/dsh_strings.xml";
 const PROMPT = "app/src/main/assets/dsh-folk-host.mjs";
 
-const bridge = fs.readFileSync(BRIDGE, "utf8");
-const ui = fs.readFileSync(UI, "utf8");
-const manifest = fs.readFileSync(MANIFEST, "utf8");
-const strings = fs.readFileSync(STRINGS, "utf8");
-const prompt = fs.readFileSync(PROMPT, "utf8");
+const bridge = read(BRIDGE);
+const ui = read(UI);
+const manifest = read(MANIFEST);
+const strings = read(STRINGS);
+const prompt = read(PROMPT);
 
 let fail = 0;
 function ok(cond, msg) {
@@ -266,7 +267,7 @@ const rtBody = bridge.slice(rtStart, bridge.indexOf("else -> emptyArray()", rtSt
 // 直接写出的 android.Manifest.permission.X
 const direct = [...new Set([...rtBody.matchAll(/android\.Manifest\.permission\.([A-Z_]+)/g)].map((m) => m[1]))];
 // PermissionUtils 里的成组权限
-const pu = fs.readFileSync("app/src/main/java/me/bmax/apatch/util/PermissionUtils.kt", "utf8");
+const pu = read("app/src/main/java/me/bmax/apatch/util/PermissionUtils.kt");
 const grouped2 = [...new Set([...pu.matchAll(/Manifest\.permission\.([A-Z_]+)/g)].map((m) => m[1]))];
 const allPerms = [...new Set([...direct, ...grouped2])];
 const notDeclared = allPerms.filter((p) => !manifest.includes("android.permission." + p));
@@ -366,7 +367,7 @@ console.log("\n── 提示词插件 ──");
     ok(strayC.length === 0, "CAP_CAVEAT 里没有已不存在的能力" + (strayC.length ? " → " + strayC.join(",") : ""));
   }
   // 插件内容改了就必须 +1，否则装过的机器上不会被覆盖（落盘按版本号判断）
-  const kt = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt", "utf8");
+  const kt = read("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt");
   const rev = kt.match(/PLUGIN_REV = (\d+)/);
   ok(rev !== null, "DshHostPrompt 里有 PLUGIN_REV" + (rev ? ` = ${rev[1]}` : ""));
 }

@@ -12,8 +12,8 @@ const path = require('path');
 
 const errors = [];
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const exists = (p) => fs.existsSync(path.join(root, p));
+const read = (p) => require("./_paths.js").read(p);
+const exists = (p) => require("./_paths.js").exists(p);
 const must = (c, m) => { if (!c) errors.push(m); };
 
 // 扩展系统分成两个模块，门禁也得分开看：

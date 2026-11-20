@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => require("./_paths.js").read(p);
 const ok = (c, m) => { if (!c) { console.error('  ✗ ' + m); failures++; } };
 let failures = 0;
 

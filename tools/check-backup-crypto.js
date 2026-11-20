@@ -21,7 +21,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+const read = (p) => require("./_paths.js").read(p);
 
 const cryptoKt = read('app/src/main/java/me/bmax/apatch/dsh/DshBackupCrypto.kt');
 const archiveKt = read('app/src/main/java/me/bmax/apatch/dsh/DshBackupArchive.kt');

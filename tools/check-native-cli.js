@@ -5,6 +5,7 @@
 //      —— 注释里的中文是允许的，所以比较前先剥掉注释
 // 然后用一个假的桥服务端跑一遍每条命令，验证它们真的打到正确的 method + path + 参数。
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 const http = require("http");
 const { execFile } = require("child_process");
@@ -14,10 +15,10 @@ const os = require("os");
 const run = promisify(execFile);
 const SRC = "app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt";
 // 内嵌 CLI 已搬到同包 DshRuntimeScripts.kt（阶段 4 第二刀），抽取时两文件拼起来看。
-const kt = fs.readFileSync(SRC, "utf8") +
+const kt = read(SRC) +
   "\n" +
-  fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8");
-const ktRuntimeOnly = fs.readFileSync(SRC, "utf8");
+  read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt");
+const ktRuntimeOnly = read(SRC);
 
 function extract(name) {
   // 搬进 DshRuntimeScripts 之后是 `val NAME = """`（对象成员，无 private）。
@@ -339,8 +340,8 @@ const server = http.createServer((req, res) => {
   // 目录是「给人看的说明书」，Cap 是「真正的权限与审计单位」。两者对不上时，
   // 用户点了卡片却会被权限检查拦下 —— 那比没有卡片更糟。
   {
-    const catalog = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/NativeCapCatalog.kt", "utf8");
-    const bridge = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt", "utf8");
+    const catalog = read("app/src/main/java/me/bmax/apatch/dsh/NativeCapCatalog.kt");
+    const bridge = read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt");
     // 用 \b 边界：否则 "Cap.ALERT" 这类（分组枚举）会被截成 "A" 混进来。
     const used = new Set([...catalog.matchAll(/cap = DshNativeBridge\.Cap\.([A-Z_]+)\b/g)].map((m) => m[1]));
     const declared = new Set(

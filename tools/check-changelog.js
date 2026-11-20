@@ -17,7 +17,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
+const read = (p) => require("./_paths.js").read(p);
 
 let fail = 0;
 
@@ -613,7 +613,7 @@ console.log("\n── 工作流注入（自由文本输入必须走 env） ─�
 // 更新说明为什么是本地资源。读者按 README 去改代码时，错的文档比没有文档更贵。
 console.log("\n── README ──");
 {
-  const rd = fs.readFileSync(path.join(ROOT, "docs/dev-notes.md"), "utf8");
+  const rd = read("docs/dev-notes.md");
   // 开关已从「接收测试版更新」改名为「更新通道」（三态之后布尔表达不了）。
   // 断言必须跟着改，否则门禁会把旧名字当成规范 —— 谁按新结构改文档谁红。
   ok(/更新通道/.test(rd), "dev-notes 写了那个开关的位置（已改名「更新通道」）");

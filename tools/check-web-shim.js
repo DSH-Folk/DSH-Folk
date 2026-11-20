@@ -20,6 +20,7 @@
  * 所以这里读文件而不是从 Kotlin 常量里抠 —— 断言内容一条没改，因为要钉的是**行为**。
  */
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 const path = require("path");
 const vm = require("vm");
 
@@ -51,10 +52,10 @@ function eq(actual, expected, label) {
   ok(a === e, label + (a === e ? "" : `（期望 ${e}，实际 ${a}）`));
 }
 
-const webui = fs.readFileSync(SRC_WEBUI, "utf8");
-const webScripts = fs.readFileSync(SRC_WEBSCRIPTS, "utf8");
-const compat = fs.readFileSync(SRC_COMPAT, "utf8");
-const env = fs.readFileSync(SRC_ENV, "utf8");
+const webui = read(SRC_WEBUI);
+const webScripts = read(SRC_WEBSCRIPTS);
+const compat = read(SRC_COMPAT);
+const env = read(SRC_ENV);
 
 /**
  * 读一段内置脚本的正文。
@@ -272,7 +273,7 @@ ok(webui.includes("addDocumentStartJavaScript") && webui.includes("DOCUMENT_STAR
 
 console.log("\n── dsh-file-upload 退役 ──");
 
-const rt = (fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt", "utf8") + "\n" + fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt", "utf8"));
+const rt = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt"));
 const seedLine = rt.match(/val SEED_PLUGINS =\s*\n?\s*listOf\(([^)]*)\)/);
 ok(seedLine !== null, "SEED_PLUGINS 可解析");
 ok(seedLine && !seedLine[1].includes("dsh-file-upload"),
@@ -287,7 +288,7 @@ ok(/CHANNEL_STABLE, CHANNEL_SLIM -> true/.test(rt) && /CHANNEL_BETA, CHANNEL_SLI
 ok(/internal fun DshRuntime\.fetchNewestMeta\(\): DshMeta\?/.test(rt) &&
   /val meta = fetchNewestMeta\(\) \?: return@withContext RuntimeCheckResult\(failure = true\)/.test(rt),
   "检查更新在候选里取最新（不再只看所选通道那一个 tag）");
-ok(/DshRuntime\.updateRuntime\(true\)/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt", "utf8")) &&
+ok(/DshRuntime\.updateRuntime\(true\)/.test(read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt")) &&
   "自动检测更新的确认框调 updateRuntime（不是 reinstallRuntime），检测到的新版本才会被真正下载");
 // autoStart 参数是后加的（首页要把「装完」与「启动」拆成两步），断言跟着放宽到
 // 「有 preserveData 且可选 autoStart」，但**仍然钉住** newest = true 这一句 ——
@@ -315,7 +316,7 @@ ok(/private fun managedSeedPackages\(\)[\s\S]{0,120}SEED_PLUGINS \+ RETIRED_SEED
 ok(/pruneUnresolvableBundles\(managedSeedPackages\(\)\)/.test(rt), "启动前按该范围清声明");
 ok(/ifEmpty \{ RETIRED_SEED_PLUGINS\.filter \{ \(_, retiredId\) -> retiredId == id \}/.test(rt),
   "启动失败兜底：探测不到 entry id 时按 id 反查退役表");
-const repo = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt", "utf8");
+const repo = read("app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt");
 ok(/NO_YAML/.test(repo), "yaml 解析失败会输出标记");
 ok(/out\.contains\("NO_YAML"\)\) \{\s*\n\s*Log\.w\(TAG, "pluginEntries/.test(repo),
   "该标记会变成一条警告日志（把静默失败变可见）");
@@ -574,9 +575,9 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "偏好默认**开**（手机上这不是可选项，是唯一能换行的办法）");
   ok(/const val KEY_WEB_ENTER_NEWLINE/.test(env), "偏好键落在 DshEnv");
 
-  const fnSettings = fs.readFileSync(SRC_FUNCTION_SETTINGS, "utf8");
-  const fnScreen = fs.readFileSync(SRC_FUNCTION_SETTINGS_SCREEN, "utf8");
-  const userscripts = fs.readFileSync(SRC_USERSCRIPTS, "utf8");
+  const fnSettings = read(SRC_FUNCTION_SETTINGS);
+  const fnScreen = read(SRC_FUNCTION_SETTINGS_SCREEN);
+  const userscripts = read(SRC_USERSCRIPTS);
   // 2026-10 起：两项都收进「用户脚本」页（功能设置里那两行删掉）。所以这里钉两件事 ——
   // ①用户脚本页真的给得出这两个开关（含 compat 的三档，auto 必须仍然可选）；
   // ②功能设置页**别再**出现它们（不然就是"说删没删"）。
@@ -719,14 +720,14 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
 
 // ── WebView 调试通道（给容器里的 dsh-browser 用）──
 {
-  const webuiRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt", "utf8");
-  const envRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt", "utf8");
-  const scriptsRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt", "utf8");
-  const rtRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt", "utf8");
+  const webuiRaw = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
+  const envRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt");
+  const scriptsRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt");
+  const rtRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
 
   // 调试通道**不是宿主开关**，而是由「已启用的扩展声明了能力」推导。
   // 做成开关会留下半生效状态：开着却没扩展用、或装了扩展但开关没开。
-  const capsRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionCaps.kt", "utf8");
+  const capsRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionCaps.kt");
   ok(/fun hasWebviewDebug\(ctx: Context\): Boolean = hasCap\(ctx, WEBVIEW_DEBUG_CAP\)/.test(capsRaw),
     "调试通道由已启用扩展的能力声明推导（不是宿主开关）");
   ok(/\.filter \{ it\.enabled \}/.test(capsRaw),
@@ -741,9 +742,9 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   //
   // 上一版我把浏览器桥做成内置并默认启用，那是错的：这个扩展要用户自己装。
   // 宿主只负责"声明了就生效"，不负责替用户预装。
-  ok(!/object BuiltinExtensions/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/APatchApp.kt", "utf8")),
+  ok(!/object BuiltinExtensions/.test(read("app/src/main/java/me/bmax/apatch/APatchApp.kt")),
     "不内置扩展（浏览器桥要用户自行安装）");
-  ok(!fs.existsSync("app/src/main/java/me/bmax/apatch/dsh/ext/BuiltinExtensions.kt"),
+  ok(!exists("app/src/main/java/me/bmax/apatch/dsh/ext/BuiltinExtensions.kt"),
     "没有内置扩展机制");
   // 开启扩展强制启用浏览器模式
   ok(/fun requiresBrowserMode\(ctx: Context\): Boolean = hasCap\(ctx, BROWSER_MODE_CAP\)/.test(capsRaw),
@@ -767,8 +768,8 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "宿主源码里不再有 dsh-browser 脚本（命令由扩展提供）");
   ok(!/"dsh-browser" to/.test(rtRaw), "宿主不再把 dsh-browser 写进 /usr/local/bin");
   const apiRaw = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
-  const contRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionContainer.kt", "utf8");
-  const engineRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionEngine.kt", "utf8");
+  const contRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionContainer.kt");
+  const engineRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionEngine.kt");
   ok(/interface ExtensionContainer/.test(apiRaw), "扩展 API 有往容器装命令的入口");
   ok(/val container: ExtensionContainer/.test(apiRaw), "host 上挂得到 container");
   ok(/fun onContainerReady\(host: DshExtensionHost\)/.test(apiRaw),
@@ -794,8 +795,8 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
 // ── 第三方扩展能拿到全部宿主能力 + 安装警告 ──
 {
   const apiRaw2 = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
-  const platRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt", "utf8");
-  const hostRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionHostImpl.kt", "utf8");
+  const platRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt");
+  const hostRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionHostImpl.kt");
 
   // 全量能力入口
   ok(/interface ExtensionPlatform/.test(apiRaw2), "扩展能拿到全部宿主能力（ExtensionPlatform）");
@@ -816,11 +817,11 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "强类型门面已改名 internalPlatform（否则与反射式 platform 撞名）");
 
   // 安装警告
-  const warnRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionInstallWarningDialog.kt", "utf8");
+  const warnRaw = read("app/src/main/java/me/bmax/apatch/ui/component/ExtensionInstallWarningDialog.kt");
   ok(/fun ExtensionInstallWarningDialog\(/.test(warnRaw), "有安装风险确认弹窗");
   ok(/dsh_ext_warn_body/.test(warnRaw), "弹窗讲清了扩展与宿主同权限");
-  const pluginRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt", "utf8");
-  const sheetRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionMarketSheet.kt", "utf8");
+  const pluginRaw = read("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt");
+  const sheetRaw = read("app/src/main/java/me/bmax/apatch/ui/component/ExtensionMarketSheet.kt");
   ok(/ExtensionMarket\.previewFromFile\(context, uri\)/.test(pluginRaw),
     "文件安装先只读 manifest 预览（用户同意前不落地）");
   ok(/ExtensionMarket\.previewFromUrl\(context, target\)/.test(pluginRaw),
@@ -831,7 +832,7 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   ok(/pendingInstall\?\.let \{ entry ->/.test(sheetRaw), "市场安装也经过确认弹窗");
   ok(/fun doInstall\(entry: MarketEntry\)/.test(sheetRaw),
     "市场安装拆成 install（弹窗）/ doInstall（真装）两步");
-  const mkRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionMarket.kt", "utf8");
+  const mkRaw = read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionMarket.kt");
   ok(/suspend fun previewFromUrl/.test(mkRaw) && /suspend fun previewFromFile/.test(mkRaw),
     "市场层有预览接口（只读 manifest，不写扩展目录）");
   ok(/private fun peekManifest\(zip: File, work: File\): ExtensionManifest/.test(mkRaw),
@@ -842,10 +843,10 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
 // ── 覆盖度审计：宿主能力必须对扩展可达 ──
 {
   const apiR = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
-  const platR = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt", "utf8");
+  const platR = read("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt");
   const uiR = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionUiRegistry.kt", "utf8");
-  const regR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt", "utf8");
-  const srchR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsSearchScreen.kt", "utf8");
+  const regR = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt");
+  const srchR = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsSearchScreen.kt");
 
   // DshPlatform 上有 5 个直接挂在门面上的方法（exec/execCapture/execStreaming/log/state），
   // 它们不属于任何子系统，capabilities() 列不出来。没有 call() 就永远调不到。
@@ -873,7 +874,7 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
 
 // ── 扩展设置项必须在分类页上真的渲染出来 ──
 {
-  const renderer = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionSettingItems.kt", "utf8");
+  const renderer = read("app/src/main/java/me/bmax/apatch/ui/component/ExtensionSettingItems.kt");
   ok(/fun ExtensionSettingItems\(/.test(renderer), "有把扩展设置项渲染进分类页的组件");
   ok(/ExtensionUiRegistry\.settingItems\(\)\.filter \{ it\.category == category \}/.test(renderer),
     "按分类筛选（扩展项只出现在它声明的那个分类）");
@@ -907,8 +908,8 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
 // ── 页面级替换：扩展能注册整页并导航过去 ──
 {
   const uiR2 = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionUiRegistry.kt", "utf8");
-  const pageR = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/ExtensionPageScreen.kt", "utf8");
-  const pluginR2 = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt", "utf8");
+  const pageR = read("app/src/main/java/me/bmax/apatch/ui/screen/ExtensionPageScreen.kt");
+  const pluginR2 = read("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt");
 
   ok(/data class Page\(/.test(uiR2), "扩展能注册整页（id + 标题 + 内容）");
   ok(/fun registerPage\(extensionId: String, page: Page\)/.test(uiR2), "注册入口");

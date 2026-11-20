@@ -8,11 +8,12 @@
 // 导航才带得上。修法=启动前幂等 patch rootfs 里被服务端加载的 dsh-client-connection/lib/index.js，
 // 把该 cookie 放宽为 SameSite=Lax（顶层 GET 导航都会带，跨站子请求/POST 仍挡住）。
 const fs = require('fs');
+const { read, exists } = require("./_paths.js");
 const path = require('path');
 
 const errors = [];
 const root = path.resolve(__dirname, '..');
-const rt = fs.readFileSync(path.join(root, 'app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt'), 'utf8');
+const rt = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
 
 function must(cond, msg) { if (!cond) errors.push(msg); }
 
@@ -41,7 +42,7 @@ must(!/walkTopDown\(\)[\s\S]{0,120}dsh-client-connection/.test(rt),
 
 // 5. 日志串齐（en + zh）
 for (const f of ['app/src/main/res/values/dsh_strings.xml', 'app/src/main/res/values-zh-rCN/dsh_strings.xml']) {
-  const s = fs.readFileSync(path.join(root, f), 'utf8');
+  const s = read(f);
   must(s.includes('name="dsh_log_cookie_samesite_patched"'),
     `${f} 缺 dsh_log_cookie_samesite_patched`);
 }

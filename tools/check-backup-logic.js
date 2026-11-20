@@ -24,6 +24,7 @@
  * （列目录 → 下载 → 导入一次）。
  */
 const fs = require("fs");
+const { read, exists } = require("./_paths.js");
 
 const SRC_BACKUP = "app/src/main/java/me/bmax/apatch/dsh/DshConfigBackup.kt";
 const SRC_SCREEN = "app/src/main/java/me/bmax/apatch/ui/screen/settings/BackupSettingsScreen.kt";
@@ -88,20 +89,20 @@ function ok(cond, label) {
   }
 }
 
-const backup = fs.readFileSync(SRC_BACKUP, "utf8");
-const screen = fs.readFileSync(SRC_SCREEN, "utf8");
+const backup = read(SRC_BACKUP);
+const screen = read(SRC_SCREEN);
 // 恢复向导已经独立成页（RestoreWizardScreen.kt）：与「恢复流程」有关的断言都看它。
-const wizardScreen = fs.readFileSync(SRC_WIZARD_SCREEN, "utf8");
-const content = fs.readFileSync(SRC_CONTENT, "utf8");
-const config = fs.readFileSync(SRC_CONFIG, "utf8");
-const cloud = fs.readFileSync(SRC_CLOUD, "utf8");
-const cloudAppData = fs.readFileSync(SRC_CLOUD_APPDATA, "utf8");
-const fsBridge = fs.readFileSync(SRC_FSBRIDGE, "utf8");
-const runtime = fs.readFileSync(SRC_RUNTIME, "utf8") + "\n" + fs.readFileSync(SRC_RUNTIME_CONSTS, "utf8");
-const wizard = fs.readFileSync(SRC_WIZARD, "utf8");
-const wizardModel = fs.readFileSync(SRC_WIZARD_MODEL, "utf8");
-const appData = fs.readFileSync(SRC_APPDATA, "utf8");
-const archive = fs.readFileSync(SRC_ARCHIVE, "utf8");
+const wizardScreen = read(SRC_WIZARD_SCREEN);
+const content = read(SRC_CONTENT);
+const config = read(SRC_CONFIG);
+const cloud = read(SRC_CLOUD);
+const cloudAppData = read(SRC_CLOUD_APPDATA);
+const fsBridge = read(SRC_FSBRIDGE);
+const runtime = read(SRC_RUNTIME) + "\n" + read(SRC_RUNTIME_CONSTS);
+const wizard = read(SRC_WIZARD);
+const wizardModel = read(SRC_WIZARD_MODEL);
+const appData = read(SRC_APPDATA);
+const archive = read(SRC_ARCHIVE);
 
 console.log("─ 1. 导入后的收尾：needsRestart 必须驱动一个真的动作");
 ok(/val needsRestart: Boolean = false/.test(backup),
@@ -251,7 +252,7 @@ ok(confirmBody !== null && /卸载/.test(confirmBody[1]) && /pre-restore/.test(c
 
 console.log("─ 5. 云备份整个搬进 dsh-folk-cloud 插件，App 侧只剩它的前端");
 // WebDavUtils 已删：App 不再自己传/列/取。这条断言钉住「没人再引用它」。
-ok(!fs.existsSync("app/src/main/java/me/bmax/apatch/util/WebDavUtils.kt"),
+ok(!exists("app/src/main/java/me/bmax/apatch/util/WebDavUtils.kt"),
   "WebDavUtils.kt 已删除（App 不再自建 WebDAV 客户端）");
 ok(!/WebDavUtils/.test(screen) && !/WebDavUtils/.test(content),
   "备份页不再引用 WebDavUtils");
@@ -396,13 +397,13 @@ ok(!/onOpenBackupLog/.test(content) && !/showBackupLog/.test(screen) &&
   "备份页不再单独放日志按钮，日志查看仍在原来的位置（WebDAV 对话框）");
 
 // 日志会随 bugreport 一起走，而且不能无限长大
-const logEvent = fs.readFileSync('app/src/main/java/me/bmax/apatch/util/LogEvent.kt', 'utf8');
+const logEvent = read("app/src/main/java/me/bmax/apatch/util/LogEvent.kt");
 ok(/backup-log\.txt/.test(logEvent) && /backup_log\.log/.test(logEvent),
   "bugreport 里带上 backup-log.txt（应用自己的备份日志）");
 ok(/takeLast\(400\)/.test(logEvent), "只取最后 400 行，报告不会被日志撑爆");
 ok(/redactInPlace\(backupLogFile/.test(logEvent) || /backupLogFile/.test(logEvent),
   "备份日志也过脱敏流程");
-const logMgr = fs.readFileSync('app/src/main/java/me/bmax/apatch/util/BackupLogManager.kt', 'utf8');
+const logMgr = read("app/src/main/java/me/bmax/apatch/util/BackupLogManager.kt");
 ok(/MAX_BYTES = 512L \* 1024L/.test(logMgr) && /rotateIfTooBig/.test(logMgr),
   "日志超过 512KB 就截断旧内容（每一步都记账，不轮转会无限长大）");
 
@@ -545,8 +546,8 @@ ok(/enabled = !dshBusy/.test(content) && /onInstallRescueCli/.test(content),
 console.log("─ 5k. 软件数据范围：config + dshfolk，设备/运行时状态与提权项不带");
 ok(/val PREFS_FILES = listOf\(PREFS_NAME, DshEnv\.PREF\)/.test(appData),
   "带两个设置文件：config 与 dshfolk（「服务就绪后自动打开页面」那批设置就在后者里）");
-ok(/KEY_AUTO_OPEN_WEBUI = "auto_open_webui_when_ready"/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt", "utf8")) &&
-  /const val PREF = "dshfolk"/.test(fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt", "utf8")),
+ok(/KEY_AUTO_OPEN_WEBUI = "auto_open_webui_when_ready"/.test(read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt")) &&
+  /const val PREF = "dshfolk"/.test(read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt")),
   "那条设置确实住在 dshfolk 里（只带 config 的话，恢复后它不会回来）");
 for (const key of [
   "KEY_SEED_PLUGINS_DONE", "KEY_SEEDED_PLUGINS", "KEY_SEED_REPAIR_REV", "KEY_SEED_RUNTIME",
@@ -697,7 +698,7 @@ ok(/Checkbox\(/.test(wizard) && /dsh_bk_wiz_pick_items/.test(wizard) &&
 console.log("─ 5p. 快照带回软件设置（真机反馈：快照里没有软件设置项，回不回去）");
 // 插件快照按 SECTION_IDS 采集，够不到 App 的 SharedPreferences 与外观资源文件，
 // 所以「恢复快照」必须由 App 自己补一份软件设置的副本。
-const appSnap = fs.readFileSync(SRC_APPDATA_SNAPSHOT, "utf8");
+const appSnap = read(SRC_APPDATA_SNAPSHOT);
 ok(/object DshAppDataSnapshot/.test(appSnap), "有 App 侧的软件设置快照存储");
 ok(/DshAppData\.collect\(ctx\)/.test(backup) &&
   /val appDataForSnapshot = DshAppData\.collect\(ctx\)/.test(backup),
@@ -822,11 +823,11 @@ ok(/append\(" --no-open"\)/.test(runtime),
 // 这条链路的要点是「口径一致」：插件问大小的那个数、界面上显示的那个数、真正打进包的主题，
 // 必须是同一份东西；否则会出现「显示 4MB 却默认不含」或「勾了却没打进去」这种自相矛盾。
 {
-  const archive = fs.readFileSync(SRC_ARCHIVE, "utf8");
-  const backup = fs.readFileSync(SRC_BACKUP, "utf8");
-  const cloud = fs.readFileSync(SRC_CLOUD_APPDATA, "utf8");
-  const bridge = fs.readFileSync(SRC_FSBRIDGE, "utf8");
-  const themeIo = fs.readFileSync(SRC_THEME_IO, "utf8");
+  const archive = read(SRC_ARCHIVE);
+  const backup = read(SRC_BACKUP);
+  const cloud = read(SRC_CLOUD_APPDATA);
+  const bridge = read(SRC_FSBRIDGE);
+  const themeIo = read(SRC_THEME_IO);
 
   ok(/val includesTheme: Boolean = true/.test(archive) &&
     /val wantsTheme: Boolean get\(\) = includesAppData && includesTheme/.test(archive),
@@ -898,7 +899,7 @@ console.log("\n\u2500 对齐 dsh-config-manager 0.1.64：凭据/会话/跨机路
     "ExportPlan.sessionLimit 是整数（数字输入取代固定档位 SessionPick）");
   ok(/fun pickSessions\(ctx: Context, limit: Int\)/.test(archive),
     "pickSessions 按整数 limit 挑会话（0=不带 / -1=全部 / N=取前 N）");
-  ok(/coerceIn\(0, sessionMax\)/.test(fs.readFileSync('app/src/main/java/me/bmax/apatch/ui/screen/settings/BackupSettings.kt', 'utf8')),
+  ok(/coerceIn\(0, sessionMax\)/.test(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/BackupSettings.kt")),
     "导出面板把会话数字夹在 [0, 本机会话数] —— 上限对应真实会话数（不再出现『只有 3 个却能选几十』）");
 }
 
