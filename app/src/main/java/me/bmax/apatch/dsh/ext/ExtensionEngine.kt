@@ -62,12 +62,42 @@ object ExtensionEngine {
             }
             ExtensionBootPipeline.markBootstrapped(ctx)
             ExtLog.info("已加载 " + loaded.size + " 个扩展")
+            // 运行时如果已经装好，立刻通知一次：扩展靠这个时机往容器里装命令。
+            // 没装好就等 install 完成时的那次通知（见 notifyContainerReady）。
+            notifyContainerReady(ctx)
             // 启动管线第一段就在此时跑（APP_CREATE 阶段）
             ExtensionBootPipeline.run(ExtensionBootPipeline.Stage.APP_CREATE)
         }.onFailure {
             ExtLog.log("bootstrap 异常（已忽略）：" + (it.message ?: it.javaClass.simpleName))
         }
     }
+
+    /**
+     * 通知所有已加载的扩展「容器就绪了」。
+     *
+     * 两个调用点：启动时运行时已就绪、以及运行时安装/重装完成之后。
+     * 幂等由扩展自己保证（见 [DshExtension.onContainerReady] 的约定）——
+     * 宿主不做去重，因为"重装运行时"本来就该让扩展重新装一遍命令。
+     */
+    fun notifyContainerReady(ctx: Context) {
+        if (!me.bmax.apatch.dsh.DshEnv.isRuntimeInstalled(ctx)) return
+        for ((id, ext) in loaded) {
+            runCatching {
+                ext.onContainerReady(ExtensionHostImpl(id, ctx.applicationContext, capsOf(ctx, id)))
+            }.onFailure {
+                ExtLog.log("[" + id + "] onContainerReady 抛异常（已忽略）：" + it.message)
+            }
+        }
+    }
+
+    /** 取某个扩展声明的能力（重装 host 时要用）。 */
+    private fun capsOf(ctx: Context, id: String): List<String> =
+        runCatching {
+            ExtensionLayout.manifestOf(ctx, id).takeIf { it.isFile }
+                ?.readText(Charsets.UTF_8)
+                ?.let { ExtensionManifest.parse(it)?.declaredCaps }
+                ?: emptyList()
+        }.getOrDefault(emptyList())
 
     /** 卸载单个扩展（停用/移除时先调它，再改注册表）。 */
     fun unload(ctx: Context, id: String) {
@@ -81,6 +111,9 @@ object ExtensionEngine {
             ExtensionHookRegistry.unregisterAll(id)
             ExtensionUiRegistry.unregisterAll(id)
             ExtensionBootPipeline.unregisterAll(id)
+            // 容器命令按落盘的归属标记收回：进程可能重启过，内存里没有记录，
+            // 只有标记文件能告诉宿主"这些命令是它装的"。
+            AppExtensionContainer.removeAllOf(ctx, id)
             ExtLog.info("已卸载：" + id)
         }
     }

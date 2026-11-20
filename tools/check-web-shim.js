@@ -758,16 +758,36 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "记录 WebView 调试 socket 名（Chromium 的命名规则 webview_devtools_remote_<pid>）");
   ok(/webviewSocket/.test(rtRaw),
     "socket 名写进 fs-bridge.json（容器里的 CLI 靠它定位）");
-  ok(/val BROWSER_CLI_SCRIPT/.test(scriptsRaw), "容器里有 dsh-browser CLI");
-  ok(/"dsh-browser" to BROWSER_CLI_SCRIPT/.test(rtRaw), "CLI 会被装进 /usr/local/bin");
-  ok(/function cdp\(wsUrl, method, params\)/.test(scriptsRaw),
-    "自带最小 CDP 客户端（不绑运行时内部的 ws 依赖，那会在升级时静默坏掉）");
-  ok(/Sec-WebSocket-Version/.test(scriptsRaw) && /Sec-WebSocket-Key/.test(scriptsRaw),
-    "真的做 WebSocket 握手（不是假装支持）");
-  ok(/Runtime\.evaluate/.test(scriptsRaw) && /Page\.captureScreenshot/.test(scriptsRaw),
-    "eval 与 shot 都接到真实 CDP 方法上");
-  ok(/WebView 调试通道没有开启/.test(scriptsRaw),
-    "没开时明确报错（猜一个端口只会让错误更难懂）");
+  // ── CLI 现在由扩展提供，宿主不再内置 ──
+  //
+  // 这一版把 dsh-browser 从宿主搬到了扩展：宿主只提供 host.container 这个
+  // 受限安装入口，脚本内容由扩展交出。所以断言对象变成"宿主有没有能力装"，
+  // 而不再是"宿主里有没有那段脚本"。
+  ok(!/val BROWSER_CLI_SCRIPT/.test(scriptsRaw),
+    "宿主源码里不再有 dsh-browser 脚本（命令由扩展提供）");
+  ok(!/"dsh-browser" to/.test(rtRaw), "宿主不再把 dsh-browser 写进 /usr/local/bin");
+  const apiRaw = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
+  const contRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionContainer.kt", "utf8");
+  const engineRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionEngine.kt", "utf8");
+  ok(/interface ExtensionContainer/.test(apiRaw), "扩展 API 有往容器装命令的入口");
+  ok(/val container: ExtensionContainer/.test(apiRaw), "host 上挂得到 container");
+  ok(/fun onContainerReady\(host: DshExtensionHost\)/.test(apiRaw),
+    "有 onContainerReady 回调（onLoad 时运行时可能还没装）");
+  ok(/fun installCommand\(name: String, script: String\): Boolean/.test(apiRaw),
+    "装命令是受限入口：扩展交脚本、宿主落盘");
+  // 钉住真正写入的那一行：`.owner` 这个词在注释里也出现，只测词会假绿。
+  ok(/ownerMarker\(name\)\.writeText\(extensionId/.test(contRaw),
+    "命令旁边真的写了归属标记（卸载时才知道该删哪些）");
+  ok(/fun removeAllOf\(appContext: Context, extensionId: String\)/.test(contRaw),
+    "能按扩展 id 摘除它的全部命令");
+  ok(/AppExtensionContainer\.removeAllOf\(ctx, id\)/.test(engineRaw),
+    "卸载扩展时真的会摘除容器命令");
+  ok(/if \(!DshEnv\.isRuntimeInstalled\(appContext\)\)/.test(contRaw),
+    "运行时没装好时不写（否则留下永远用不上的空壳）");
+  ok(/private fun isValidName\(name: String\): Boolean/.test(contRaw),
+    "命令名校验（名字会被拼进路径）");
+  ok(/notifyContainerReady\(appContext\)/.test(rtRaw),
+    "运行时就绪时通知扩展（装完运行时不必重启应用）");
 }
 
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);

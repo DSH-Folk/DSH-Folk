@@ -67,7 +67,6 @@ object DshRuntime : DshRuntimeHost {
     private val FS_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.FS_BRIDGE_CLI_SCRIPT
     private val SAF_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.SAF_BRIDGE_CLI_SCRIPT
     private val NATIVE_CLI_SCRIPT: String get() = DshRuntimeScripts.NATIVE_CLI_SCRIPT
-    private val BROWSER_CLI_SCRIPT: String get() = DshRuntimeScripts.BROWSER_CLI_SCRIPT
     private val WORKFLOW_CLI_SCRIPT: String get() = DshRuntimeScripts.WORKFLOW_CLI_SCRIPT
     private val WORKFLOW_DSL_DOC: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC
     private val WORKFLOW_SAMPLES: Map<String, String> get() = DshRuntimeScripts.WORKFLOW_SAMPLES
@@ -1621,9 +1620,6 @@ object DshRuntime : DshRuntimeHost {
             "dsh-native" to NATIVE_CLI_SCRIPT,
             "dsh-saf" to SAF_BRIDGE_CLI_SCRIPT,
             "dsh-workflow" to WORKFLOW_CLI_SCRIPT,
-            // 浏览器控制：只在开了调试通道时才有东西可连，但脚本本身总是装上 ——
-            // 否则用户开了开关还得等下一次运行时初始化才拿得到命令。
-            "dsh-browser" to BROWSER_CLI_SCRIPT,
         )) {
             runCatching {
                 DshRuntimeFiles.writeScript(File(bin, name), script)
@@ -1647,6 +1643,14 @@ object DshRuntime : DshRuntimeHost {
                 DshRuntimeFiles.writeIfChanged(File(dir, sampleName + ".json"), sampleText)
             }
         }.onFailure { android.util.Log.w(TAG, "写工作流样例失败: ${it.message}") }
+        // 容器就绪：通知扩展来装自己的命令。
+        //
+        // 放在这里而不是 install 的末尾，是因为 ensureFsBridgeCli 是"运行时可用"的
+        // 统一汇合点（安装、重装、切通道、启动都会走到）。扩展的命令因此不会出现
+        // "装完运行时还得重启一次应用才生效"的窗口。
+        runCatching {
+            me.bmax.apatch.dsh.ext.ExtensionEngine.notifyContainerReady(appContext)
+        }.onFailure { android.util.Log.w(TAG, "通知扩展容器就绪失败: ${it.message}") }
         runCatching {
             DshRuntimeFiles.writeIfChanged(
                 File(DshEnv.dshHome(appContext), WORKFLOW_DSL_DOC_NAME),

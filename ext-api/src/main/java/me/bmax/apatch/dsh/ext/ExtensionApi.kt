@@ -29,6 +29,22 @@ interface DshExtension {
 
     /** 停用 / 移除 / 安全模式熔断时回调（可选）。同样不能抛出去影响调用方。 */
     fun onUnload() {}
+
+    /**
+     * 容器就绪时回调（可选）：运行时已装好、`/usr/local/bin` 可写。
+     *
+     * ## 为什么需要单独一个回调
+     *
+     * [onLoad] 在 App 启动时就跑，那时运行时**可能还没装**（首次启动、或用户刚清空数据）。
+     * 往不存在的 rootfs 里装命令只会失败，而扩展没有办法知道"什么时候该重试"。
+     *
+     * 宿主在两种时机调它：
+     *  1. 运行时安装完成之后（用户刚装完，立刻能用扩展提供的命令）；
+     *  2. 启动时运行时已经就绪的情况下，紧跟 [onLoad] 之后。
+     *
+     * 实现要**幂等**：它可能被调用多次（重装运行时、切换通道都会触发）。
+     */
+    fun onContainerReady(host: DshExtensionHost) {}
 }
 
 /**
@@ -65,6 +81,14 @@ interface DshExtensionHost {
      * `declaredCaps` 里声明（用户在启用前会看到它）。扩展**不能**借这个接口改任意 prefs。
      */
     val host: ExtensionHostSettings
+
+    /**
+     * 往容器里装命令（见 [ExtensionContainer]）。
+     *
+     * 有了它，「容器里能用的命令」才算真正可以由扩展提供 —— 否则扩展只能开开关，
+     * 命令必须由宿主写死。
+     */
+    val container: ExtensionContainer
 }
 
 /**
@@ -91,6 +115,48 @@ enum class HostSwitch(val id: String) {
     companion object {
         fun fromId(id: String): HostSwitch? = entries.firstOrNull { it.id == id }
     }
+}
+
+/**
+ * 往容器里装命令的能力。
+ *
+ * ## 为什么这必须是宿主能力，而不是扩展自己写文件
+ *
+ * 容器的根文件系统在宿主私有目录下（rootfs），扩展**拿不到**那个路径 ——
+ * 也不该拿到：能往 rootfs 里写文件，就等于能在容器里执行任意代码，
+ * 那是比"调一个开关"高一个数量级的权限。
+ *
+ * 所以这里给的是一个**受限的安装入口**：扩展交出脚本内容，宿主负责落盘、
+ * 加执行位、并登记归属。扩展拿不到 rootfs 的写权限，只能装自己要装的那几个命令。
+ *
+ * ## 卸载即清理
+ *
+ * 宿主按 [DshExtensionHost.id] 记着"这个命令是谁装的"。扩展停用或卸载时，
+ * 宿主把它的命令一并摘掉 —— 否则用户会看到"我卸载了扩展，命令还在"。
+ * 这正是这一版之前 `dsh-browser` 的问题。
+ */
+interface ExtensionContainer {
+
+    /**
+     * 装一个命令到容器 `/usr/local/bin/<name>`。
+     *
+     * @param name 命令名。只能是 `[a-z0-9][a-z0-9._-]*`（会被拼进路径，必须校验）。
+     * @param script 脚本正文。宿主会写文件并加执行位，不解释内容。
+     * @return true = 已装好；false = 名字不合法或写入失败（不抛异常，扩展应据此降级）。
+     *
+     * ## 为什么允许扩展装任意脚本
+     *
+     * 扩展本来就在 App 进程内、与宿主同权，它能做的事远多于往容器里放个脚本。
+     * 这里设限不是为了防扩展，而是为了让**用户**能看见"哪个扩展装了什么"
+     * （扩展详情页会列出来），并且在卸载时能干净地收回去。
+     */
+    fun installCommand(name: String, script: String): Boolean
+
+    /** 摘掉一个命令（扩展自己主动清理时用；卸载时宿主会自动做）。 */
+    fun removeCommand(name: String): Boolean
+
+    /** 当前这个扩展装过哪些命令（给扩展自己核对用）。 */
+    fun installedCommands(): List<String>
 }
 
 /** 宿主开关的读写门面。实现由宿主提供。 */

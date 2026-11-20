@@ -19,6 +19,11 @@ internal class ExtensionHostImpl(
 
     override val fs: ExtensionFs by lazy { AppExtensionFs(appContext, id) }
 
+    /** 往容器里装命令。归属记录落盘，卸载时由 [AppExtensionContainer.removeAllOf] 收回。 */
+    override val container: ExtensionContainer by lazy {
+        AppExtensionContainer(appContext, id)
+    }
+
     /** 只有 App 内扩展拿得到；第三方扩展编译时看不到这个属性。 */
     val platform: DshPlatform by lazy { DshPlatform(appContext, id) }
 
