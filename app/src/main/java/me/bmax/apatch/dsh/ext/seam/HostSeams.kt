@@ -15,6 +15,14 @@ import me.bmax.apatch.dsh.ext.ExtensionSeams
  */
 internal class HostSeams(
     ctx: Context,
+    /**
+     * 必须是 `private val`，不能只是构造参数。
+     *
+     * 下面那几个 `get()` 访问器在**方法体**里执行，而普通构造参数在方法体里不可见
+     * （只在属性初始化表达式中可见）。写成裸参数的话第 31 行能编译、第 23-26 行全红，
+     * 报 "Unresolved reference: ctx" —— 看起来像拼写错，其实是作用域问题。
+     */
+    private val ctx: Context,
     extensionDir: File,
 ) : ExtensionSeams {
 
