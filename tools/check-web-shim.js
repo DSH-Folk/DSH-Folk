@@ -918,7 +918,8 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   // 通用路由：宿主预留一个路由承接任意扩展页面
   ok(/@Destination<RootGraph>/.test(pageR) && /fun ExtensionPageScreen\(/.test(pageR),
     "有承载扩展页面的通用路由");
-  ok(/pageId: String,/.test(pageR), "路由参数是扩展页面 id");
+  // 参数带默认值（compose-destinations 要求），所以正则要允许 `= ""`。
+  ok(/pageId: String = "",/.test(pageR), "路由参数是扩展页面 id");
   ok(/page\.content\(Modifier\.fillMaxSize\(\)\)/.test(pageR), "真的渲染扩展给的 Composable");
   // 页面不存在时不能白屏或崩
   ok(/dsh_ext_page_missing_body/.test(pageR), "页面不存在时给说明（不白屏、不崩溃）");
