@@ -27,32 +27,13 @@ internal class HostSeams(
 
     override val runtime: RuntimeSeam get() = SeamRegistry.runtime()
 
-    override val shell: ShellSeam get() = ExtensionServiceRegistryHolder.shell(ctx)
-    override val device: DeviceSeam get() = ExtensionServiceRegistryHolder.device(ctx)
-    override val ui: UiSeam get() = ExtensionServiceRegistryHolder.ui(ctx)
-    override val backup: BackupSeam get() = ExtensionServiceRegistryHolder.backup(ctx)
-    override val event: EventSeam get() = ExtensionServiceRegistryHolder.event()
-    override val capability: CapabilitySeam get() = ExtensionServiceRegistryHolder.capability()
+    override val shell: ShellSeam get() = SeamRegistry.shell()
+    override val device: DeviceSeam get() = SeamRegistry.device()
+    override val ui: UiSeam get() = SeamRegistry.ui()
+    override val backup: BackupSeam get() = SeamRegistry.backup()
+    override val event: EventSeam get() = SeamRegistry.event()
+    override val capability: CapabilitySeam get() = SeamRegistry.capability()
 
     /** 每个扩展自己的文件系统视图。 */
     override val fs: FsSeam = HostFsSeam(ctx, extensionDir)
-}
-
-/**
- * 从 [me.bmax.apatch.dsh.ext.ExtensionServiceRegistry] 取宿主默认实现。
- *
- * 走总线而不是直接 new：这样扩展注册的替换实现能生效（"整块替换"对宿主自己也成立）。
- * 总线里没有时退回宿主默认实现 —— 保证 `SeamRegistry.install()` 之前也不会 NPE。
- */
-private object ExtensionServiceRegistryHolder {
-
-    fun shell(ctx: Context): ShellSeam = resolve(ShellSeam::class.java) { HostShellSeam(ctx) }
-    fun device(ctx: Context): DeviceSeam = resolve(DeviceSeam::class.java) { HostDeviceSeam(ctx) }
-    fun ui(ctx: Context): UiSeam = resolve(UiSeam::class.java) { HostUiSeam(ctx) }
-    fun backup(ctx: Context): BackupSeam = resolve(BackupSeam::class.java) { HostBackupSeam(ctx) }
-    fun event(): EventSeam = resolve(EventSeam::class.java) { HostEventSeam() }
-    fun capability(): CapabilitySeam = resolve(CapabilitySeam::class.java) { HostCapabilitySeam() }
-
-    private fun <T : Any> resolve(type: Class<T>, fallback: () -> T): T =
-        me.bmax.apatch.dsh.ext.ExtensionServiceRegistry.resolve(type, fallback)
 }

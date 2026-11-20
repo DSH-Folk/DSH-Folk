@@ -59,10 +59,14 @@ object ExtensionEngine {
             // 用 dirOf(ctx, "host") 当目录：宿主实现不属于任何扩展，
             // 给它一个独立目录，避免和真实扩展 id 撞车。
             runCatching {
-                me.bmax.apatch.dsh.ext.seam.SeamRegistry.install(
-                    ctx,
-                    me.bmax.apatch.dsh.ext.ExtensionLayout.dirOf(ctx, "host"),
-                )
+                me.bmax.apatch.dsh.ext.seam.SeamRegistry.setFallbackContext(ctx)
+                me.bmax.apatch.dsh.ext.seam.SeamRegistry.install(ctx)
+                // 「已引导过」的落盘实现：prefs 文件名是宿主细节，
+                // 不该写进 :ext-api（那会把它固化成公共契约）。
+                ExtensionBootPipeline.setBootstrappedRecorder {
+                    ctx.getSharedPreferences("dsh_ext_state", Context.MODE_PRIVATE)
+                        .edit().putBoolean("bootstrapped", true).apply()
+                }
             }.onFailure {
                 ExtLog.log("装宿主 seam 失败（扩展仍可走反射）：" + (it.message ?: it.javaClass.simpleName))
             }
@@ -70,14 +74,14 @@ object ExtensionEngine {
             val records = all.filter { it.enabled && it.installed }
             if (records.isEmpty()) {
                 ExtLog.info("没有启用的扩展")
-                ExtensionBootPipeline.markBootstrapped(ctx)
+                ExtensionBootPipeline.markBootstrapped()
                 return
             }
             for (rec in records) {
                 val ext = ExtensionLoader.boot(ctx, rec) ?: continue
                 loaded[rec.id] = ext
             }
-            ExtensionBootPipeline.markBootstrapped(ctx)
+            ExtensionBootPipeline.markBootstrapped()
             ExtLog.info("已加载 " + loaded.size + " 个扩展")
             // 运行时如果已经装好，立刻通知一次：扩展靠这个时机往容器里装命令。
             // 没装好就等 install 完成时的那次通知（见 notifyContainerReady）。

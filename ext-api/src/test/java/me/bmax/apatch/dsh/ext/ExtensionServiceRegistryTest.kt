@@ -111,6 +111,29 @@ class ExtensionServiceRegistryTest {
     }
 
     @Test
+    fun `熔断时 fallback 必须可用 —— 这正是 SeamRegistry 崩过的场景`() {
+        // 真实故障：SeamRegistry.runtime() 的 fallback 写的是 error(...)，
+        // 熔断后 resolve 短路返回 fallback，于是每次能力调用都抛异常。
+        //
+        // 熔断是"扩展把启动路径写坏了，用户唯一还走得通的逃生通道"——
+        // 逃生通道自己崩掉，等于没有逃生通道。
+        ExtensionGate.latched = true
+        val fallback = HostGreeter()
+        val got = ExtensionServiceRegistry.resolve(Greeter::class.java) { fallback }
+        assertEquals("host", got.greet())
+        assertSame(fallback, got)
+    }
+
+    @Test
+    fun `clearAll 之后 fallback 仍然可用`() {
+        // 另一个真实故障：clearAll() 会把宿主实现一起清掉，
+        // 若宿主的 fallback 依赖"注册表里有自己"，就会拿不到实现。
+        ExtensionServiceRegistry.register("ext.a", Greeter::class.java, ExtGreeter())
+        ExtensionServiceRegistry.clearAll()
+        assertEquals("host", ExtensionServiceRegistry.resolve(Greeter::class.java) { HostGreeter() }.greet())
+    }
+
+    @Test
     fun `同一实例被原样返回（不做拷贝）`() {
         val impl = ExtGreeter()
         ExtensionServiceRegistry.register("ext.a", Greeter::class.java, impl)

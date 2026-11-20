@@ -1,6 +1,5 @@
 package me.bmax.apatch.dsh.ext
 
-import android.content.Context
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -30,14 +29,14 @@ object ExtensionBootPipeline {
     private const val STAGE_BUDGET_MS = 200L
 
     fun register(extensionId: String, stage: Stage, priority: Int = 0, handler: Handler) {
-        if (ExtensionSafetyGuard.isLatched()) return
+        if (ExtensionGate.isLatched()) return
         stages.getOrPut(stage) { CopyOnWriteArrayList() }
             .add(Entry(extensionId, priority, handler))
     }
 
     /** 跑一段。无 handler 时直接返回，零开销。 */
     fun run(stage: Stage, ctx: MutableMap<String, Any?> = mutableMapOf()) {
-        if (ExtensionSafetyGuard.isLatched()) return
+        if (ExtensionGate.isLatched()) return
         val list = stages[stage] ?: return
         val startedAt = System.currentTimeMillis()
         for (e in list.sortedBy { it.priority }) {
@@ -62,11 +61,22 @@ object ExtensionBootPipeline {
 
     fun clearAll() { stages.clear() }
 
-    /** 首次启动时把「扩展是否启用过」记下（供引导页判断要不要提示扩展功能）。 */
-    fun markBootstrapped(ctx: Context) {
-        runCatching {
-            ctx.getSharedPreferences("dsh_ext_state", Context.MODE_PRIVATE)
-                .edit().putBoolean("bootstrapped", true).apply()
-        }
+    /**
+     * 「已引导过」的落盘回调。
+     *
+     * 由宿主注入（见 `ExtensionEngine`）。放在这里的原因是**这个管线不该知道
+     * prefs 文件名** —— 那是宿主的存储细节，写进 :ext-api 等于把它固化成公共契约。
+     */
+    @Volatile
+    private var onBootstrapped: (() -> Unit)? = null
+
+    /** 宿主注入落盘实现。重复注入以后者为准。 */
+    fun setBootstrappedRecorder(recorder: () -> Unit) {
+        onBootstrapped = recorder
+    }
+
+    /** 标记「已引导过」。没注入 recorder 时是空操作（单元测试里就是这样）。 */
+    fun markBootstrapped() {
+        runCatching { onBootstrapped?.invoke() }
     }
 }

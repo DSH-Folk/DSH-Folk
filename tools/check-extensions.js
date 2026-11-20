@@ -28,7 +28,7 @@ const apiFiles = [
 ];
 const appFiles = [
   'ExtensionSafetyGuard.kt', 'ExtensionRegistry.kt', 'ExtensionLoader.kt',
-  'ExtensionBootPipeline.kt', 'ExtensionEngine.kt', 'DshPlatform.kt',
+  'ExtensionEngine.kt', 'DshPlatform.kt',
   'AppExtensionFs.kt', 'ExtensionHostImpl.kt',
 ];
 for (const f of apiFiles) must(exists(API + f), '缺契约文件 ext-api/' + f);
@@ -435,6 +435,48 @@ for (const name of SEAMS) {
   if (/\bFile\b/.test(body)) {
     must(src.includes("import java.io.File"), `${name}.kt 用了 File 就要 import java.io.File`);
   }
+}
+
+// 测试必须真的会被执行 —— 否则写再多测试也只是"编译不过的注释"。
+//
+// 真实教训：`ExtensionBootPipelineTest` 放在 :ext-api，而被测类还在 :app，
+// 于是 `./gradlew :ext-api:testDebugUnitTest` 一跑就 Unresolved reference。
+// 但 CI 只跑 `assembleDebug`/`assembleRelease` —— 它们**不编译 src/test** ——
+// 所以这个错一路绿灯到了发布。
+for (const wf of [".github/workflows/build.yml", ".github/workflows/beta.yml"]) {
+  const y = read(wf);
+  must(/gradlew test\b/.test(y), `${wf} 会跑单元测试（只构建不测 = 测试形同虚设）`);
+  must(!/gradlew :\w[\w-]*:testDebugUnitTest/.test(y),
+    `${wf} 用聚合的 \`test\` 而不是写死模块名（新加模块不会被静默跳过）`);
+}
+
+// 被测类必须在测试所在的模块里 —— 这是那个 bug 的直接判据。
+must(exists("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionBootPipeline.kt"),
+  "ExtensionBootPipeline 在 :ext-api（外部扩展要能注册启动阶段）");
+must(!exists("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionBootPipeline.kt"),
+  "app 里不再有 ExtensionBootPipeline 副本（两份会各走各的）");
+
+// 管线不能依赖宿主内部守卫：:ext-api 看不到 ExtensionSafetyGuard
+{
+  const bp = read("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionBootPipeline.kt");
+  must(!/ExtensionSafetyGuard/.test(bp),
+    "ExtensionBootPipeline 用 ExtensionGate 而不是宿主内部的 ExtensionSafetyGuard");
+  must(/ExtensionGate\.isLatched\(\)/.test(bp), "熔断判断走 ExtensionGate");
+  // prefs 文件名不该出现在公共契约里
+  must(!/getSharedPreferences/.test(bp),
+    "ExtensionBootPipeline 不碰 prefs（落盘实现由宿主注入）");
+}
+
+// SeamRegistry 的熔断安全性：fallback 绝不能抛
+{
+  const sr = read("app/src/main/java/me/bmax/apatch/dsh/ext/seam/SeamRegistry.kt");
+  // 只看代码行：注释里提到旧实现是正常的（那是解释为什么改）
+  const srCode = sr.split("\n").filter((l) => !l.trim().startsWith("*") && !l.trim().startsWith("//")).join("\n");
+  must(!/\berror\(/.test(srCode),
+    "SeamRegistry 的 fallback 不抛异常（熔断时 resolve 直接走 fallback，抛了就崩）");
+  must(!/ExtensionServiceRegistry\.register\(/.test(sr),
+    "SeamRegistry 不把宿主实现注册进扩展覆写表（clearAll 会连它一起清掉）");
+  must(/ExtensionServiceRegistry\.resolve\(/.test(sr), "取值仍走覆写表（扩展可整块替换）");
 }
 
 // 单测：Batch B 的验收要求

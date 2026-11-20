@@ -65,6 +65,25 @@ jobs:
       # 否则「构建失败」这四个字就是全部信息，只能靠本地复现去猜。
       # pipefail 不能少：没有它，管道里的 tee 会把 gradle 的退出码吞掉，
       # 于是编译失败的工作流会显示成绿色。
+      # 单测必须跑，不能只编译。
+      #
+      # 为什么单列一步：`assembleDebug` 不会编译 `src/test`。于是"测试文件引用了
+      # 另一个模块里的类"这种错会一路绿灯到发布 —— 实测漏过两个真 bug
+      # （测试在 :ext-api、被测类还在 :app；SeamRegistry 熔断时 fallback 抛异常）。
+      #
+      # 用 `test` 而不是 `testDebugUnitTest`：它是聚合任务，新加模块不用改这里
+      # （模块名写错时不会静默跳过测试）。
+      - run: |
+          set -o pipefail
+          ./gradlew test --no-daemon --stacktrace 2>&1 | tee gradle-test.log
+
+      - name: Surface test failures
+        if: failure()
+        run: |
+          { grep -E "^(e:|FAILURE:|\* What went wrong|[A-Za-z0-9_.]+ > .* FAILED)" gradle-test.log || true; } | head -60 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
       - run: |
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee gradle-build.log
