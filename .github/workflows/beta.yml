@@ -1,4 +1,4 @@
-name: Build DSH-Folk beta
+name: Build DSH-Folk prerelease
 
 # 测试版通道。
 #
@@ -19,14 +19,21 @@ on:
   workflow_dispatch:
     inputs:
       target_version:
-        description: 'Version this beta leads to (e.g. 1.8.1)'
+        description: 'Version this prerelease leads to (e.g. 1.8.1)'
         required: true
         type: string
       notes:
         description: 'Extra release notes (optional)'
         required: false
         type: string
-
+      channel:
+        description: 'Pre-release channel'
+        required: false
+        type: choice
+        default: alpha
+        options:
+          - alpha
+          - beta
 permissions:
   contents: write
 
@@ -36,7 +43,7 @@ concurrency:
 
 jobs:
   beta:
-    name: Build and publish beta
+    name: Build and publish prerelease
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -59,6 +66,7 @@ jobs:
           # 之前**就把 `${{ … }}` 展开进脚本文本的 —— 一个 `1.9.9"; rm -rf …; echo "` 会在
           # 下面那行 grep 校验之前就被 shell 当命令执行（校验拦不住已经跑掉的代码）。
           TARGET_INPUT: ${{ inputs.target_version }}
+          CHANNEL_INPUT: ${{ inputs.channel }}
         run: |
           TARGET="$TARGET_INPUT"
           # 允许四段式补丁版（1.9.2.2）。正式版的号已经从 10903 走到 109031/109032，
@@ -89,11 +97,20 @@ jobs:
             echo "::notice::versionCode $CODE 低于基准 $BASE，抬到基准以免降级"
             CODE=$BASE
           fi
-          NAME="${TARGET}-beta.${GITHUB_RUN_NUMBER}"
+          # 通道由输入决定，默认 alpha。
+          #
+          # 为什么默认 alpha：测试版按"先 alpha 后 beta"推进，直接发 beta 等于跳过一个
+          # 验证阶段。beta 只在明确指定时才出。
+          CHANNEL="$CHANNEL_INPUT"
+          case "$CHANNEL" in
+            alpha|beta) ;;
+            *) echo "::error::channel 只能是 alpha 或 beta，收到 '$CHANNEL'"; exit 1 ;;
+          esac
+          NAME="${TARGET}-${CHANNEL}.${GITHUB_RUN_NUMBER}"
           echo "name=$NAME"   >> "$GITHUB_OUTPUT"
           echo "code=$CODE"   >> "$GITHUB_OUTPUT"
           echo "tag=v$NAME"   >> "$GITHUB_OUTPUT"
-          echo "beta $NAME (versionCode $CODE)"
+          echo "$CHANNEL $NAME (versionCode $CODE)"
 
       - uses: ./.github/actions/setup-build-env
 
@@ -277,10 +294,11 @@ jobs:
           # 实测就是这么炸的：说明里的 `git+ssh://…` 被当成文件名、`dsh` 被当命令执行，
           # 展开后的 body 还超过 GitHub 的 125000 字符上限，release 回 422。
           BETA_NOTES: ${{ inputs.notes }}
+          CHANNEL: ${{ inputs.channel }}
         run: |
           TAG="${{ steps.v.outputs.tag }}"
           {
-            printf 'Beta build from `%s` (run #%s).\n\n' "${GITHUB_SHA:0:7}" "$GITHUB_RUN_NUMBER"
+            printf '%s build from `%s` (run #%s).\n\n' "$CHANNEL" "${GITHUB_SHA:0:7}" "$GITHUB_RUN_NUMBER"
             printf 'Signed with the release key, so it upgrades a release install in place.\n'
             printf 'Less tested than a release — report anything odd.\n'
             if [ -n "$BETA_NOTES" ]; then
@@ -294,7 +312,9 @@ jobs:
             # 从提交历史自动取：上一个 tag 到 HEAD 之间的提交标题就是最准确的改动清单。
             # 取不到（首个 beta / 浅克隆没 tag）时静默跳过，不让发布失败。
             git fetch --tags --depth=200 >/dev/null 2>&1 || true
-            PREV=$(git tag --list 'v*-beta.*' --sort=-v:refname | head -n 1 || true)
+            # 只跟**同一通道**的上一个 tag 比：alpha 与 beta 的改动清单混在一起没有意义
+            # （alpha 的提交会重复出现在之后的 beta 里）。
+            PREV=$(git tag --list "v*-${CHANNEL}.*" --sort=-v:refname | head -n 1 || true)
             if [ -n "$PREV" ]; then
               RANGE="$PREV..HEAD"
             else
@@ -318,7 +338,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: dsh-folk-beta-${{ github.sha }}
+          name: dsh-folk-${{ inputs.channel }}-${{ github.sha }}
           path: |
             DSH-Folk-*.apk
             DSH-Folk-*.apk.sha256

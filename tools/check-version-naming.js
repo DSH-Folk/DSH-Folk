@@ -76,9 +76,16 @@ for (const bad of ["v2.2", "v2.2.1-rc.1", "v2.2.1-beta", "v2.2.1-alpha.", "v2.2.
 }
 {
   const beta = read(".github/workflows/beta.yml");
-  // beta 的名字必须是 <target>-beta.<run_number>：后缀少了 beta 就会被当成正式版推给所有人
-  ok(/\$\{TARGET\}-beta\.\$\{GITHUB_RUN_NUMBER\}/.test(beta),
-    "beta 版本名形如 <target>-beta.<n>（缺后缀会被当成正式版）");
+  // 预发布名必须是 <target>-<channel>.<run_number>：后缀少了通道名就会被当成正式版推给所有人。
+  //
+  // 通道由 workflow 输入决定（默认 alpha）。断言要求两件事：
+  //   1. 名字里带 ${CHANNEL} 变量而不是写死某个通道 —— 写死的话另一个通道发出来的包
+  //      会被 App 当成同一个通道，更新提示就乱了；
+  //   2. 输入校验里 alpha / beta 都在白名单内。
+  ok(/\$\{TARGET\}-\$\{CHANNEL\}\.\$\{GITHUB_RUN_NUMBER\}/.test(beta),
+    "预发布版本名形如 <target>-<channel>.<n>（缺通道后缀会被当成正式版）");
+  ok(/default: alpha/.test(beta), "默认发 alpha（beta 只在明确指定时才出）");
+  ok(/alpha\|beta\) ;;/.test(beta), "通道输入只接受 alpha / beta");
   // tag 必须是 v 前缀：channelOf 按 tag 判通道，没有 v 也能过，但发布习惯要统一
   ok(/tag=v\$\{?NAME/.test(beta) || /echo "tag=v\$NAME"/.test(beta),
     "beta tag 带 v 前缀（与正式版统一）");

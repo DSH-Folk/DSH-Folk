@@ -501,8 +501,10 @@ ok(/assembleRelease/.test(betaYml),
   "用 release 变体：debug 变体是独立包名 + debug 签名，装上去不是升级而是多一个图标");
 ok(/-PdshVersionName=/.test(betaYml) && /-PdshVersionCode=/.test(betaYml),
   "把版本传给 Gradle");
-ok(/beta\.\$\{GITHUB_RUN_NUMBER\}|beta\.\$\{\{ github\.run_number \}\}/.test(betaYml),
-  "版本名带 -beta.N（compareVersions 靠它排先后，且正式版 > 预发布版）");
+// 版本名带 -<channel>.N：compareVersions 靠它排先后，且正式版 > 预发布版。
+// 通道由 workflow 输入决定（默认 alpha），所以这里认 ${CHANNEL} 变量。
+ok(/\$\{CHANNEL\}\.\$\{GITHUB_RUN_NUMBER\}/.test(betaYml),
+  "版本名带 -<channel>.N（compareVersions 靠它排先后，且正式版 > 预发布版）");
 ok(/KEYSTORE_BASE64/.test(betaYml) && /::error::missing release signing secrets/.test(betaYml),
   "缺签名材料就硬失败（用 debug key 签出的包用户装不上，报错只说「应用未安装」）");
 ok(/CN=Android Debug/.test(betaYml), "签名自检：debug key 必须被拦住");
