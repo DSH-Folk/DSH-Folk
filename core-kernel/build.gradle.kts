@@ -65,8 +65,8 @@ dependencies {
     // 运行时/容器/日志这套用到的 AndroidX 组件
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.libsu.core)
-    implementation(libs.libsu.service)
+    implementation(libs.com.github.topjohnwu.libsu.core)
+    implementation(libs.com.github.topjohnwu.libsu.service)
 
     // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
     // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。
