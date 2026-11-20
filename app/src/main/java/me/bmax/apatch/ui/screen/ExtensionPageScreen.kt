@@ -49,8 +49,14 @@ import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
 @Composable
 fun ExtensionPageScreen(
     navigator: DestinationsNavigator,
-    /** 要渲染哪个扩展页面（[ExtensionUiRegistry.Page.id]）。 */
-    pageId: String,
+    /**
+     * 要渲染哪个扩展页面（[ExtensionUiRegistry.Page.id]）。
+     *
+     * 给默认值不是"可以不给"：compose-destinations 要求**所有**导航参数有默认值，
+     * 否则不生成 Destination（表现是 `Unresolved reference: ExtensionPageScreenDestination`，
+     * 而不是一条能看懂的 KSP 报错）。空串落地时会显示"页面不存在"，那是正确行为。
+     */
+    pageId: String = "",
 ) {
     // 依赖注册表快照：扩展是异步加载的，进页面时可能刚好注册完。
     val page = ExtensionUiRegistry.page(pageId)
