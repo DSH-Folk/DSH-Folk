@@ -30,7 +30,7 @@ import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
  *
  * 宿主的导航图由 compose-destinations 的 KSP 在**编译期**生成（`NavGraphs.root` 是生成
  * 出来的 object），`DestinationsNavHost` 只接受一个固定的 NavGraphSpec，没有运行时
- * 追加路由的入口。所以扩展没法把自己的 @Destination 塞进宿主图里 —— 那些注解在
+ * 追加路由的入口。所以扩展没法把自己的目的地注解塞进宿主图里 —— 那些注解在
  * 编译期就定型了，而扩展是之后才装进来的。
  *
  * 解法：宿主**预留一个**路由，参数是扩展页面 id。用户导航到这里，宿主再从
