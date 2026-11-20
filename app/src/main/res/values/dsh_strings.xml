@@ -151,6 +151,12 @@
     <string name="dsh_ext_install_file">Install from file</string>
     <string name="dsh_ext_install_link_desc">Paste a direct link to an extension .zip. The file is not checked against a published checksum, so only use sources you trust.</string>
     <string name="dsh_ext_install_go">Install</string>
+    <string name="dsh_ext_warn_title">Install this extension?</string>
+    <string name="dsh_ext_warn_body">Extensions run inside this app with the same permissions as the app itself. An extension can read your notifications, use the camera, run root commands, change accessibility settings, and install arbitrary scripts into the container. Only continue if you trust where this came from.</string>
+    <string name="dsh_ext_warn_caps_title">This extension declares:</string>
+    <string name="dsh_ext_warn_target">Extension: %1$s</string>
+    <string name="dsh_ext_warn_revoke">You can disable or remove it any time on the Extensions page. Removing it also revokes anything it installed into the container.</string>
+    <string name="dsh_ext_warn_confirm">Install anyway</string>
     <string name="dsh_ext_installed_ok">Installed %1$s. Enable it when you are ready.</string>
     <string name="dsh_ext_market_install">Install</string>
     <string name="dsh_ext_market_installed">Installed</string>

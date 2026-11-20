@@ -6,7 +6,7 @@ import me.bmax.apatch.dsh.DshEnv
 /**
  * [DshExtensionHost] 的宿主实现。
  *
- * 比接口多一样东西：[platform]（36 项宿主能力门面）。它**故意不放进 :ext-api** —— 那些门面
+ * 比接口多两样东西：[internalPlatform]（强类型门面，仅一等公民扩展）与
  * 直接暴露宿主内部类型，放进公共 API 等于把整个 app 钉成 API。
  * 所以：市场里的扩展只用接口；将来若要做「一等公民扩展」，再由宿主侧把它们编进 APK 并拿这个句柄。
  */
@@ -19,13 +19,23 @@ internal class ExtensionHostImpl(
 
     override val fs: ExtensionFs by lazy { AppExtensionFs(appContext, id) }
 
+    /** 全部宿主能力（反射式，见 [AppExtensionPlatform]）。 */
+    override val platform: ExtensionPlatform by lazy {
+        AppExtensionPlatform(appContext, id)
+    }
+
     /** 往容器里装命令。归属记录落盘，卸载时由 [AppExtensionContainer.removeAllOf] 收回。 */
     override val container: ExtensionContainer by lazy {
         AppExtensionContainer(appContext, id)
     }
 
-    /** 只有 App 内扩展拿得到；第三方扩展编译时看不到这个属性。 */
-    val platform: DshPlatform by lazy { DshPlatform(appContext, id) }
+    /**
+     * 强类型的宿主门面，**只有编进 APK 的一等公民扩展**拿得到（第三方编译时看不到）。
+     *
+     * 与 [platform]（反射式、给所有扩展）的区别：这个是编译期类型安全的，但要求扩展与
+     * 宿主一起编译。市场里的扩展走 [platform]。
+     */
+    val internalPlatform: DshPlatform by lazy { DshPlatform(appContext, id) }
 
     override fun log(message: String) {
         ExtLog.log("[" + id + "] " + message)

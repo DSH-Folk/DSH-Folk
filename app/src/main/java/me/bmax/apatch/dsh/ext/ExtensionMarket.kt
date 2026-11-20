@@ -188,6 +188,45 @@ object ExtensionMarket {
      *
      * @param url 直链（https）。不接受 http：明文传输下任何校验都没有意义。
      */
+    /**
+     * 只读预览：从链接**只拉 manifest**，不安装。
+     *
+     * 存在的理由是安装警告弹窗：用户要在**动手之前**看到"这个扩展声明了哪些能力"，
+     * 而不是装完才看到。所以这里只下载、解出 manifest、返回它，一个字节都不往
+     * 扩展目录写。
+     *
+     * 代价是链接会被下载两次（预览一次、真装一次）。对 .dshx 这种几 KB 的包无所谓；
+     * 换来的是"用户同意之前不落地"这个更重要的性质。
+     */
+    suspend fun previewFromUrl(ctx: Context, url: String): Result<ExtensionManifest> =
+        withContext(Dispatchers.IO) {
+            val appCtx = ctx.applicationContext
+            try {
+                Result.success(previewFromUrlBlocking(appCtx, url))
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: Exception) {
+                Result.failure(MarketFailure(e.message ?: "预览失败", e))
+            }
+        }
+
+    /**
+     * 只读预览：从本地文件**只读 manifest**，不安装。
+     *
+     * 与 [previewFromUrl] 同样的用途。文件已在本机，所以没有重复下载的代价。
+     */
+    suspend fun previewFromFile(ctx: Context, uri: android.net.Uri): Result<ExtensionManifest> =
+        withContext(Dispatchers.IO) {
+            val appCtx = ctx.applicationContext
+            try {
+                Result.success(previewFromFileBlocking(appCtx, uri))
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (e: Exception) {
+                Result.failure(MarketFailure(e.message ?: "预览失败", e))
+            }
+        }
+
     suspend fun installFromUrl(ctx: Context, url: String): Result<ExtensionManifest> =
         withContext(Dispatchers.IO) {
             val appCtx = ctx.applicationContext
@@ -258,6 +297,71 @@ object ExtensionMarket {
      *  - 解压防 zip slip（复用 [unzip]，与市场安装同一份实现）；
      *  - manifest 必须能被 [ExtensionLayout] 解析（id 合法、版本非空）。
      */
+    /**
+     * 从链接只读 manifest 的阻塞实现。
+     *
+     * 与 [installFromUrlBlocking] 的差别只有最后一步：解压后**读** manifest 就返回，
+     * 不调 installFromDir（那一步才会真正落到扩展目录并登记）。
+     */
+    private fun previewFromUrlBlocking(ctx: Context, rawUrl: String): ExtensionManifest {
+        val url = parseHttpsUrl(rawUrl, "扩展下载地址")
+        val work = File(ctx.cacheDir, "ext-preview-" + System.currentTimeMillis())
+        if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
+        try {
+            val zip = File(work, "extension.zip")
+            downloadTo(url, zip, expectedSha256 = "")
+            return peekManifest(zip, work)
+        } finally {
+            work.deleteRecursively()
+        }
+    }
+
+    /** 从本地文件只读 manifest 的阻塞实现。 */
+    private fun previewFromFileBlocking(ctx: Context, uri: android.net.Uri): ExtensionManifest {
+        val work = File(ctx.cacheDir, "ext-preview-" + System.currentTimeMillis())
+        if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
+        try {
+            val zip = File(work, "extension.zip")
+            val stream = ctx.contentResolver.openInputStream(uri)
+                ?: throw MarketFailure("读不到这个文件（可能已被移动或没有访问权限）")
+            stream.use { input ->
+                zip.outputStream().use { output ->
+                    val buf = ByteArray(64 * 1024)
+                    var total = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        total += n
+                        if (total > MAX_ZIP_BYTES) {
+                            throw MarketFailure("文件超过 " + (MAX_ZIP_BYTES / 1024 / 1024) + "MB，拒绝安装")
+                        }
+                        output.write(buf, 0, n)
+                    }
+                }
+            }
+            return peekManifest(zip, work)
+        } finally {
+            work.deleteRecursively()
+        }
+    }
+
+    /**
+     * 解压到临时目录、读出 manifest，然后什么都不做。
+     *
+     * **不校验 sha256**：从链接预览时本来就没有期望值（用户还没确认，市场条目也没参与）。
+     * 真装的那一步会走各自的校验路径。这里的目的只有一个：让用户在同意之前
+     * 看到"它声明了什么能力"。
+     */
+    private fun peekManifest(zip: File, work: File): ExtensionManifest {
+        val unpacked = File(work, "unpacked")
+        if (!unpacked.mkdirs()) throw MarketFailure("无法创建解压目录")
+        unzip(zip, unpacked)
+        val root = findManifestDir(unpacked)
+            ?: throw MarketFailure("压缩包里没有找到扩展清单（extension.json / manifest.json）")
+        return ExtensionManifest.read(root)
+            ?: throw MarketFailure("扩展清单格式不对（缺 id / name / version）")
+    }
+
     private fun installFromUrlBlocking(ctx: Context, rawUrl: String): ExtensionManifest {
         val url = parseHttpsUrl(rawUrl, "扩展下载地址")
         val work = File(ctx.cacheDir, "ext-link-" + System.currentTimeMillis())

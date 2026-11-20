@@ -96,6 +96,7 @@ import me.bmax.apatch.ui.screen.settings.UserscriptsContent
 import me.bmax.apatch.ui.screen.settings.rememberUserscriptInstallRequest
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.ext.ExtensionMarket
+import me.bmax.apatch.ui.component.ExtensionInstallWarningDialog
 import me.bmax.apatch.dsh.ext.ExtensionEngine
 import me.bmax.apatch.dsh.ext.ExtensionRecord
 import me.bmax.apatch.dsh.ext.ExtensionLayout
@@ -226,6 +227,17 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         }
     }
 
+    // 安装前的风险确认。
+    //
+    // 三个入口（文件 / 链接 / 市场）都先经过这里：扩展与宿主同进程同权限，
+    // 能读通知、调摄像头、跑 root 命令、往容器装脚本。用户必须在**动手之前**
+    // 看到它声明了什么能力，而不是装完才看到。
+    //
+    // pendingExtInstall 保存"待确认的安装动作"——弹窗点确认后才真正执行。
+    var pendingExtInstall by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var pendingExtName by remember { mutableStateOf<String?>(null) }
+    var pendingExtCaps by remember { mutableStateOf<List<String>>(emptyList()) }
+
     // 扩展包选择器：与插件的 pickTarball 同构，只是走 ExtensionMarket.installFromFile。
     val pickExtZip = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -233,18 +245,34 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         if (result.resultCode != RESULT_OK) return@rememberLauncherForActivityResult
         val uri = result.data?.data ?: return@rememberLauncherForActivityResult
         scope.launch {
-            val r = ExtensionMarket.installFromFile(context, uri)
-            r.fold(
-                onSuccess = {
-                    snackBarHost.showSnackbar(
-                        context.getString(R.string.dsh_ext_installed_ok, it.name),
-                    )
-                    extensionRefresh++
-                },
-                onFailure = { e ->
-                    snackBarHost.showSnackbar(e.message ?: e.javaClass.simpleName)
-                },
-            )
+        // 先只读 manifest：用户要在动手之前看到它声明了什么能力。
+        // 预览不落盘（见 ExtensionMarket.previewFromFile），确认后才真装。
+        val preview = ExtensionMarket.previewFromFile(context, uri)
+        preview.fold(
+            onSuccess = { mf ->
+                pendingExtName = mf.name
+                pendingExtCaps = mf.declaredCaps
+                pendingExtInstall = {
+                    scope.launch {
+                        val r = ExtensionMarket.installFromFile(context, uri)
+                        r.fold(
+                            onSuccess = {
+                                snackBarHost.showSnackbar(
+                                    context.getString(R.string.dsh_ext_installed_ok, it.name),
+                                )
+                                extensionRefresh++
+                            },
+                            onFailure = { e ->
+                                snackBarHost.showSnackbar(e.message ?: e.javaClass.simpleName)
+                            },
+                        )
+                    }
+                }
+            },
+            onFailure = { e ->
+                snackBarHost.showSnackbar(e.message ?: e.javaClass.simpleName)
+            },
+        )
         }
     }
 
@@ -261,6 +289,27 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
     // 这样它才能真正铺满整屏。usePlatformDefaultWidth = false 是必须的：
     // 默认 Dialog 会留一圈边距、宽度受限，那正是"看起来像半窗"的另一半原因。
     // 从链接安装扩展
+    // 安装风险确认弹窗。
+    //
+    // 放在所有安装入口之前渲染：pendingExtInstall 不为空就说明有动作在等确认。
+    // 确认后才真正执行那个动作 —— 用户点「取消」时什么都不发生，
+    // 已经下载到临时目录的预览包也已经随 preview 的 finally 清掉了。
+    pendingExtInstall?.let { action ->
+        ExtensionInstallWarningDialog(
+            extensionName = pendingExtName,
+            declaredCaps = pendingExtCaps,
+            onConfirm = {
+                pendingExtInstall = null
+                action()
+            },
+            onDismiss = {
+                pendingExtInstall = null
+                pendingExtName = null
+                pendingExtCaps = emptyList()
+            },
+        )
+    }
+
     if (showExtLinkInstall) {
         AlertDialog(
             onDismissRequest = { if (!extLinkBusy) showExtLinkInstall = false },
@@ -298,17 +347,36 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     onClick = {
                         extLinkBusy = true
                         extLinkError = ""
+                        val target = extLinkInput.trim()
                         scope.launch {
-                            val r = ExtensionMarket.installFromUrl(context, extLinkInput.trim())
+                            // 先只拉 manifest 做预览：链接可能指向任何东西，
+                            // 用户要在同意之前看到它声明了什么能力。
+                            val preview = ExtensionMarket.previewFromUrl(context, target)
                             extLinkBusy = false
-                            r.fold(
-                                onSuccess = {
+                            preview.fold(
+                                onSuccess = { mf ->
                                     showExtLinkInstall = false
                                     extLinkInput = ""
-                                    snackBarHost.showSnackbar(
-                                        context.getString(R.string.dsh_ext_installed_ok, it.name),
-                                    )
-                                    extensionRefresh++
+                                    pendingExtName = mf.name
+                                    pendingExtCaps = mf.declaredCaps
+                                    pendingExtInstall = {
+                                        scope.launch {
+                                            val r = ExtensionMarket.installFromUrl(context, target)
+                                            r.fold(
+                                                onSuccess = {
+                                                    snackBarHost.showSnackbar(
+                                                        context.getString(R.string.dsh_ext_installed_ok, it.name),
+                                                    )
+                                                    extensionRefresh++
+                                                },
+                                                onFailure = { e ->
+                                                    snackBarHost.showSnackbar(
+                                                        e.message ?: e.javaClass.simpleName,
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    }
                                 },
                                 onFailure = { e ->
                                     // 失败留在弹窗里而不是用 snackbar：用户要能直接改链接重试，

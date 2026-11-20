@@ -790,5 +790,53 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "运行时就绪时通知扩展（装完运行时不必重启应用）");
 }
 
+
+// ── 第三方扩展能拿到全部宿主能力 + 安装警告 ──
+{
+  const apiRaw2 = fs.readFileSync("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt", "utf8");
+  const platRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt", "utf8");
+  const hostRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionHostImpl.kt", "utf8");
+
+  // 全量能力入口
+  ok(/interface ExtensionPlatform/.test(apiRaw2), "扩展能拿到全部宿主能力（ExtensionPlatform）");
+  ok(/fun capabilities\(\): List<String>/.test(apiRaw2), "能列出可用能力（做能力探测）");
+  ok(/fun invoke\(capability: String, method: String, vararg args: Any\?\): PlatformResult/.test(apiRaw2),
+    "能按名字调宿主能力的方法");
+  ok(/class PlatformResult/.test(apiRaw2), "调用结果带错误而不是抛异常（同进程，抛出去会带走整个 App）");
+  ok(/val platform: ExtensionPlatform/.test(apiRaw2), "host 上挂得到 platform");
+  // 宿主侧实现：反射读 DshPlatform 的 getter，不写死能力清单
+  // 钉住 for 循环那一行：`DshPlatform::class.java.methods` 在注释里也出现，只测词会假绿。
+  ok(/for \(m in DshPlatform::class\.java\.methods\)/.test(platRaw),
+    "能力清单是反射枚举出来的（宿主新增能力时扩展不必等 :ext-api 发版）");
+  ok(/getters\[capability\]\?\.invoke\(facade\)/.test(platRaw), "真的把能力名解析成宿主单例");
+  ok(/InvocationTargetException\)\?\.targetException/.test(platRaw),
+    "剥掉反射包装，把真正的失败原因交给扩展");
+  ok(/override val platform: ExtensionPlatform/.test(hostRaw), "宿主把 platform 挂到 host 上");
+  ok(!/^\s{4}val platform: DshPlatform/m.test(hostRaw),
+    "强类型门面已改名 internalPlatform（否则与反射式 platform 撞名）");
+
+  // 安装警告
+  const warnRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionInstallWarningDialog.kt", "utf8");
+  ok(/fun ExtensionInstallWarningDialog\(/.test(warnRaw), "有安装风险确认弹窗");
+  ok(/dsh_ext_warn_body/.test(warnRaw), "弹窗讲清了扩展与宿主同权限");
+  const pluginRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginScreen.kt", "utf8");
+  const sheetRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/ui/component/ExtensionMarketSheet.kt", "utf8");
+  ok(/ExtensionMarket\.previewFromFile\(context, uri\)/.test(pluginRaw),
+    "文件安装先只读 manifest 预览（用户同意前不落地）");
+  ok(/ExtensionMarket\.previewFromUrl\(context, target\)/.test(pluginRaw),
+    "链接安装先只读 manifest 预览");
+  ok(/pendingExtInstall\?\.let \{ action ->/.test(pluginRaw), "文件/链接安装都经过确认弹窗");
+  ok(/fun install\(entry: MarketEntry\)[\s\S]{0,200}pendingInstall = entry/.test(sheetRaw),
+    "市场 install() 只是登记待确认，不直接装");
+  ok(/pendingInstall\?\.let \{ entry ->/.test(sheetRaw), "市场安装也经过确认弹窗");
+  ok(/fun doInstall\(entry: MarketEntry\)/.test(sheetRaw),
+    "市场安装拆成 install（弹窗）/ doInstall（真装）两步");
+  const mkRaw = fs.readFileSync("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionMarket.kt", "utf8");
+  ok(/suspend fun previewFromUrl/.test(mkRaw) && /suspend fun previewFromFile/.test(mkRaw),
+    "市场层有预览接口（只读 manifest，不写扩展目录）");
+  ok(/private fun peekManifest\(zip: File, work: File\): ExtensionManifest/.test(mkRaw),
+    "预览走 peekManifest：解压读清单就返回，不调 installFromDir");
+}
+
 console.log(bad === 0 ? `\n全部通过（${n} 项断言）` : `\n${bad}/${n} 项失败`);
 process.exit(bad === 0 ? 0 : 1);

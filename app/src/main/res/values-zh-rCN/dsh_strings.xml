@@ -143,6 +143,12 @@
     <string name="dsh_ext_install_file">从文件安装</string>
     <string name="dsh_ext_install_link_desc">粘贴扩展 .zip 的直链。这条路径没有已发布的校验值可比对，只请使用你信任的来源。</string>
     <string name="dsh_ext_install_go">安装</string>
+    <string name="dsh_ext_warn_title">确认安装这个扩展？</string>
+    <string name="dsh_ext_warn_body">扩展运行在本应用内，与本应用同权限。它可以读你的通知、使用摄像头、执行 root 命令、修改无障碍设置，还能往容器里装任意脚本。只有在你信任它的来源时才继续。</string>
+    <string name="dsh_ext_warn_caps_title">这个扩展声明了：</string>
+    <string name="dsh_ext_warn_target">扩展：%1$s</string>
+    <string name="dsh_ext_warn_revoke">你可以随时在「扩展」页禁用它或卸载它。卸载时会一并收回它装进容器的东西。</string>
+    <string name="dsh_ext_warn_confirm">仍然安装</string>
     <string name="dsh_ext_installed_ok">已安装 %1$s，准备好后再启用它。</string>
     <string name="dsh_ext_market_install">安装</string>
     <string name="dsh_ext_market_installed">已安装</string>

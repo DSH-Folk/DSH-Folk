@@ -134,7 +134,19 @@ fun ExtensionMarketSheet(
         }
     }
 
+    /**
+     * 待确认的安装。市场条目的能力清单已经在手（[MarketEntry.declaredCaps]），
+     * 不需要额外预览请求，所以这里只是"先弹窗、确认后再执行"。
+     */
+    var pendingInstall by remember { mutableStateOf<MarketEntry?>(null) }
+
     fun install(entry: MarketEntry) {
+        if (installingId != null) return
+        // 先弹风险确认：扩展与宿主同进程同权限，这一步不能省。
+        pendingInstall = entry
+    }
+
+    fun doInstall(entry: MarketEntry) {
         if (installingId != null) return
         installingId = entry.id
         message = ""
@@ -319,6 +331,20 @@ fun ExtensionMarketSheet(
             Spacer(Modifier.height(24.dp))
         }
     }
+
+        // 安装风险确认。确认后才真正执行 doInstall。
+        // 取消时什么都不发生 —— 条目还在列表里，用户随时可以再点。
+        pendingInstall?.let { entry ->
+            ExtensionInstallWarningDialog(
+                extensionName = entry.name,
+                declaredCaps = entry.declaredCaps,
+                onConfirm = {
+                    pendingInstall = null
+                    doInstall(entry)
+                },
+                onDismiss = { pendingInstall = null },
+            )
+        }
 }
 
 /**

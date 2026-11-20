@@ -89,6 +89,14 @@ interface DshExtensionHost {
      * 命令必须由宿主写死。
      */
     val container: ExtensionContainer
+
+    /**
+     * 全部宿主能力（见 [ExtensionPlatform]）。
+     *
+     * 有了它，「软件现有功能都可由扩展实现」才成立：扩展能调到宿主今天有的任何
+     * 子系统，而不是只能等宿主把某个开关加到白名单里。
+     */
+    val platform: ExtensionPlatform
 }
 
 /**
@@ -171,6 +179,86 @@ interface ExtensionHostSettings {
      *   拒绝时**不抛异常**：扩展应当据此降级，而不是崩掉整个宿主。
      */
     fun set(switch: HostSwitch, on: Boolean): Boolean
+}
+
+/**
+ * 宿主能力的**全量**访问入口（反射式）。
+ *
+ * ## 为什么不是强类型门面
+ *
+ * 宿主有 33 个能力单例（runtime / shell / a11y / camera / workflow / …），其中大部分是
+ * `internal object`。把它们逐个搬进 :ext-api 有两个硬障碍：
+ *
+ * 1. **模块方向**：:ext-api 不能依赖 :app（那会成环），而这些单例都在 :app 里。
+ * 2. **API 承诺**：把 `internal` 类型写进公共接口，等于把它们钉成永久契约 ——
+ *    以后任何一次重构都是破坏性变更。
+ *
+ * 所以这里给的是**按名字调用**的入口：扩展写 `platform.call("shell", "exec", ...)`，
+ * 宿主在自己的进程内把名字解析成真实的单例与方法。扩展因此能调到宿主今天有的任何能力，
+ * 宿主新增能力时扩展**不需要**等 :ext-api 发版。
+ *
+ * ## 代价（必须让扩展作者知道）
+ *
+ * 没有编译期类型检查：方法名拼错、参数类型不对，都要到运行期才报错。
+ * 这是「覆盖全部宿主能力」与「稳定 API 契约」之间必须选一个的地方 ——
+ * 按当前需求选了前者。详见 [PlatformResult]。
+ */
+interface ExtensionPlatform {
+
+    /**
+     * 列出全部可用的宿主能力名（即 DshPlatform 上的属性名）。
+     *
+     * 扩展可以据此做能力探测：宿主版本不同，可用的能力也不同。
+     */
+    fun capabilities(): List<String>
+
+    /**
+     * 读一个宿主能力对象（返回它在宿主进程里的实例）。
+     *
+     * 拿到之后怎么调？看 [invoke]。
+     *
+     * @param capability [capabilities] 里的名字，例如 "shell"、"a11y"、"runtime"。
+     * @return 能力对象；名字不存在时返回 null（不抛异常）。
+     */
+    fun capability(capability: String): Any?
+
+    /**
+     * 在一个宿主能力上调方法。
+     *
+     * @param capability 能力名，例如 "shell"。
+     * @param method 方法名，例如 "exec"。重载按参数**个数与类型**匹配。
+     * @param args 实参。基本类型、String、List/Map 可以直接传；
+     *   需要宿主类型的参数请用 [capability] 拿到实例后自己调。
+     * @return 调用结果。方法返回 void 时是 Unit；失败时见 [PlatformResult.error]。
+     */
+    fun invoke(capability: String, method: String, vararg args: Any?): PlatformResult
+
+    /**
+     * 读一个宿主能力上的属性（Kotlin 的 val / var，对应 getter）。
+     *
+     * 例如 `property("runtime", "state")` 拿到 StateFlow。
+     */
+    fun property(capability: String, name: String): PlatformResult
+}
+
+/**
+ * [ExtensionPlatform.invoke] / [property] 的结果。
+ *
+ * 为什么不用「返回值 + 抛异常」：扩展与宿主同进程，一个没接住的异常会带走整个 App。
+ * 所以所有失败都折进这里，让扩展自己决定是降级还是上报。
+ */
+class PlatformResult(
+    /** 成功时的返回值；失败时为 null。方法返回 void 时是 Unit。 */
+    val value: Any?,
+    /** 失败原因（人类可读）；成功时为 null。 */
+    val error: String?,
+) {
+    val ok: Boolean get() = error == null
+
+    companion object {
+        fun success(value: Any?): PlatformResult = PlatformResult(value, null)
+        fun failure(reason: String): PlatformResult = PlatformResult(null, reason)
+    }
 }
 
 /**
