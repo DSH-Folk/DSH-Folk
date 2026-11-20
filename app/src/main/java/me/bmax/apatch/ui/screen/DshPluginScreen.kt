@@ -82,7 +82,7 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.generated.destinations.DshPluginStoreScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ScriptMarketScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.ui.screen.ExtensionPageScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.ExtensionPageScreenDestination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
