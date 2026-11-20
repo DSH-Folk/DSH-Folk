@@ -225,6 +225,7 @@ dependencies {
     // 所以契约必须单独成库模块）。详见 ext-api/build.gradle.kts 顶部注释。
     implementation(project(":ext-api"))
     implementation(project(":core-kernel"))
+    implementation(project(":ext-workflow"))
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
