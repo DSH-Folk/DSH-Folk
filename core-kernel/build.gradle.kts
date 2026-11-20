@@ -25,11 +25,16 @@ val androidCompileSdkVersion: Int by rootProject.extra
 val androidMinSdkVersion: Int by rootProject.extra
 
 android {
-    // namespace 必须是 me.bmax.apatch —— 迁进来的代码在 me.bmax.apatch.dsh.* /
-    // me.bmax.apatch.util.* 包下，namespace 只影响 R 类与 BuildConfig 的生成包名。
-    // 写成 me.bmax.apatch.kernel 的话这些源文件不在 namespace 下，AGP 仍能编译，
-    // 但 R 类会生成到 kernel 包、而代码里 import 的是 me.bmax.apatch.R —— 找不到。
-    namespace = "me.bmax.apatch"
+    // namespace **不能**和 :app 相同。
+    //
+    // AGP 会做唯一性校验：两个模块用同一个 namespace 时 manifest 合并直接失败
+    // （"Namespace 'me.bmax.apatch' is used in multiple modules"）。
+    //
+    // namespace 只决定 R 类与 BuildConfig 的**生成包名**，不影响源文件的实际包路径 ——
+    // 迁进来的代码仍在 me.bmax.apatch.dsh.* 下，照常编译。
+    // 代价：本模块内不能用 me.bmax.apatch.R（那是 :app 的 R）。真需要字符串时
+    // 通过 seam 或注入的 Context 拿，不要在底座里引用宿主资源。
+    namespace = "me.bmax.apatch.kernel"
     compileSdk = androidCompileSdkVersion
 
     defaultConfig {
