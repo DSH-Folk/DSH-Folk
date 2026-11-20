@@ -420,6 +420,23 @@ const proguard = read("app/proguard-rules.pro");
 must(!/-keep\s+class\s+me\.bmax\.apatch\.dsh\.\*\*\s*\{\s*\*;\s*\}/.test(proguard),
   "没有为迁就反射去 -keep 整个 me.bmax.apatch.dsh.**（那会让 R8 失去意义）");
 
+// 每个 seam 文件都必须是**可编译的 Kotlin 文件**：有 package、需要的 import 齐全。
+//
+// 为什么单列这条：kt-lint 只查括号配平与词法，查不出"缺 package" ——
+// 缺 package 的文件在 kt-lint 眼里完全正常，只在 CI 编译时才炸
+// （报 Unresolved reference，且错误指向调用方而不是文件本身，很难定位）。
+// 这条坑我踩过一次：8 个 seam 里 7 个缺 package，本地全绿，CI 全红。
+for (const name of SEAMS) {
+  const src = read(`ext-api/src/main/java/me/bmax/apatch/dsh/ext/seam/${name}.kt`);
+  must(src.startsWith("package me.bmax.apatch.dsh.ext.seam"),
+    `${name}.kt 有 package 声明（缺了只在编译时炸，kt-lint 查不出来）`);
+  // 用到 File 就必须 import（Android 模块没有默认 import java.io.*）
+  const body = src.split("\n").filter((l) => !l.startsWith("import ") && !l.startsWith("package")).join("\n");
+  if (/\bFile\b/.test(body)) {
+    must(src.includes("import java.io.File"), `${name}.kt 用了 File 就要 import java.io.File`);
+  }
+}
+
 // 单测：Batch B 的验收要求
 must(exists("ext-api/src/test/java/me/bmax/apatch/dsh/ext/ExtensionServiceRegistryTest.kt"),
   "有 ExtensionServiceRegistry 的单元测试");

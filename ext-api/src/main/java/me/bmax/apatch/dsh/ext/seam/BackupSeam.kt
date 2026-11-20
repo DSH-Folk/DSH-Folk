@@ -1,3 +1,6 @@
+package me.bmax.apatch.dsh.ext.seam
+
+import java.io.File
 /**
  * 配置备份与版本更新。
  */

@@ -1,3 +1,4 @@
+package me.bmax.apatch.dsh.ext.seam
 /**
  * 设备能力：无障碍、相机、TTS、设备感知、硬件监控、个人数据。
  *

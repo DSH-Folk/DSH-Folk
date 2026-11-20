@@ -1,3 +1,4 @@
+package me.bmax.apatch.dsh.ext.seam
 /**
  * 宿主界面外壳：主题、路由跳转、打开 WebUI。
  *

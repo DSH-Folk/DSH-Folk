@@ -1,3 +1,4 @@
+package me.bmax.apatch.dsh.ext.seam
 /**
  * 宿主事件：扩展订阅、宿主广播。
  *

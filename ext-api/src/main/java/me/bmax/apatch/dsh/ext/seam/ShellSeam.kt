@@ -1,3 +1,4 @@
+package me.bmax.apatch.dsh.ext.seam
 /**
  * 提权 shell（su）与无线 ADB。
  *

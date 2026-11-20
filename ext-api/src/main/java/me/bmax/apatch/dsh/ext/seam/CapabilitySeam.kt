@@ -1,3 +1,4 @@
+package me.bmax.apatch.dsh.ext.seam
 /**
  * 能力自省：扩展问"宿主现在有什么"。
  *

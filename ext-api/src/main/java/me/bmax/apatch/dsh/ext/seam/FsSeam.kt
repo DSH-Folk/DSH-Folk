@@ -1,3 +1,6 @@
+package me.bmax.apatch.dsh.ext.seam
+
+import java.io.File
 /**
  * 文件系统访问：容器路径 ↔ 宿主路径、扩展私有目录。
  *
