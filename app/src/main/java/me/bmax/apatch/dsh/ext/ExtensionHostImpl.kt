@@ -19,9 +19,37 @@ internal class ExtensionHostImpl(
 
     override val fs: ExtensionFs by lazy { AppExtensionFs(appContext, id) }
 
-    /** 全部宿主能力（反射式，见 [AppExtensionPlatform]）。 */
+    /**
+     * 全部宿主能力（反射式，见 [AppExtensionPlatform]）。
+     *
+     * 已标记 `@Deprecated`：反射依赖宿主实现类的方法名，而 release 构建开了
+     * `-repackageclasses`，`me.bmax.apatch.dsh.*` 下的方法名会被混淆。
+     * 保留它只为兼容已发布的老扩展；新代码用 [seam]。
+     */
+    @Deprecated(
+        message = "反射在 release 混淆包里不可靠，请改用 seam",
+        replaceWith = ReplaceWith("seam"),
+    )
     override val platform: ExtensionPlatform by lazy {
-        AppExtensionPlatform(appContext, id)
+        // 传 seam 的取用器：高频门面方法会优先走强类型 seam（R8 安全），
+        // 其余仍走反射。传 lambda 而不是实例，避免 platform / seam 互相 lazy 初始化时打结。
+        AppExtensionPlatform(appContext, id) { seam }
+    }
+
+    /**
+     * 强类型宿主能力（编译期绑定，R8 安全）。
+     *
+     * 与 [platform] 的区别见 [ExtensionSeams] 的注释 —— 一句话：
+     * 这个走接口调用，混淆不影响；那个走反射，只在 debug 包可靠。
+     */
+    override val seam: ExtensionSeams by lazy {
+        me.bmax.apatch.dsh.ext.seam.HostSeams(
+            appContext,
+            // 用 ExtensionLayout 作为唯一来源，不自己拼 "extensions/<id>" ——
+            // 目录布局一旦调整（比如加版本子目录），两处拼路径就会分叉，
+            // 表现是"扩展写进去的文件自己读不到"。
+            ExtensionLayout.dirOf(appContext, id),
+        )
     }
 
     /** 往容器里装命令。归属记录落盘，卸载时由 [AppExtensionContainer.removeAllOf] 收回。 */

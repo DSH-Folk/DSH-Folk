@@ -21,6 +21,24 @@ import me.bmax.apatch.dsh.DshAutostart
 class BootCompletedReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+
+        // ── 启动管线 AUTOSTART 段 ──
+        //
+        // 在真正触发自启**之前**跑。扩展可以往 ctx 里写 "skip" = true 阻止本次自启
+        // （例如它要先把前置条件准备好，或用户设了某时段不自启）。
+        //
+        // 注意这里跑在**广播接收器**里、不是 Activity：进程可能只是被广播临时拉起，
+        // 内存与时间预算都很紧。管线本身有 200ms 总预算，超时的 handler 直接跳过。
+        val autoCtx = mutableMapOf<String, Any?>()
+        me.bmax.apatch.dsh.ext.ExtensionBootPipeline.run(
+            me.bmax.apatch.dsh.ext.ExtensionBootPipeline.Stage.AUTOSTART,
+            autoCtx,
+        )
+        if (autoCtx["skip"] == true) {
+            android.util.Log.i("BootCompletedReceiver", "扩展跳过了本次自启")
+            return
+        }
+
         DshAutostart.trigger(context.applicationContext, DshAutostart.Mode.RECEIVER)
     }
 }

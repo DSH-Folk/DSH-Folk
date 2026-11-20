@@ -258,7 +258,22 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        installSplashScreen().setKeepOnScreenCondition { isLoading }
+        // ── 启动管线 SPLASH 段 ──
+        //
+        // 在装启动画面**之前**跑：扩展可以往 ctx 里写 "hold" 来延长启动画面
+        // （比如它要先把某个资源准备好），也可以读 ctx 里的信息决定要不要拦。
+        //
+        // 预算 200ms（见 ExtensionBootPipeline）：超时的 handler 会被跳过，
+        // 所以这里不会因为某个扩展写得慢就白屏。
+        val splashCtx = mutableMapOf<String, Any?>()
+        me.bmax.apatch.dsh.ext.ExtensionBootPipeline.run(
+            me.bmax.apatch.dsh.ext.ExtensionBootPipeline.Stage.SPLASH,
+            splashCtx,
+        )
+        // 扩展可以通过 ctx["hold"] = true 要求继续留在启动画面
+        val extHoldSplash = splashCtx["hold"] as? Boolean ?: false
+
+        installSplashScreen().setKeepOnScreenCondition { isLoading || extHoldSplash }
 
         // Safety net: force dismiss splash after 15 seconds to prevent permanent hang
         Handler(Looper.getMainLooper()).postDelayed({
@@ -384,7 +399,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        
+
+        // ── 启动管线 AUTH 段 ──
+        //
+        // 在权限请求与界面构建**之前**跑。扩展可以往 ctx 里写：
+        //  - "blocked" = true  → 拦住本次启动（宿主不继续 setupUI）
+        //  - "reason"          → 拦住时给用户看的说明
+        //
+        // 为什么放在这里：这是"用户身份/授权已确定、界面还没建"的唯一窗口。
+        // 放到 setContent 里面就晚了（组合已经开始），放到 onCreate 又太早（权限还没问）。
+        val authCtx = mutableMapOf<String, Any?>()
+        me.bmax.apatch.dsh.ext.ExtensionBootPipeline.run(
+            me.bmax.apatch.dsh.ext.ExtensionBootPipeline.Stage.AUTH,
+            authCtx,
+        )
+        if (authCtx["blocked"] == true) {
+            val reason = authCtx["reason"] as? String
+            android.util.Log.w("MainActivity", "扩展拦住了本次启动：" + (reason ?: "未说明原因"))
+            return
+        }
+
         // Load DPI settings
         me.bmax.apatch.util.DPIUtils.load(this)
         me.bmax.apatch.util.DPIUtils.applyDpi(this)
@@ -974,6 +1008,28 @@ class MainActivity : AppCompatActivity() {
                         currentRoute = currentRoute,
                         onShellReleased = { shellTick++ },
                     )
+                    // ── 启动管线 INITIAL_ROUTE 段 ──
+                    //
+                    // 扩展可以往 ctx 里写 "route" 指定首屏去哪（比如它自己的页面）。
+                    // 只影响**首次**组合：用户后来自己导航走了，不该被拽回来。
+                    //
+                    // 用 remember 固定下来：不 remember 的话每次重组都会重跑管线，
+                    // 用户在别的页面时会被反复跳回首屏。
+                    val initialRouteOverride = remember {
+                        val routeCtx = mutableMapOf<String, Any?>()
+                        me.bmax.apatch.dsh.ext.ExtensionBootPipeline.run(
+                            me.bmax.apatch.dsh.ext.ExtensionBootPipeline.Stage.INITIAL_ROUTE,
+                            routeCtx,
+                        )
+                        routeCtx["route"] as? String
+                    }
+                    // 扩展指定了首屏就跳过去（只在首帧、且只跳一次）。
+                    // 失败不抛：路由不存在时 navigate 会静默失败，界面停在默认首屏。
+                    androidx.compose.runtime.LaunchedEffect(initialRouteOverride) {
+                        val r = initialRouteOverride ?: return@LaunchedEffect
+                        runCatching { navController.navigate(r) }
+                    }
+
                     // 两处 DestinationsNavHost 共用同一份参数（原来它们是复制粘贴的两份，
                     // 现在被外壳分支也要用到，复制第三份就会三处各长各的）。
                     val navHostSlot: @Composable (Modifier) -> Unit = { m ->

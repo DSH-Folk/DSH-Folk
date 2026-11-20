@@ -50,6 +50,23 @@ object ExtensionEngine {
                 )
                 return
             }
+            // 装宿主 seam 默认实现 —— 必须排在**任何扩展 onLoad 之前**。
+            //
+            // 扩展在 onLoad 里就会通过 host.seam 取能力。晚装的话它拿到的是
+            // HostSeams 的 fallback 分支（每次 new 一个），虽然能用，
+            // 但扩展注册的替换实现不会生效（总线里还没有宿主那份，resolve 语义不一致）。
+            //
+            // 用 dirOf(ctx, "host") 当目录：宿主实现不属于任何扩展，
+            // 给它一个独立目录，避免和真实扩展 id 撞车。
+            runCatching {
+                me.bmax.apatch.dsh.ext.seam.SeamRegistry.install(
+                    ctx,
+                    me.bmax.apatch.dsh.ext.ExtensionLayout.dirOf(ctx, "host"),
+                )
+            }.onFailure {
+                ExtLog.log("装宿主 seam 失败（扩展仍可走反射）：" + (it.message ?: it.javaClass.simpleName))
+            }
+
             val records = all.filter { it.enabled && it.installed }
             if (records.isEmpty()) {
                 ExtLog.info("没有启用的扩展")

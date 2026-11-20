@@ -27,6 +27,16 @@ import java.lang.reflect.InvocationTargetException
 internal class AppExtensionPlatform(
     private val appContext: Context,
     private val extensionId: String,
+    /**
+     * 强类型 seam 的取用器（可空）。
+     *
+     * 用 lambda 而不是直接传 [ExtensionSeams] 实例：`ExtensionHostImpl` 里
+     * `platform` 与 `seam` 都是 lazy，直接互传会在初始化顺序上打结。
+     * 传一个"要用时再取"的函数，两边都 lazy，没有顺序问题。
+     *
+     * 为 null 时（老代码路径 / 单元测试）全部走反射，行为与以前完全一致。
+     */
+    private val seamAccessor: (() -> me.bmax.apatch.dsh.ext.ExtensionSeams?)? = null,
 ) : ExtensionPlatform {
 
     private val facade: DshPlatform by lazy { DshPlatform(appContext, extensionId) }
@@ -78,14 +88,73 @@ internal class AppExtensionPlatform(
      * 与 [invoke] 的区别：那个是"先拿能力对象，再在对象上调"；这个是直接在 DshPlatform
      * 上调 —— 那几个方法不属于任何子系统，`getters` 里找不到它们。
      */
-    override fun call(method: String, vararg args: Any?): PlatformResult = runCatching {
-        val m = findMethod(DshPlatform::class.java, method, args)
-            ?: return PlatformResult.failure(
-                "门面上没有这个方法：" + method + "（参数个数 " + args.size + "）",
-            )
-        m.isAccessible = true
-        PlatformResult.success(m.invoke(facade, *args))
-    }.getOrElse { unwrap(it, method) }
+    override fun call(method: String, vararg args: Any?): PlatformResult {
+        // 高频入口先走强类型 seam —— 编译期绑定，混淆不会破坏。
+        //
+        // 为什么需要：这个类本身在 `me.bmax.apatch.dsh.ext` 包（有 R8 keep），
+        // 但它反射的目标 `DshRuntime` 在 `me.bmax.apatch.dsh` 包（**没有** keep）。
+        // release 开了 `-repackageclasses`，`execRootfs` 会被改名，
+        // findMethod 按名字找不到 —— 扩展就"拿不到任何能力"，且日志里看不出原因。
+        //
+        // seam 没命中时**继续走反射**：保持已发布扩展的行为不变。
+        seamRoute(method, args)?.let { return it }
+
+        return runCatching {
+            val m = findMethod(DshPlatform::class.java, method, args)
+                ?: return PlatformResult.failure(
+                    "门面上没有这个方法：" + method + "（参数个数 " + args.size + "）",
+                )
+            m.isAccessible = true
+            PlatformResult.success(m.invoke(facade, *args))
+        }.getOrElse { unwrap(it, method) }
+    }
+
+    /**
+     * 把高频门面方法路由到 seam。返回 null = 不归 seam 管，继续走反射。
+     *
+     * ## 覆盖范围的诚实说明
+     *
+     * 只覆盖 `call` 的 5 个方法。33 个能力属性**仍走反射** —— 它们返回子系统对象，
+     * 扩展随后在那个对象上调方法，那条链在 release 包里同样会被混淆。
+     *
+     * 为什么不把上百个方法全强类型化：那等于把整个宿主内部 API 冻结成公共契约，
+     * 以后任何内部重构都要考虑扩展兼容。**这个限制写在扩展开发文档里**，
+     * 不假装已经解决。
+     */
+    private fun seamRoute(method: String, args: Array<out Any?>): PlatformResult? {
+        val accessor = seamAccessor ?: return null
+        val s = runCatching { accessor() }.getOrNull() ?: return null
+        val rt = runCatching { s.runtime }.getOrNull() ?: return null
+
+        return runCatching {
+            when (method) {
+                "exec" -> {
+                    val cmd = args.getOrNull(0) as? String
+                    if (cmd == null) null else PlatformResult.success(rt.exec(cmd))
+                }
+                "execCapture" -> {
+                    val cmd = args.getOrNull(0) as? String
+                    if (cmd == null) null
+                    else PlatformResult.success(rt.execCapture(cmd, (args.getOrNull(1) as? Long) ?: 60_000L))
+                }
+                "execStreaming" -> {
+                    val cmd = args.getOrNull(0) as? String
+                    @Suppress("UNCHECKED_CAST")
+                    val onLine = args.getOrNull(2) as? (String) -> Unit
+                    if (cmd == null || onLine == null) null
+                    else PlatformResult.success(
+                        rt.execStreaming(cmd, (args.getOrNull(1) as? Long) ?: 60_000L, onLine),
+                    )
+                }
+                "log" -> {
+                    val msg = args.getOrNull(0) as? String
+                    if (msg == null) null else { rt.log(msg); PlatformResult.success(Unit) }
+                }
+                "state" -> PlatformResult.success(rt.state())
+                else -> null
+            }
+        }.getOrNull()
+    }
 
     override fun property(capability: String, name: String): PlatformResult = runCatching {
         val target = getters[capability]?.invoke(facade)

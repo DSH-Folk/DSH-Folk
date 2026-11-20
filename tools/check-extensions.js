@@ -354,8 +354,89 @@ for (const key of ['dsh_ext_title', 'dsh_ext_empty', 'dsh_ext_safe_mode', 'dsh_e
   must(new RegExp('name="' + key + '"').test(en), '英文缺字符串 ' + key);
 }
 
+console.log("\n── Batch B：强类型 seam ──");
+{
+// 8 个 seam 接口必须都在 :ext-api（第三方扩展要能编译期依赖它们）
+const SEAMS = ["RuntimeSeam", "ShellSeam", "FsSeam", "DeviceSeam", "UiSeam", "BackupSeam", "EventSeam", "CapabilitySeam"];
+for (const name of SEAMS) {
+  must(exists(`ext-api/src/main/java/me/bmax/apatch/dsh/ext/seam/${name}.kt`),
+    `seam 接口 ${name} 在 :ext-api 里（第三方可编译期依赖）`);
+}
+
+// 每个 seam 都要有宿主实现，否则扩展拿到的是空
+const HOST_IMPLS = {
+  RuntimeSeam: "HostRuntimeSeam", ShellSeam: "HostShellSeam", FsSeam: "HostFsSeam",
+  DeviceSeam: "HostDeviceSeam", UiSeam: "HostUiSeam", BackupSeam: "HostBackupSeam",
+  EventSeam: "HostEventSeam", CapabilitySeam: "HostCapabilitySeam",
+};
+for (const [seam, impl] of Object.entries(HOST_IMPLS)) {
+  const src = read(`app/src/main/java/me/bmax/apatch/dsh/ext/seam/${impl}.kt`);
+  must(new RegExp(`class ${impl}\\b[^{]*:\\s*${seam}`).test(src),
+    `${impl} 实现了 ${seam}`);
+}
+
+// host 上要能拿到 seam —— 扩展的唯一入口
+const api = read("ext-api/src/main/java/me/bmax/apatch/dsh/ext/ExtensionApi.kt");
+must(/val seam: ExtensionSeams/.test(api), "host 上挂得到 seam");
+must(/interface ExtensionSeams/.test(api), "有 ExtensionSeams 聚合接口");
+
+// 反射门面必须标 @Deprecated —— 它是 R8 地雷，不能让人以为可以放心用
+const plat = read("app/src/main/java/me/bmax/apatch/dsh/ext/AppExtensionPlatform.kt");
+must(/@Deprecated\(/.test(api.split("val platform: ExtensionPlatform")[0].split("interface DshExtensionHost")[1] || ""),
+  "ExtensionPlatform 在接口上标了 @Deprecated（反射在 release 混淆包里不可靠）");
+
+// 高频入口先走 seam
+must(/seamRoute\(method, args\)\?\.let \{ return it \}/.test(plat),
+  "AppExtensionPlatform.call() 先走 seam 再回退反射");
+
+// 启动管线 5 个阶段全部接通 —— 少一个就是"扩展注册了但永远不触发"
+const STAGES = {
+  APP_CREATE: "ExtensionEngine.kt",
+  SPLASH: "MainActivity.kt",
+  AUTH: "MainActivity.kt",
+  INITIAL_ROUTE: "MainActivity.kt",
+  AUTOSTART: "BootCompletedReceiver.kt",
+};
+for (const [stage, file] of Object.entries(STAGES)) {
+  const rel = file === "ExtensionEngine.kt"
+    ? "app/src/main/java/me/bmax/apatch/dsh/ext/" + file
+    : file === "BootCompletedReceiver.kt"
+      ? "app/src/main/java/me/bmax/apatch/receiver/" + file
+      : "app/src/main/java/me/bmax/apatch/ui/" + file;
+  // 用完整限定名而不是只匹配 "Stage.XXX"：只测阶段名的话，
+  // 把 AUTOSTART 改成 APP_CREATE 这种"接错段"的错仍会绿。
+  must(read(rel).includes("ExtensionBootPipeline.Stage." + stage),
+    `启动管线 ${stage} 段有真实调用点（${file}）`);
+}
+
+// 宿主默认实现要注册进总线 —— 不注册的话扩展的"整块替换"对宿主自己不生效
+const engine = read("app/src/main/java/me/bmax/apatch/dsh/ext/ExtensionEngine.kt");
+must(engine.includes("SeamRegistry.install("), "bootstrap 里装了宿主 seam 默认实现");
+must(engine.indexOf("SeamRegistry.install") < engine.indexOf("ExtensionLoader.boot"),
+  "seam 装在扩展加载**之前**（否则扩展 onLoad 时总线还是空的）");
+
+// 绝不为了迁就反射而宽泛 keep
+const proguard = read("app/proguard-rules.pro");
+must(!/-keep\s+class\s+me\.bmax\.apatch\.dsh\.\*\*\s*\{\s*\*;\s*\}/.test(proguard),
+  "没有为迁就反射去 -keep 整个 me.bmax.apatch.dsh.**（那会让 R8 失去意义）");
+
+// 单测：Batch B 的验收要求
+must(exists("ext-api/src/test/java/me/bmax/apatch/dsh/ext/ExtensionServiceRegistryTest.kt"),
+  "有 ExtensionServiceRegistry 的单元测试");
+must(exists("ext-api/src/test/java/me/bmax/apatch/dsh/ext/ExtensionBootPipelineTest.kt"),
+  "有 ExtensionBootPipeline 的单元测试");
+const regTest = read("ext-api/src/test/java/me/bmax/apatch/dsh/ext/ExtensionServiceRegistryTest.kt");
+must(regTest.includes("ExtensionGate.latched = true"), "注册中心测试覆盖了熔断短路");
+must(regTest.includes("unregisterAll"), "注册中心测试覆盖了卸载清理");
+const pipeTest = read("ext-api/src/test/java/me/bmax/apatch/dsh/ext/ExtensionBootPipelineTest.kt");
+must(/throw IllegalStateException/.test(pipeTest), "启动管线测试覆盖了异常隔离");
+must(/priority = 30/.test(pipeTest), "启动管线测试覆盖了优先级顺序");
+}
+
 if (errors.length) {
-  console.error('check-extensions FAILED:');
+
+
+console.error('check-extensions FAILED:');
   for (const e of errors) console.error('  ✗ ' + e);
   process.exit(1);
 }

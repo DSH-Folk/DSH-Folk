@@ -64,4 +64,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.core)
+
+    // 单测：注册中心（熔断短路 / 覆盖策略 / 卸载清理）与启动管线
+    // （顺序 / 异常隔离 / 熔断）是扩展体系的地基，必须有测试钉住。
+    testImplementation(libs.junit)
 }

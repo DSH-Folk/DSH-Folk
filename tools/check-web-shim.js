@@ -852,9 +852,16 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   // 它们不属于任何子系统，capabilities() 列不出来。没有 call() 就永远调不到。
   ok(/fun call\(method: String, vararg args: Any\?\): PlatformResult/.test(apiR),
     "能调门面自身的方法（exec/state 这类不属于任何子系统）");
-  // 钉住真的把 facade 传进 invoke：只测签名的话，实现里调错对象也仍绿。
-  ok(/override fun call\(method: String, vararg args: Any\?\): PlatformResult = runCatching \{[\s\S]{0,400}m\.invoke\(facade, \*args\)/.test(platR),
-    "门面方法真的在 DshPlatform 实例上调（不是某个能力对象）");
+  // 钉住反射回退路径真的把 facade 传进 invoke：只测签名的话，实现里调错对象也仍绿。
+  //
+  // 注意 call() 现在**先走 seam**（高频方法强类型化，R8 安全），反射是回退路径。
+  // 所以断言要同时钉两件事：
+  //   1. 确实有 seamRoute(...) 前置调用（否则等于强类型化白做）；
+  //   2. 回退路径仍然 m.invoke(facade, *args)（调错对象的话所有反射能力都会失效）。
+  ok(/seamRoute\(method, args\)\?\.let \{ return it \}/.test(platR),
+    "call() 先走强类型 seam（seam 没命中才回退反射）");
+  ok(/m\.invoke\(facade, \*args\)/.test(platR),
+    "反射回退路径在 DshPlatform 实例上调（不是某个能力对象）");
 
   // 设置项：宿主 93 条写死在 SettingsRegistry 里，扩展必须能加自己的
   ok(/fun registerSetting\(extensionId: String, item: SettingItem\)/.test(uiR),

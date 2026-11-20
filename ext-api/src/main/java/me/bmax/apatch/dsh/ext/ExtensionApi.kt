@@ -95,8 +95,70 @@ interface DshExtensionHost {
      *
      * 有了它，「软件现有功能都可由扩展实现」才成立：扩展能调到宿主今天有的任何
      * 子系统，而不是只能等宿主把某个开关加到白名单里。
+     *
+     * ## 优先用 [seam]，不要用这个
+     *
+     * `platform` 是**反射**实现：宿主内部按名字找方法。而宿主 release 构建开了
+     * `-repackageclasses -allowaccessmodification`，`me.bmax.apatch.dsh.*` 下的单例
+     * 方法名会被混淆 —— 反射在 Debug 正常，在 Alpha/Beta/Release 包里静默失败
+     * （`onLoad` 成功、扩展显示"已启用"，但一调能力就返回错误）。
+     *
+     * 保留它只为兼容已发布的扩展；新代码走 [seam]。
      */
+    @Deprecated(
+        message = "反射在 release 混淆包里不可靠，请改用 seam",
+        replaceWith = ReplaceWith("seam"),
+    )
     val platform: ExtensionPlatform
+
+    /**
+     * 强类型宿主能力（见 [me.bmax.apatch.dsh.ext.seam]）。
+     *
+     * ## 与 [platform] 的根本区别
+     *
+     * 这些是**编译期绑定**的接口：R8 看得见调用关系，混淆不会破坏它们。
+     * 宿主为每个接口提供一个默认实现，扩展也可以注册自己的实现整块替换。
+     *
+     * ## 为什么必须走这条路
+     *
+     * 扩展是外部编译产物，它引用的是接口名与方法名。只要宿主 keep 了
+     * `me.bmax.apatch.dsh.ext.**`（proguard 已配），接口调用就永远有效 ——
+     * 而反射调用依赖"实现类的方法名没被改"，那件事宿主保证不了。
+     */
+    val seam: ExtensionSeams
+}
+
+/**
+ * 强类型能力的集合入口。
+ *
+ * 做成一个聚合而不是 8 个独立属性：以后加第 9 个 seam 时，
+ * 已编译的扩展不需要改（它们只碰自己用得到的那几个），
+ * 而宿主侧只改一个实现类。
+ */
+interface ExtensionSeams {
+    /** 容器运行时：状态、执行、日志。 */
+    val runtime: me.bmax.apatch.dsh.ext.seam.RuntimeSeam
+
+    /** 设备上的提权 shell 与 ADB。 */
+    val shell: me.bmax.apatch.dsh.ext.seam.ShellSeam
+
+    /** 文件系统与容器路径映射。 */
+    val fs: me.bmax.apatch.dsh.ext.seam.FsSeam
+
+    /** 设备能力：无障碍 / 相机 / TTS / 感知。 */
+    val device: me.bmax.apatch.dsh.ext.seam.DeviceSeam
+
+    /** 宿主界面外壳：主题、路由、WebUI。 */
+    val ui: me.bmax.apatch.dsh.ext.seam.UiSeam
+
+    /** 备份与更新。 */
+    val backup: me.bmax.apatch.dsh.ext.seam.BackupSeam
+
+    /** 事件订阅与广播。 */
+    val event: me.bmax.apatch.dsh.ext.seam.EventSeam
+
+    /** 能力自省。 */
+    val capability: me.bmax.apatch.dsh.ext.seam.CapabilitySeam
 }
 
 /**
