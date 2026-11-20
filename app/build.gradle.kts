@@ -226,6 +226,11 @@ dependencies {
     implementation(project(":ext-api"))
     implementation(project(":core-kernel"))
     implementation(project(":ext-workflow"))
+    implementation(project(":ext-display"))
+    implementation(project(":ext-userscripts"))
+    implementation(project(":ext-backup"))
+    implementation(project(":ext-device-caps"))
+    implementation(project(":ext-theme-media"))
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
