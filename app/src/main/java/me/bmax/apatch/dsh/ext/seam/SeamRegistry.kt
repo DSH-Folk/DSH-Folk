@@ -108,6 +108,7 @@ internal object SeamRegistry {
      * 注意 [HostRuntimeSeam] / [HostEventSeam] / [HostCapabilitySeam] 本来就是无状态的，
      * 所以这里只需要 ctx —— 而没 install 时也没有 ctx，只能给进程级的兜底。
      */
+    @Synchronized
     private fun requireDefaults(): Defaults {
         defaults?.let { return it }
         // 极端情况（install 没跑）：用兜底 context 补一个。
@@ -115,10 +116,10 @@ internal object SeamRegistry {
         // 拿不到 context 时**不抛异常** —— 返回一个"全部能力都不可用"的 Defaults。
         // 为什么：熔断/早期初始化都可能走到这里，抛异常的代价是整个 App 崩，
         // 而"能力不可用"最坏只是扩展降级。逃生通道不能自己崩。
-        val app = currentApplicationContext()
-        @Synchronized
-        if (defaults == null) defaults = Defaults(app)
-        return defaults!!
+        //
+        // 注：@Synchronized 只能标函数/访问器，不能标表达式 —— 第一版标在
+        // `if` 语句上，编译直接报 "not applicable to target 'expression'"。
+        return Defaults(currentApplicationContext()).also { defaults = it }
     }
 
     /** 由宿主在 `install()` 之外设置的兜底 context（见 [setFallbackContext]）。 */
