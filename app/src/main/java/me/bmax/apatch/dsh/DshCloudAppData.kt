@@ -83,7 +83,8 @@ internal object DshCloudAppData {
             return 500 to error(result.message.ifEmpty { "出包失败" })
         }
         // 搬到插件指定目录（exportArchive 落在 App 自己的缓存/外部目录；插件要在它的 workDir 里算哈希）
-        val src = result.file
+        // exportConfig 承诺「加密归档」，失败时返回 null（不静默产明文 zip）。
+        val src = result.file ?: return 500 to error("导出失败：未生成归档")
         destDirHost.mkdirs()
         val destHost = File(destDirHost, src.name)
         val moved = runCatching {
