@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":core-res"))
     implementation(project(":core-kernel"))
     implementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.core:core-ktx:1.17.0")
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.core)

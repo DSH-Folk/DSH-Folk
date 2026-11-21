@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.Cap
 import me.bmax.apatch.dsh.PrivilegedShell
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
 
 /**
  * 工作流开跑前的 **Android 层权限检查**。
@@ -191,13 +192,11 @@ object WorkflowPermissions {
     private fun special(id: String, labelRes: Int, action: String?) =
         Item(id, Kind.SPECIAL, labelRes, settingsAction = action)
 
+    // 无障碍是否开启改走 DeviceSeam：DshA11yService 在 :app，扩展够不着。
+    // seam 里的实现直接问系统服务表，比在这里硬编码 "包名/服务类名" 更稳
+    // （类名一改这里就会静默失效，而失效的表现是「用户明明开了却报没开」）。
     private fun a11yEnabled(ctx: Context): Boolean = runCatching {
-        val expected = "${ctx.packageName}/${DshA11yService::class.java.name}"
-        val enabled = Settings.Secure.getString(
-            ctx.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ).orEmpty()
-        enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+        SeamRegistry.device().a11yEnabled()
     }.getOrDefault(false)
 
     private fun usageAccessGranted(ctx: Context): Boolean = runCatching {
