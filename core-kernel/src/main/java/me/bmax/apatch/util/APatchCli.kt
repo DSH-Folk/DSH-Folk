@@ -3,8 +3,7 @@ package me.bmax.apatch.util
 import android.content.Context
 import android.util.Log
 import com.topjohnwu.superuser.Shell
-import me.bmax.apatch.APApplication
-import me.bmax.apatch.BuildConfig
+import me.bmax.apatch.dsh.KernelEnv
 import java.io.IOException
 
 private const val TAG = "APatchCli"
@@ -21,8 +20,8 @@ data class ApdExecResult(
 class RootShellInitializer : Shell.Initializer() {
     override fun onInit(context: Context, shell: Shell): Boolean {
         shell.newJob().add(
-            "export PATH=\$PATH:/system_ext/bin:/vendor/bin:${APApplication.APATCH_FOLDER}bin",
-            "export BUSYBOX=${APApplication.APATCH_FOLDER}bin/busybox"
+            "export PATH=\$PATH:/system_ext/bin:/vendor/bin:${KernelEnv.apatchFolder}bin",
+            "export BUSYBOX=${KernelEnv.apatchFolder}bin/busybox"
         ).exec()
         return true
     }
@@ -56,7 +55,7 @@ private fun buildWithTimeout(builder: Shell.Builder, vararg commands: String): S
  * su [-mm] 然后 sh。拿不到 root 时返回的是普通 sh —— 调用方要用 Shell.isRoot 判断。
  */
 fun createRootShell(globalMnt: Boolean = false): Shell {
-    Shell.enableVerboseLogging = BuildConfig.DEBUG
+    Shell.enableVerboseLogging = KernelEnv.isDebugBuild
     val builder = Shell.Builder.create().setInitializers(RootShellInitializer::class.java)
 
     if (android.os.Process.myUid() == 0) {
@@ -185,7 +184,7 @@ fun rootAvailable(): Boolean {
  * basic.txt 里的 `ElevationEnabled` 会记下这件事。
  */
 fun tryGetRootShell(ctx: Context? = null): Shell {
-    Shell.enableVerboseLogging = BuildConfig.DEBUG
+    Shell.enableVerboseLogging = KernelEnv.isDebugBuild
     val builder = Shell.Builder.create()
     if (ctx != null && !me.bmax.apatch.dsh.PermissionManager.elevationEnabled(ctx)) {
         Log.i(TAG, "特权未启用，bugreport 采集使用普通 sh")
@@ -258,8 +257,8 @@ fun dataShellForResult(ctx: Context, vararg cmds: String): Shell.Result {
 private fun configureRootProcessEnv(builder: ProcessBuilder) {
     val basePath = System.getenv("PATH").orEmpty()
     builder.environment().apply {
-        this["PATH"] = "$basePath:/system_ext/bin:/vendor/bin:${APApplication.APATCH_FOLDER}bin"
-        this["BUSYBOX"] = "${APApplication.APATCH_FOLDER}bin/busybox"
+        this["PATH"] = "$basePath:/system_ext/bin:/vendor/bin:${KernelEnv.apatchFolder}bin"
+        this["BUSYBOX"] = "${KernelEnv.apatchFolder}bin/busybox"
     }
 }
 

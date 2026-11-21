@@ -1490,9 +1490,12 @@ console.log("── 限制模式页与弹窗 ──");
     }
   }
   {
-    const facts = read("app/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt");
-    ok(/\.put\("restrictMode", PrivPolicy\.restrictMode\(ctx\)\)/.test(facts) &&
-      /\.put\(\s*\n?\s*"restrictedCaps"/.test(facts),
+    // DshHostPrompt 已下沉 :core-kernel，PrivPolicy 走 HostFacts 注入。
+    const facts = read("dsh/DshHostPrompt.kt");
+    const appSrc = read("app/src/main/java/me/bmax/apatch/APatchApp.kt");
+    ok(/\.put\("restrictMode", hf\.restrictMode\)/.test(facts) &&
+      /\.put\(\s*\n?\s*"restrictedCaps"/.test(facts) &&
+      /restrictMode = PrivPolicy\.restrictMode\(c\)/.test(appSrc),
       "事实文件带上限制模式与能力清单");
     const prompt = fs.readFileSync("app/src/main/assets/dsh-folk-host.mjs", "utf8");
     ok(/f\.restrictMode/.test(prompt) && /f\.restrictedCaps/.test(prompt),

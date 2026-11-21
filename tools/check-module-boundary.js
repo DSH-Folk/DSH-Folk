@@ -186,7 +186,11 @@ for (const [mod, dir] of Object.entries(MODULES)) {
       // 只报告"在 :app 里声明、且不在允许列表"的
       if (!mods.has("app")) continue;
       // 整词匹配
-      if (!new RegExp("(?:^|[^A-Za-z0-9_])" + sym + "(?:[^A-Za-z0-9_]|$)").test(code)) continue;
+      // 前后必须不是标识符字符，也**不能是连字符**（`"allow-root-shell"` 里的 allow
+      // 不是符号引用）与引号内内容无关 —— 字符串字面量里出现同名不算依赖。
+      // 先剥掉字符串字面量，避免 `"allow-root-shell"` / `"download"` 这类误报。
+      const codeNoStr = code.replace(/"(?:[^"\\]|\\.)*"/g, '""').replace(/'(?:[^'\\]|\\.)*'/g, "''");
+      if (!new RegExp("(?:^|[^A-Za-z0-9_-])" + sym + "(?:[^A-Za-z0-9_-]|$)").test(codeNoStr)) continue;
       violations.push(rel + ": 用了 :app 独有的 " + sym + "（未在允许的依赖模块里）");
     }
   }

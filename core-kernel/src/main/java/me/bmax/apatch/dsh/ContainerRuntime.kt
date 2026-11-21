@@ -260,7 +260,7 @@ interface ContainerRuntime {
 
         /** 需要 root 通道就绪。不等同于「沙箱可用」—— 沙箱能不能用是 DSH 侧的事。 */
         override fun available(): Boolean =
-            PrivilegedShell.reach(ctx)?.channel == PermissionManager.Channel.ROOT
+            KernelEnv.hostFacts(ctx).rootChannelActive
 
         override fun unavailableReason(): String = ctx.appString(CoreR.string.dsh_mode_chroot_needs_root)
 
@@ -292,7 +292,7 @@ interface ContainerRuntime {
         override fun spawnArgv(guest: List<String>, env: Map<String, String>): List<String>? {
             // 解析不到 su 就直接放弃（返回 null → 调用方回退 proot），
             // 而不是拼一条注定以 "su: not found" 失败的 argv。
-            val su = PrivilegedShell.resolveSuPath(ctx) ?: return null
+            val su = KernelEnv.hostFacts(ctx).suPath ?: return null
             prepare()
             val dir = workDir(ctx)
             val rootfs = DshEnv.rootfs(ctx)
@@ -305,7 +305,7 @@ interface ContainerRuntime {
             //
             // 模板读不到 / 生成失败都直接回退 proot：一次 chroot 尝试绝不能把启动搞死
             val script = runCatching { buildLaunchScript(rootfs, dir, env, guest) }.getOrElse { e ->
-                DshRuntime.appendLog(
+                KernelEnv.log(
                     "! chroot: 生成 launch.sh 失败（已回退 proot）: " + (e.message ?: e.javaClass.simpleName)
                 )
                 return null
@@ -319,7 +319,7 @@ interface ContainerRuntime {
             // 返回 null 让调用方回退 proot，服务照常能起。
             val syntaxError = checkLaunchScript(launch)
             if (syntaxError != null) {
-                DshRuntime.appendLog(
+                KernelEnv.log(
                     "! chroot: launch.sh 语法检查未通过（已回退 proot）: " + syntaxError
                 )
                 return null
