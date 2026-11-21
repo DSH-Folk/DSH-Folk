@@ -227,7 +227,9 @@ ok(/private fun dispatchWorkflow\(/.test(SRC.fsbridge) && /readJsonBody\(input, 
   "请求体单独放宽到 256KB（定义比普通原生调用大）");
 ok(/KEY_WORKFLOW_ENABLED, false/.test(SRC.bridge) && /dsh_workflow_err_disabled/.test(SRC.bridge),
   "总开关默认关，关着回 403 disabled");
-ok(/if \(!DshNativeBridge\.isForeground\(ctx\)\)/.test(SRC.bridge), "不在前台不弹窗（否则连接等一个永远不出现的弹窗）");
+// isForeground 调用点已改走 NativeBridgeSeam（收口轮）：扩展不能直接依赖 :app 的桥。
+ok(/(?:DshNativeBridge|SeamRegistry\.nativeBridge\(\))\.isForeground\(ctx\)/.test(SRC.bridge + SRC.workflow),
+  "不在前台不弹窗（否则连接等一个永远不出现的弹窗）");
 ok(/if \(reason\.isBlank\(\)\) return 400/.test(SRC.bridge), "reason 必填，弹窗上才有「发起理由」可显示");
 
 console.log("\u2500 #7 编辑后的 diff 必须随结果回传");
@@ -244,7 +246,9 @@ ok(/diff = diff,/.test(SRC.engine) && /\.put\("diff"/.test(SRC.bridge), "diff �
 
 console.log("\u2500 #8 执行：DSH 拉起与等待、可取消、结果可查");
 ok(/suspend fun awaitRunning\(timeoutMs: Long\): Boolean/.test(SRC.runtime), "DshRuntime 有「等 DSH 真的在跑」");
-ok(/HarnessService\.start\(ctx\)/.test(SRC.engine) && /awaitRunning\(node\.timeoutMs\)/.test(SRC.engine),
+// 拉起与等待已改走 RuntimeSeam（扩展不能直接依赖 :app 的 HarnessService）。
+ok(/(?:HarnessService|SeamRegistry\.runtime\(\))\.start\(ctx\)/.test(SRC.engine) &&
+  /awaitRunning\(node\.timeoutMs\)/.test(SRC.engine),
   "trigger 会自主拉起 DSH 并等待（未启动 DSH 时先阻塞启动）");
 ok(/hasFalse/.test(SRC.engine) && /dsh_unavailable/.test(SRC.engine),
   "起不来时走 false 分支（可条件判断进入其它流程）或判失败");
@@ -256,7 +260,7 @@ ok(/WorkflowStore\.saveRun\(ctx, run\)/.test(SRC.engine) && /appendLog\(ctx, run
 ok(/fun reconcileInterrupted\(ctx: Context\)/.test(SRC.store) && /WorkflowStore\.reconcileInterrupted/.test(SRC.bridge),
   "重启后把挂着的运行标成 INTERRUPTED（不谎报 running）");
 ok(/fun cancel\(ctx: Context, runId: String, reason: String\): Boolean/.test(SRC.engine), "取消是显式的");
-ok(/HarnessService\.hold\(/.test(SRC.engine) && /ACTION_HOLD/.test(SRC.engineHarness),
+ok(/(?:HarnessService|SeamRegistry\.runtime\(\))\.hold\(/.test(SRC.engine) && /ACTION_HOLD/.test(SRC.engineHarness),
   "长流程用前台服务钉住进程，且不顺带启动容器");
 ok(/fromHold -> false/.test(SRC.engineHarness), "HOLD 不会拉起容器（纯 shell 工作流不该拖起一整套 DSH）");
 {
@@ -264,7 +268,9 @@ ok(/fromHold -> false/.test(SRC.engineHarness), "HOLD 不会拉起容器（纯 s
   ok(line !== null, "容器侧 dsh-workflow CLI 存在");
   const body = line ? line[1] : "";
   ok(!/[^\x00-\x7F]/.test(body), "CLI 字面量纯 ASCII（既有 check-native-cli 的规矩）");
-  ok(/"dsh-workflow" to WORKFLOW_CLI_SCRIPT/.test(SRC.runtime), "CLI 被写进 /usr/local/bin");
+  // CLI 字面量在 DshRuntimeScripts，写入点在 DshRuntimeInstall（拆分后不在同一个文件）。
+  ok(/"dsh-workflow" to (?:DshRuntime\.)?WORKFLOW_CLI_SCRIPT/.test(SRC.runtime + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt")),
+    "CLI 被写进 /usr/local/bin");
   ok(/--reason is required/.test(body), "CLI 强制 --reason（与端点一致）");
   ok(/\/workflow\/status/.test(body) && /\/workflow\/cancel/.test(body), "CLI 覆盖状态与取消");
 }
@@ -418,7 +424,10 @@ ok(!/workflowDraftDir|saveDraft|loadDraft|clearDraft/.test(SRC.store + read("app
       // 自己声明的符号不用导入（用 includes 而不是正则：这里已经有三层转义，正则太容易写错）
       const declared = text.includes("fun " + sym) || text.includes("class " + sym) ||
         text.includes("object " + sym) || text.includes("val " + sym);
-      return !declared && !text.includes("import me.bmax.apatch.dsh." + sym);
+      // Workflow* 已迁 :ext-workflow（收口轮），包名是 me.bmax.apatch.dsh.workflow。
+      // 两种包名都算导入：迁移期两侧共存，不该为了门禁把代码改回去。
+      return !declared && !text.includes("import me.bmax.apatch.dsh." + sym) &&
+        !text.includes("import me.bmax.apatch.dsh.workflow." + sym);
     });
     ok(missing.length === 0, name + " 用到的 dsh 符号都导入了" + (missing.length ? "，缺 " + missing.join(",") : ""));
     // dsh_strings.xml 已迁到 :core-res，引用写成 CoreR.string.*，对应
@@ -536,11 +545,11 @@ console.log("\u2500 #16b 引脚展示模型（阶段 1：纯加法，不改落�
 {
   // 引脚是**展示层**：枚举 + 规格 + 按类型推导。它们不参与落盘、不改变校验与执行 ——
   // 这条断言组的作用就是钉住「它只是加法」：既要有，也不能偷偷进到 JSON 里。
-  ok(/internal enum class WorkflowPinKind/.test(SRC.models), "有 WorkflowPinKind");
+  ok(/(?:internal |public )?enum class WorkflowPinKind/.test(SRC.models), "有 WorkflowPinKind");
   for (const kind of ["EXEC_IN", "EXEC_OUT", "EXEC_TRUE", "EXEC_FALSE", "DATA_IN", "DATA_OUT"]) {
     ok(new RegExp(`\\b${kind}\\b`).test(SRC.models), `引脚种类含 ${kind}`);
   }
-  ok(/internal data class WorkflowPinSpec\(/.test(SRC.models) &&
+  ok(/(?:internal |public )?data class WorkflowPinSpec\(/.test(SRC.models) &&
     /val dataType: String = "string"/.test(SRC.models) &&
     /val defaultValue: String = ""/.test(SRC.models),
     "WorkflowPinSpec 的两个新字段都有默认值（旧构造点不用改）");
@@ -1433,7 +1442,10 @@ console.log("\u2500 #16u 解压进度（Issue #12 用户反馈：安装像卡死
 console.log("\u2500 #16v chroot 启动方式（真 root，实验性）");
 {
   const rt = read("app/src/main/java/me/bmax/apatch/dsh/ContainerRuntime.kt");
-  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  // proot 相关实现已拆到 DshExec.kt（DshRuntime 只留薄壳），两处都要读。
+  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshExec.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt");
   const fs2 = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   ok(/class Chroot\(private val ctx: Context\) : ContainerRuntime/.test(rt), '有 Chroot 运行时实现');
   ok(/override fun id\(\) = "chroot"/.test(rt), 'id 是 chroot');
@@ -1477,7 +1489,10 @@ console.log("\u2500 #16w chroot 的 su 路径探测与三处回退（真机反�
 {
   const ps = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   const rt = read("app/src/main/java/me/bmax/apatch/dsh/ContainerRuntime.kt");
-  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  // proot 相关实现已拆到 DshExec.kt（DshRuntime 只留薄壳），两处都要读。
+  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshExec.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt");
   // 真机日志：`/system/bin/sh: su: inaccessible or not found` —— 写死 su 必然失败
   ok(/fun resolveSuPath\(ctx: Context\): String\?/.test(ps), '有 su 路径探测');
   ok(/\/debug_ramdisk\/su/.test(ps) && /\/data\/adb\/ksu\/bin\/su/.test(ps),
@@ -1498,7 +1513,10 @@ console.log("\u2500 #16w chroot 的 su 路径探测与三处回退（真机反�
 
 console.log("\u2500 #16x proot 的 NEEDED 依赖必须无条件就位（真机回归）");
 {
-  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  // proot 相关实现已拆到 DshExec.kt（DshRuntime 只留薄壳），两处都要读。
+  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshExec.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt");
   // 背景（OnePlus PLQ110 / Android 17 / beta.212 真机）：
   //   CANNOT LINK EXECUTABLE \".../lib/libproot.so\": library \"libtalloc.so.2\" not found
   // 根因：ensureRuntimeFiles() 曾按「当前选中的运行时」跳过复制，而 prootBaseArgv() 是全局
@@ -1514,13 +1532,16 @@ console.log("\u2500 #16x proot 的 NEEDED 依赖必须无条件就位（真机�
   ok(!/if \(effectiveRuntimeId\(\) != "proot"\) return/.test(body),
     '也没有换成用 effectiveRuntimeId 跳过（同一个坑的另一种写法）');
   // 兜底入口必须存在，否则这个不变量没有理由
-  ok(/private fun prootBaseArgv\(\): MutableList<String>/.test(dr), 'proot 全局兜底入口仍在');
+  ok(/(?:private |internal )?fun prootBaseArgv\(\): MutableList<String>/.test(dr), 'proot 全局兜底入口仍在');
 }
 
 console.log("\u2500 #16y chroot 启动脚本不得双层转义 + proot 前提无条件就位（issue #12）");
 {
   const rt = read("app/src/main/java/me/bmax/apatch/dsh/ContainerRuntime.kt");
-  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  // proot 相关实现已拆到 DshExec.kt（DshRuntime 只留薄壳），两处都要读。
+  const dr = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshExec.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt");
   // ── 启动脚本：guest argv 逐项传参（「双层转义」那套归因是误判，真凶见 #16z） ──
   // 语义断言：脚本必须把位置参数摊开成 "$@"。
   // 不去精确匹配转义后的字面量 —— 那样会随 raw string / 普通字符串的写法变化，
@@ -1675,7 +1696,8 @@ console.log("\u2500 #17 用户自己也能建/改流程");
   // 下次读盘时被自己的校验丢掉了。用户看到的是「保存后流程消失」，
   // 但文件其实好好躺在磁盘上。
   const dfj = (() => {
-    const at = SRC.models.indexOf("internal fun definitionFromJson(o: JSONObject)");
+    // 可见性已放宽到 public（:app 与 :ext-workflow 跨模块调用），断言不该钉死 internal。
+    const at = SRC.models.search(/(?:internal |public )?fun definitionFromJson\(o: JSONObject\)/);
     const end = SRC.models.indexOf("\n}", at);
     return at >= 0 && end > at ? SRC.models.slice(at, end) : "";
   })();
@@ -1763,7 +1785,14 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
     }
     return acc;
   };
-  const ktFiles = walkKt("app/src/main/java", []);
+  // 扫全部源码模块：WorkflowActionCatalog / WorkflowCompute 已迁 :ext-workflow（收口轮）。
+  // 只扫 :app 会让 byName() 拿到 undefined，然后 read() 抛异常 —— 而异常发生在断言之外，
+  // 表现是「门禁崩了」而不是「断言失败」，更难查。
+  const ktFiles = [
+    "app/src/main/java", "core-kernel/src/main/java", "ext-api/src/main/java",
+    "ext-workflow/src/main/java", "ext-display/src/main/java", "ext-backup/src/main/java",
+    "ext-userscripts/src/main/java", "ext-device-caps/src/main/java", "ext-theme-media/src/main/java",
+  ].flatMap((d) => walkKt(d, []));
   const byName = (n) => read(ktFiles.find((f) => f.endsWith("/" + n)));
   const catalogSrc = byName("WorkflowActionCatalog.kt");
   const computeSrc = byName("WorkflowCompute.kt");
@@ -2012,8 +2041,10 @@ async function checkCli() {
   const missingCap = capsDecl.filter((c) => !new RegExp("\\n\\s*" + c + '\\(\\"').test(bridge));
   ok(missingCap.length === 0, "动作目录引用了不存在的 Cap：" + missingCap.join(", "));
   // 引擎必须真的把 NATIVE 走到桥，而不是当 shell 跑
-  const engine = read("app/src/main/java/me/bmax/apatch/dsh/WorkflowEngine.kt");
-  ok(/WorkflowActionType\.NATIVE ->/.test(engine) && /DshNativeBridge\.handle\(ctx, spec\.method, spec\.path/.test(engine),
+  const engine = SRC.engine;
+  // handle 调用已改走 NativeBridgeSeam（扩展不能依赖 :app 的桥），语义不变。
+  ok(/WorkflowActionType\.NATIVE ->/.test(engine) &&
+    /(?:DshNativeBridge|SeamRegistry\.nativeBridge\(\))\.handle\(ctx, spec\.method, spec\.path/.test(engine),
     "引擎没有把原生动作真的走一遍桥（NATIVE 分支缺失或绕成 shell）");
   // 校验器必须认 bridge 动作，否则写错的 id 会一直到运行时才报
   const validator = read("app/src/main/java/me/bmax/apatch/dsh/WorkflowValidator.kt");
@@ -2422,7 +2453,7 @@ console.log("\u2500 #16n 流程内变量（定义期声明 → 运行期种入�
 
   // 变量分两层：定义里是「声明」，运行记录里是「这一次的取值」。
   // 合在一起会让「改变量初值」污染历史运行记录。
-  ok(/internal data class WorkflowDefinition\([\s\S]{0,900}?val variables: Map<String, String>/.test(models),
+  ok(/(?:internal |public )?data class WorkflowDefinition\([\s\S]{0,900}?val variables: Map<String, String>/.test(models),
     "定义层有 variables（声明，跟流程一起存盘）");
   ok(/\.apply \{ if \(variables\.isNotEmpty\(\)\) put\(\"variables\"/.test(models),
     "变量会写进定义 JSON");
