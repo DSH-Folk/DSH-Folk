@@ -317,12 +317,8 @@ object DshRuntime : DshRuntimeHost {
 
     override fun prefs() = appContext.getSharedPreferences(DshEnv.PREF, Context.MODE_PRIVATE)
 
-    fun port(): Int {
-        if (!ready) return DshEnv.DEFAULT_PORT
-        return prefs().getInt(DshEnv.KEY_PORT, DshEnv.DEFAULT_PORT).let {
-            if (it in 1..65535) it else DshEnv.DEFAULT_PORT
-        }
-    }
+    /** 见 [DshKernelState.port]（下沉到 :core-kernel，:ext-* 也要用）。 */
+    fun port(): Int = DshKernelState.port()
 
     /** 当前 WebUI 地址（带认证 token，若已从 dsh 输出里捕获到）。 */
     fun webUrl(): String = _state.value.webUrl

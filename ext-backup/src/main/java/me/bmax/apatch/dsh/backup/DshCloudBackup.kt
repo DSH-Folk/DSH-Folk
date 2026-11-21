@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import me.bmax.apatch.dsh.DshKernelState
 
 /**
  * 云备份插件 `dsh-folk-cloud` 的 App 侧客户端。
@@ -204,7 +205,7 @@ object DshCloudBackup {
         )
     }
 
-    private fun base(): String = "http://127.0.0.1:${DshRuntime.port()}$BASE"
+    private fun base(): String = "http://127.0.0.1:${DshKernelState.port()}$BASE"
 
     private fun request(method: String, path: String, body: String?, timeoutMs: Int): String? =
         runCatching {

@@ -65,6 +65,23 @@ object DshKernelState {
      * 别的名字，结果读的是另一份空文件，迁移记录写了下次启动看不见，每版重跑。
      * 这里统一走 DshEnv.PREF（与 DshRuntime.prefs() 同一个常量）。
      */
+    /**
+     * 当前 WebUI 端口。
+     *
+     * 放这里而不是 DshRuntime：:ext-backup / :ext-display 都要拼
+     * `http://127.0.0.1:<port>/...` 去访问容器内的 dsh 服务，而 DshRuntime 在 :app
+     * 它们够不着。端口存在 prefs 里、只依赖 appContext，本来就不该待在 :app。
+     *
+     * 越界值（0 / 负数 / >65535）回落到默认端口 —— prefs 是用户可改的文本，
+     * 存进一个非法值时应该能用默认值继续跑，而不是让整个 WebUI 打不开。
+     */
+    fun port(): Int {
+        if (!ready) return DshEnv.DEFAULT_PORT
+        return prefs().getInt(DshEnv.KEY_PORT, DshEnv.DEFAULT_PORT).let {
+            if (it in 1..65535) it else DshEnv.DEFAULT_PORT
+        }
+    }
+
     fun prefs(): android.content.SharedPreferences =
         appContext.getSharedPreferences(DshEnv.PREF, android.content.Context.MODE_PRIVATE)
 

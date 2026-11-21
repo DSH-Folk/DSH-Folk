@@ -79,6 +79,9 @@ dependencies {
     implementation(libs.androidx.webkit)
     // OverlayLifecycleOwner 要用 LifecycleRegistry（:ext-display 的投屏浮层靠它）。
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    // OverlayLifecycleOwner 实现 SavedStateRegistryOwner（投屏浮层的 Compose 树需要）。
+    implementation(libs.androidx.savedstate)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.com.github.topjohnwu.libsu.core)
     implementation(libs.com.github.topjohnwu.libsu.service)

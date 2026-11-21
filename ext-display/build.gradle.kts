@@ -60,6 +60,12 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.coroutines.core)
+    // 投屏浮层的控制条用 Icons.Filled.* / Icons.Outlined.*（material3 只带一小部分）。
+    implementation(libs.androidx.compose.material.icons.extended)
+    // setViewTreeLifecycleOwner / setViewTreeViewModelStoreOwner / toBitmap 来自这几个。
+    // 之前能编过是靠 :app 的传递依赖，迁进独立模块后必须显式声明。
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.savedstate)
 
     // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
     // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。
