@@ -71,7 +71,7 @@ object DshKernelState {
     /**
      * 引导/重启/重装共用的串行锁：三者都会动 rootfs 与服务进程。
      *
-     * 放在共享状态里而不是各职责类各持一份 —— 两份锁等于没有锁，
+     * 放共享状态里而不是各职责类各持一份 —— 两份锁等于没有锁，
      * 两条路径仍会同时动 rootfs。
      */
     val bootMutex = kotlinx.coroutines.sync.Mutex()

@@ -175,9 +175,8 @@ console.log("\n── flavor 一路从 metadata 到模型 ──");
   // 2026-11：两处构造收成一个 entryOf()，所以「带上 flavor」只剩一处，但两条路径
   // （API 列表 + 滚动通道补拉）都必须经过它。
   ok((RUNTIME.match(/flavor = meta\.flavor,/g) || []).length === 1 &&
-     /(?:private )?fun entryOf\(tag: String, published: String, meta: DshMeta\)/.test(RUNTIME) &&
-     // withLock 里调用私有成员要加 this@ 限定，断言两种写法都认。
-     (RUNTIME.match(/(?:self\.)?keep\((?:self\.)?entryOf\(/g) || []).length === 2,
+     /(?:internal )?fun entryOf\(tag: String, published: String, meta: DshMeta\)/.test(RUNTIME) &&
+     (RUNTIME.match(/(?:DshRuntimeInstall\.)?keep\((?:DshRuntimeInstall\.)?entryOf\(/g) || []).length === 2,
     "两条路径（API 列表 + 滚动通道补拉）都经同一个构造，flavor 不会漏");
   ok(/flavor = flavorOf\(this\),/.test(RUNTIME),
     "toMeta() 带上算好的 flavor（否则切版本又退回按 tag 猜）");
@@ -302,7 +301,7 @@ console.log("\n── README（用户看到的说明） ──");
     // 这两个对象已下沉 :core-kernel 并放宽为 public + @InternalKernelApi
     ok(/(?:internal |@InternalKernelApi\s*\n)object DshRuntimeEnv/.test(env) && /(?:internal |@InternalKernelApi\s*\n)object DshRuntimeFiles/.test(wf),
       "DNS 落地与「内容变了才写」已抽成同包对象");
-    // Context 走 DshKernelState（拆解后共享），断言两种写法都认。
+    // Context 走 DshKernelState（拆解后共享）。
     ok(/= DshRuntimeEnv\.setupResolvConf\((?:K\.)?appContext\)/.test(rt) &&
       /= DshRuntimeEnv\.ensureDns\((?:K\.)?appContext\)/.test(rt),
       "DshRuntime 只留同名私有壳（调用点零改动）");

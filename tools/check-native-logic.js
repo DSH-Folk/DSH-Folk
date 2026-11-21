@@ -278,7 +278,6 @@ const freshOld = simulate({ preseeded: false, builtinFrom: 99, fixed: true, star
 eq(freshOld.pnpmInstalls, 4, "全新安装在没有内置的运行时上：四个都装");
 
 // 结构断言：这类「决策分散在多处」的 bug 靠模拟只能盖住已想到的组合
-// seedPlugins 已放宽为 internal（DshRuntimeInstall 要调它）。
 const seedBody = SRC.rt.slice(SRC.rt.indexOf("suspend fun seedPlugins"), SRC.rt.indexOf("fun applySeedRepair"));
 ok(!/attempted\.addAll\(\s*shadowed|attempted\.addAll\(\s*mappedShadowed/.test(seedBody),
   "【上游已内置】不能写进 attempted（写进去就会被补修逻辑当成失败项重装）");
@@ -362,7 +361,7 @@ try {
 const seedForPrune = SRC.rt.slice(SRC.rt.indexOf("suspend fun seedPlugins"), SRC.rt.indexOf("fun applySeedRepair"));
 ok(seedForPrune.includes("pruneUnresolvableBundles(managedSeedPackages())"),
   "启动前先清理声明残留（不让用户先看一轮「服务进程已退出」）");
-ok(/(?:private )?fun managedSeedPackages\(\)[\s\S]{0,120}SEED_PLUGINS \+ RETIRED_SEED_PLUGINS\.keys/.test(SRC.rt),
+ok(/(?:private |internal )?fun managedSeedPackages\(\)[\s\S]{0,120}SEED_PLUGINS \+ RETIRED_SEED_PLUGINS\.keys/.test(SRC.rt),
   "清理范围 = 在装的 + 退役的（退役包声明残留同样会让 dsh 拒绝启动）");
 const startBody = SRC.rt.slice(SRC.rt.indexOf("suspend fun startAndAwait"), SRC.rt.indexOf("suspend fun repairUnresolvableBundles"));
 ok(startBody.includes("repairUnresolvableBundles()"), "启动失败后也会尝试清理并重试一次");

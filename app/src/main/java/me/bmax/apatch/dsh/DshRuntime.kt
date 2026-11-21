@@ -1219,44 +1219,36 @@ object DshRuntime : DshRuntimeHost {
     fun allowProfileBuilds(packages: List<String>, onLine: (String) -> Unit = {}): List<String> =
         DshRuntimeInstall.allowProfileBuilds(packages, onLine)
 
-    // 下面这几个原本是 private，现在被 DshRuntimeInstall 调用，放宽为 internal。
+    // 下面这些原本是本 object 的 private 函数，现在被 DshRuntimeInstall 调用，放宽为 internal。
 
-    /** 引导流程的收尾（安装完启动）。 */
     internal suspend fun startAndAwaitForInstall() = startAndAwait()
 
-    /** 安装前查端口占用。 */
     internal fun checkPortConflictForInstall(): Boolean = checkPortConflict()
 
-    /** 安装完补种内置插件。 */
     internal suspend fun seedPluginsForInstall() = seedPlugins()
 
-    /** 原生疑难解答文档正文（写进容器）。 */
     internal fun nativeTroubleshootDocForInstall(): String = nativeTroubleshootDoc()
 
-    /** pnpm 导入方式那一行日志。 */
-    internal fun pnpmImportMethodLineForInstall(): String = pnpmImportMethodLine()
+    internal fun pnpmImportMethodLineForInstall(): String = DshRuntimeInstall.pnpmImportMethodLine()
 
-    // 下面这些原本是本 object 的 private 函数，随 [DshRuntimeInstall] 迁走了。
-    // 本 object 内部还有调用点（引导流程、日志、设置页），这里补同名转发。
+    // 引导流程内部还有调用点（setupResolvConf 等），转回新实现。
+    private fun setupResolvConf() = DshRuntimeInstall.setupResolvConf()
 
-    private fun setupResolvConf() = DshRuntimeInstall.setupResolvConfFor(this)
+    private fun ensureContainerDns() = DshRuntimeInstall.ensureContainerDns()
 
-    private fun ensureContainerDns() = DshRuntimeInstall.ensureContainerDnsFor(this)
+    private fun ensureContainerGroups() = DshRuntimeInstall.ensureContainerGroups()
 
-    private fun ensureContainerGroups() = DshRuntimeInstall.ensureContainerGroupsFor(this)
+    private fun ensureProfilePnpmSettings() = DshRuntimeInstall.ensureProfilePnpmSettings()
 
-    private fun ensureProfilePnpmSettings() = DshRuntimeInstall.ensureProfilePnpmSettingsFor(this)
+    private fun removeLegacyNpmrcImportLine() = DshRuntimeInstall.removeLegacyNpmrcImportLine()
 
-    private fun removeLegacyNpmrcImportLine() = DshRuntimeInstall.removeLegacyNpmrcImportLineFor(this)
+    private fun pnpmImportMethodLine(): String = DshRuntimeInstall.pnpmImportMethodLine()
 
-    private fun pnpmImportMethodLine(): String = DshRuntimeInstall.pnpmImportMethodLineFor(this)
+    private fun pnpmInstalled(): Boolean = DshRuntimeInstall.pnpmInstalled()
 
-    private fun pnpmInstalled(): Boolean = DshRuntimeInstall.pnpmInstalledFor(this)
+    private fun ensureFsBridgeCli() = DshRuntimeInstall.ensureFsBridgeCli()
 
-    private fun ensureFsBridgeCli() = DshRuntimeInstall.ensureFsBridgeCliFor(this)
-
-    private fun startFsBridge() = DshRuntimeInstall.startFsBridgeFor(this)
-
+    private fun startFsBridge() = DshRuntimeInstall.startFsBridge()
 
     // ────────────────────────── web 服务 ──────────────────────────
 
