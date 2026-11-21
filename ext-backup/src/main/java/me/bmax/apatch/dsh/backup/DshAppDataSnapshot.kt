@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.backup
 
 import android.content.Context
 import java.io.BufferedOutputStream
@@ -10,6 +10,7 @@ import java.util.zip.ZipOutputStream
 import org.json.JSONObject
 import me.bmax.apatch.dsh.backup.DshBackupArchive
 import me.bmax.apatch.dsh.backup.DshAppData
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
 
 /**
  * 软件设置的本地快照（「恢复快照」能不能把设置也退回去的关键）。
@@ -124,7 +125,7 @@ object DshAppDataSnapshot {
                 runCatching {
                     tmp.delete()
                     tmp.writeBytes(themeBytes)
-                    me.bmax.apatch.ui.theme.ThemeManager.importTheme(ctx, android.net.Uri.fromFile(tmp))
+                    SeamRegistry.themeBackup().importTheme(ctx, android.net.Uri.fromFile(tmp))
                 }
                 tmp.delete()
             }

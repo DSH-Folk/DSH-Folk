@@ -7,6 +7,7 @@ import org.json.JSONObject
 import java.io.File
 import me.bmax.apatch.dsh.backup.DshBackupArchive
 import me.bmax.apatch.dsh.DshEnv
+import me.bmax.apatch.dsh.KernelEnv
 
 /**
  * 「软件数据」——App 自己的设置与原生权限记录。

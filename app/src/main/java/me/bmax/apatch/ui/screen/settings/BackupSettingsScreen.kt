@@ -53,7 +53,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
 import me.bmax.apatch.dsh.backup.DshConfigBackup
-import me.bmax.apatch.dsh.DshAppDataSnapshot
+import me.bmax.apatch.dsh.backup.DshAppDataSnapshot
 import me.bmax.apatch.dsh.DshPluginRepo
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.DshPhase

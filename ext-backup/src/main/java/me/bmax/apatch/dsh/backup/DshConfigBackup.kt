@@ -29,6 +29,7 @@ import me.bmax.apatch.dsh.backup.DshBackupArchive
 import me.bmax.apatch.dsh.ext.seam.SeamRegistry
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.backup.DshAppData
+import me.bmax.apatch.dsh.DshKernelState
 
 /**
  * DSH 配置备份 / 迁移。
@@ -2318,7 +2319,7 @@ object DshConfigBackup {
 
     // ───────────────────────────── HTTP ─────────────────────────────
 
-    private fun base(): String = "http://127.0.0.1:${DshRuntime.port()}$BASE"
+    private fun base(): String = "http://127.0.0.1:${DshKernelState.port()}$BASE"
 
     private fun request(
         method: String,

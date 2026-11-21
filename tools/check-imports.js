@@ -93,7 +93,11 @@ const KNOWN = {
   FontFamily: 'androidx.compose.ui.text.font.FontFamily',
   FontWeight: 'androidx.compose.ui.text.font.FontWeight',
   // 本项目里经常忘了 import 的对象
-  DshAppDataSnapshot: 'me.bmax.apatch.dsh.DshAppDataSnapshot',
+  DshAppDataSnapshot: 'me.bmax.apatch.dsh.backup.DshAppDataSnapshot',
+  DshConfigBackup: 'me.bmax.apatch.dsh.backup.DshConfigBackup',
+  DshAppData: 'me.bmax.apatch.dsh.backup.DshAppData',
+  BackupLogManager: 'me.bmax.apatch.dsh.BackupLogManager',
+  getSafeDownloadsDir: 'me.bmax.apatch.dsh.getSafeDownloadsDir',
   DshImportWizard: 'me.bmax.apatch.dsh.DshImportWizard',
   // 已迁 :ext-backup（Checkpoint 3）。
   DshBackupArchive: 'me.bmax.apatch.dsh.backup.DshBackupArchive',

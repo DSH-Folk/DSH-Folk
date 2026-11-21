@@ -38,6 +38,8 @@ const ROOT = path.resolve(__dirname, "..");
  * 重构每搬一个文件，在这里加一行。这是**唯一**需要跟着改动的地方。
  */
 const MOVED = {
+  "app/src/main/java/me/bmax/apatch/dsh/DshAppDataSnapshot.kt":
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshAppDataSnapshot.kt",
   // 收口轮续：备份管线整文件迁入 :ext-backup（Theme 依赖改走 ThemeBackupSeam）。
   "app/src/main/java/me/bmax/apatch/dsh/DshConfigBackup.kt":
     "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshConfigBackup.kt",
