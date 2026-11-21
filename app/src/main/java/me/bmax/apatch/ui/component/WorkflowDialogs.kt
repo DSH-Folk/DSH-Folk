@@ -89,6 +89,11 @@ import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowApprovals
 import me.bmax.apatch.dsh.workflow.WorkflowCompute
 import me.bmax.apatch.dsh.workflow.WorkflowValidator
+import me.bmax.apatch.dsh.workflow.WorkflowActionType
+import me.bmax.apatch.dsh.workflow.WorkflowDefinition
+import me.bmax.apatch.dsh.workflow.WorkflowNode
+import me.bmax.apatch.dsh.workflow.WorkflowNodeType
+import me.bmax.apatch.dsh.workflow.WorkflowSchema
 
 /**
  * 工作流的两个弹窗 + 编辑页。

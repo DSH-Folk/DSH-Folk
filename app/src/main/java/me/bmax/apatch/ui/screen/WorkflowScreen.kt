@@ -82,6 +82,9 @@ import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowApprovals
 import me.bmax.apatch.dsh.workflow.WorkflowStore
 import me.bmax.apatch.dsh.workflow.WorkflowValidator
+import me.bmax.apatch.dsh.workflow.WorkflowDefinition
+import me.bmax.apatch.dsh.workflow.WorkflowRun
+import me.bmax.apatch.dsh.workflow.WorkflowRunState
 
 /**
  * 设置 → 功能 → 自动化工作流。

@@ -21,6 +21,17 @@ import me.bmax.apatch.dsh.workflow.WorkflowGrants
 import me.bmax.apatch.dsh.workflow.WorkflowStore
 import me.bmax.apatch.dsh.workflow.WorkflowValidator
 import me.bmax.apatch.dsh.workflow.WorkflowActionCatalog
+import me.bmax.apatch.dsh.workflow.WorkflowActionType
+import me.bmax.apatch.dsh.workflow.WorkflowDefinition
+import me.bmax.apatch.dsh.workflow.WorkflowNode
+import me.bmax.apatch.dsh.workflow.WorkflowNodeType
+import me.bmax.apatch.dsh.workflow.WorkflowOnError
+import me.bmax.apatch.dsh.workflow.WorkflowPatch
+import me.bmax.apatch.dsh.workflow.WorkflowRun
+import me.bmax.apatch.dsh.workflow.WorkflowRunState
+import me.bmax.apatch.dsh.workflow.WorkflowSchema
+import me.bmax.apatch.dsh.workflow.WorkflowStepResult
+import me.bmax.apatch.dsh.workflow.WorkflowStepState
 
 /**
  * 工作流执行引擎：宿主 App 侧的顺序执行器。

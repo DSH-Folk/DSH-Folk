@@ -108,6 +108,16 @@ import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowCompute
 import me.bmax.apatch.dsh.workflow.WorkflowValidator
 import me.bmax.apatch.dsh.workflow.WorkflowActionCatalog
+import me.bmax.apatch.dsh.workflow.WorkflowActionType
+import me.bmax.apatch.dsh.workflow.WorkflowDefinition
+import me.bmax.apatch.dsh.workflow.WorkflowEdge
+import me.bmax.apatch.dsh.workflow.WorkflowExpandType
+import me.bmax.apatch.dsh.workflow.WorkflowNode
+import me.bmax.apatch.dsh.workflow.WorkflowNodeType
+import me.bmax.apatch.dsh.workflow.WorkflowPatch
+import me.bmax.apatch.dsh.workflow.WorkflowPinKind
+import me.bmax.apatch.dsh.workflow.WorkflowPinSpec
+import me.bmax.apatch.dsh.workflow.WorkflowSchema
 
 /** 自动保存的可见状态。 */
 private enum class SaveState { IDLE, SAVING, SAVED, FAILED }

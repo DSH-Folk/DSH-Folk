@@ -41,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowGrants
 
 /**
  * 原生能力桥：容器内的 agent 通过 `/native/` 下的全部端点 让**宿主 App 代它**做只有 Android 侧

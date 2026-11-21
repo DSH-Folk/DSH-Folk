@@ -27,7 +27,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, "..");
 /** 被扫描（会报错）的模块。 */
-const MODULES = ["core-kernel", "core-res", "ext-api", "ext-workflow", "ext-display",
+const MODULES = ["app", "core-kernel", "core-res", "ext-api", "ext-workflow", "ext-display",
   "ext-userscripts", "ext-backup", "ext-device-caps", "ext-theme-media"];
 
 /**
@@ -36,7 +36,7 @@ const MODULES = ["core-kernel", "core-res", "ext-api", "ext-workflow", "ext-disp
  * :app 必须在这里 —— 否则「:ext-* 用了 :app 的 APApplication」这类越界
  * 会因为索引里查不到 APApplication 而被当成「平台类」跳过。这是变异测试抓到的漏洞。
  */
-const INDEX_ONLY = ["app"];
+const INDEX_ONLY = [];
 
 /** 剥掉注释与字符串字面量：否则 KDoc 里提到的类名会被当成真实引用。 */
 function strip(src) {
@@ -92,12 +92,22 @@ const pkgOf = (src) => (src.match(/^package\s+([\w.]+)/m) || [, ""])[1];
 // ── 建索引：符号名 → [{module, file, pkg}] ──
 const index = new Map();
 const moduleFiles = new Map();
+/** 缓存：文件路径 → {src, defs, pkg}。原来每个文件都要重读整个模块求同包定义，是 O(n²)。 */
+const cache = new Map();
+function infoOf(f) {
+  if (cache.has(f)) return cache.get(f);
+  const src = strip(fs.readFileSync(f, "utf8"));
+  const info = { src, defs: defsOf(src), pkg: pkgOf(src) };
+  cache.set(f, info);
+  return info;
+}
+
 for (const mod of [...MODULES, ...INDEX_ONLY]) {
   const files = walk(path.join(ROOT, mod, "src", "main", "java"));
   moduleFiles.set(mod, files);
   for (const f of files) {
-    const src = strip(fs.readFileSync(f, "utf8"));
-    for (const name of defsOf(src)) {
+    const { src, defs, pkg } = infoOf(f);
+    for (const name of defs) {
       // 只索引「大写开头且不是全大写」的名字：类型、object、伴生常量。
       //
       // 排除两类：
@@ -109,7 +119,7 @@ for (const mod of [...MODULES, ...INDEX_ONLY]) {
       // APApplication、IDshShellService 这类连续大写的驼峰名。
       if (!/^[A-Z]/.test(name) || name === name.toUpperCase()) continue;
       if (!index.has(name)) index.set(name, []);
-      index.get(name).push({ module: mod, file: f, pkg: pkgOf(src) });
+      index.get(name).push({ module: mod, file: f, pkg });
     }
   }
 }
@@ -158,18 +168,15 @@ const report = [];
 
 for (const mod of MODULES) {
   for (const f of moduleFiles.get(mod)) {
-    const raw = fs.readFileSync(f, "utf8");
-    const src = strip(raw);
-    const ownPkg = pkgOf(src);
-    const defs = defsOf(src);
+    const { src, defs, pkg: ownPkg } = infoOf(f);
     const imps = importsOf(src);
     // 同包内其它文件的定义（Kotlin 同包免 import）
     const samePkg = new Set();
     for (const g of moduleFiles.get(mod)) {
       if (g === f) continue;
-      const gsrc = strip(fs.readFileSync(g, "utf8"));
-      if (pkgOf(gsrc) !== ownPkg) continue;
-      for (const n of defsOf(gsrc)) samePkg.add(n);
+      const gi = infoOf(g);
+      if (gi.pkg !== ownPkg) continue;
+      for (const n of gi.defs) samePkg.add(n);
     }
     // 扫「首字母大写」的疑似类型引用（类型一定是大写开头）
     const used = new Set();

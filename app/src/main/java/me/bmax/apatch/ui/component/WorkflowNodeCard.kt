@@ -137,6 +137,14 @@ import me.bmax.apatch.dsh.WorkflowPinType
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowStepState
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowExpandType
+import me.bmax.apatch.dsh.workflow.WorkflowNode
+import me.bmax.apatch.dsh.workflow.WorkflowNodeType
+import me.bmax.apatch.dsh.workflow.WorkflowPinKind
+import me.bmax.apatch.dsh.workflow.WorkflowPinSpec
+import me.bmax.apatch.dsh.workflow.WorkflowPinType
+import me.bmax.apatch.dsh.workflow.WorkflowSchema
+import me.bmax.apatch.dsh.workflow.WorkflowStepState
 /** 卡片宽度：画布、自动布局、落点换算共用这一个值。 */
 internal val WorkflowNodeCardWidth = 280.dp
 

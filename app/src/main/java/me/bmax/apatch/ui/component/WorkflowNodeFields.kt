@@ -24,6 +24,11 @@ import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowCompute
 import me.bmax.apatch.dsh.workflow.WorkflowActionCatalog
+import me.bmax.apatch.dsh.workflow.WorkflowActionType
+import me.bmax.apatch.dsh.workflow.WorkflowNode
+import me.bmax.apatch.dsh.workflow.WorkflowNodeType
+import me.bmax.apatch.dsh.workflow.WorkflowOnError
+import me.bmax.apatch.dsh.workflow.WorkflowSchema
 
 /**
  * 节点参数的**字段表**：一张「这个类型有哪些键、各自长什么样」的声明。
