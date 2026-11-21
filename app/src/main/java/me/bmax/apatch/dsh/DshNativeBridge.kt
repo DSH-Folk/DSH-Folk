@@ -1021,7 +1021,7 @@ object DshNativeBridge {
         }
         val reach = PrivilegedShell.reach(ctx)
         val body = JSONObject()
-            .put("ok", outcome.note == null && outcome.exit == 0)
+            .put("ok", (run { val n = outcome.note; n }) == null && outcome.exit == 0)
             .put("exit", outcome.exit)
             .put("stdout", outcome.stdout)
             .put("stderr", outcome.stderr)
@@ -1033,11 +1033,13 @@ object DshNativeBridge {
         // 跑不成（通道没了 / 超时）与「跑了但退出码非零」是两件事：前者 agent 应当改策略，
         // 后者它应当去读 stderr。用状态码把它们分开。
         outcome.note?.let { body.put("reason", it) }
-        return if (outcome.note == null) {
+        // note 是跨模块属性，不能 smart cast，先取局部值。
+        val outcomeNote = outcome.note
+        return if (outcomeNote == null) {
             200 to body.toString()
         } else {
             val status = if (outcome.timedOut) 504 else 409
-            body.put("error", str(ctx, CoreR.string.dsh_native_err_shell_failed, privReasonText(ctx, outcome.note)))
+            body.put("error", str(ctx, CoreR.string.dsh_native_err_shell_failed, privReasonText(ctx, outcomeNote)))
             status to body.toString()
         }
     }

@@ -266,7 +266,11 @@ console.log("\n── 跨模块 smart cast ──");
   const kernelClassProps = new Map();
   for (const f of walkKt(MODULES["core-kernel"])) {
     const code = stripComments(fs.readFileSync(f, "utf8"));
-    for (const m of code.matchAll(/data class (\w+)\(([\s\S]*?)\n\)/g)) {
+    // 允许缩进：`object PrivilegedShell { data class ExecOutcome(...) }` 里的
+    // ExecOutcome 同样是跨模块类型。第一版只认顶格，漏掉了它 —— CI 报
+    // "Smart cast to 'String' is impossible, because 'note' is a public API
+    // property declared in different module"，4 处。
+    for (const m of code.matchAll(/^\s*data class (\w+)\(([\s\S]*?)\n\s*\)/gm)) {
       const props = new Set();
       for (const v of m[2].matchAll(/val (\w+)\s*:/g)) props.add(v[1]);
       kernelClassProps.set(m[1], props);

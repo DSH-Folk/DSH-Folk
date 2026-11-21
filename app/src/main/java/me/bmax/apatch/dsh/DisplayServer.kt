@@ -308,8 +308,11 @@ object DisplayServer {
                 val launch = launchCommand(pkg, freshToken)
                 val outcome = privileged(ctx, launch, asRoot = false, timeoutMs = 15_000L)
                     ?: return Result.failure(DisplayError("特权通道不可用，无法启动虚拟屏服务端"))
-                if (outcome.note != null) {
-                    return Result.failure(DisplayError("启动命令没跑成：${noteText(outcome.note)}"))
+                // note 是跨模块 public 属性（PrivilegedShell 已下沉 :core-kernel），
+                // Kotlin 不给它做 smart cast，先取局部值。
+                val outcomeNote = outcome.note
+                if (outcomeNote != null) {
+                    return Result.failure(DisplayError("启动命令没跑成：${noteText(outcomeNote)}"))
                 }
                 // 启动是后台化的，所以这里不该有非零退出码；有就说明 sh 自己就失败了
                 if (outcome.exit != 0) {
@@ -495,7 +498,8 @@ object DisplayServer {
             }
             val out = privileged(ctx, cmd, asRoot = false, timeoutMs = 20_000L)
                 ?: return "特权通道不可用，无法推送虚拟屏服务端"
-            if (out.note != null) return "推送服务端第 ${i + 1}/${chunks.size} 块失败：${noteText(out.note)}"
+            val outNote = out.note
+            if (outNote != null) return "推送服务端第 ${i + 1}/${chunks.size} 块失败：${noteText(outNote)}"
             if (out.exit != 0) {
                 val why = out.stderr.ifBlank { out.stdout }.trim().take(200)
                 return "推送服务端第 ${i + 1}/${chunks.size} 块失败：退出码 ${out.exit}${if (why.isEmpty()) "" else "（$why）"}"
@@ -505,7 +509,8 @@ object DisplayServer {
         val decode = "base64 -d ${shq(tmp)} > ${shq(JAR_PATH)} && rm -f ${shq(tmp)}"
         val dec = privileged(ctx, decode, asRoot = false, timeoutMs = 20_000L)
             ?: return "特权通道不可用，无法还原虚拟屏服务端"
-        if (dec.note != null) return "还原服务端失败：${noteText(dec.note)}"
+        val decNote = dec.note
+        if (decNote != null) return "还原服务端失败：${noteText(decNote)}"
         if (dec.exit != 0) {
             val why = dec.stderr.ifBlank { dec.stdout }.trim().take(200)
             return "还原服务端失败：退出码 ${dec.exit}（设备上可能没有 base64）${if (why.isEmpty()) "" else "：$why"}"
@@ -522,7 +527,8 @@ object DisplayServer {
     /** `sha256sum` 在 toybox 里有；输出形如 `<hash>  <path>`。 */
     private fun remoteSha256(ctx: Context, path: String): String? {
         val out = privileged(ctx, "sha256sum ${shq(path)} 2>/dev/null", asRoot = false, timeoutMs = 15_000L) ?: return null
-        if (out.note != null || out.exit != 0) return null
+        val stopNote = out.note
+        if (stopNote != null || out.exit != 0) return null
         return Regex("^([0-9a-fA-F]{64})").find(out.stdout.trim())?.groupValues?.get(1)
     }
 
@@ -633,14 +639,16 @@ object DisplayServer {
                 asRoot = false,
                 timeoutMs = 15_000L,
             )
-            if (outcome?.note != null) Log.w(TAG, "停止服务端时通道不可用：${outcome.note}")
+            val stopNote2 = outcome?.note
+            if (stopNote2 != null) Log.w(TAG, "停止服务端时通道不可用：${stopNote2}")
             unregisterReceiver(ctx)
         }
     }
 
     private fun processAlive(ctx: Context): Boolean {
         val out = privileged(ctx, "pgrep -f ${shq(PROC_PATTERN)} 2>/dev/null", asRoot = false, timeoutMs = 15_000L)
-        if (out == null || out.note != null) return false
+        val restoreNote = out?.note
+        if (out == null || restoreNote != null) return false
         return out.stdout.trim().lineSequence().any { it.trim().toIntOrNull() != null }
     }
 
