@@ -103,7 +103,8 @@ console.log("\n── 别把页面按住 ──");
 
 console.log("\n── 接线：状态在原生侧，装完回到同一套列表 ──");
 {
-  ok(/import me\.bmax\.apatch\.dsh\.ScriptMarket/.test(SCREEN) &&
+  // 包路径已变（ScriptMarket 迁 :ext-userscripts）。
+  ok(/import me\.bmax\.apatch\.dsh\.userscripts\.ScriptMarket/.test(SCREEN) &&
     /ScriptMarket\.search\(context, marketQuery\.trim\(\), next\)/.test(SCREEN),
     "界面调 search（原生 HTTP —— WebView 坏掉时这一页还能用）");
   // 用户：「确认脚本安装逻辑：先检测是否与已安装有同名，再读取版本询问用户确认升级/降级，
