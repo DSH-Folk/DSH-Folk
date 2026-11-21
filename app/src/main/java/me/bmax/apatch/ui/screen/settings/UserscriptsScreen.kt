@@ -58,8 +58,6 @@ import com.ramcosta.composedestinations.generated.destinations.ScriptMarketScree
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshEnv
-import me.bmax.apatch.dsh.Userscripts
-import me.bmax.apatch.dsh.WebScripts
 import me.bmax.apatch.ui.component.AddMenuEntry
 import me.bmax.apatch.ui.component.AddMenuFab
 import me.bmax.apatch.ui.component.ModuleLabel

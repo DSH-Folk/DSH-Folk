@@ -113,8 +113,6 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.A11yOwn
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshRuntime
-import me.bmax.apatch.dsh.Userscripts
-import me.bmax.apatch.dsh.WebScripts
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
 import me.bmax.apatch.ui.component.ElevationRequestDialogHost

@@ -51,8 +51,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.dsh.ScriptMarket
-import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.ui.component.ModuleLabel
 import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UserscriptInstallConfirmHost
