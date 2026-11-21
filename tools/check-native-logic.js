@@ -721,7 +721,8 @@ console.log("\n── 特权通道约束 ──");
   ok(/MAX_CHARS/.test(shizukuSvc) && /CappedLines/.test(shizukuSvc),
     "用户服务侧自己截断输出（binder 事务 1MB 上限）");
   ok(/destroyForcibly\(\)/.test(shizukuSvc), "超时由服务侧执行（binder 调用是同步的，应用侧放弃等待不会让命令停下）");
-  ok(/aidl/.test(fs.readdirSync("app/src/main").join(",")) , "AIDL 目录存在（user service 的接口就在这里）");
+  // AIDL 已随 Checkpoint 1 迁到 :core-kernel（sink 到内核层，:app 与容器侧共用同一份）。
+  ok(/aidl/.test(fs.readdirSync("core-kernel/src/main").join(",")) , "AIDL 目录存在（user service 的接口就在这里）");
 
   const bridge = SRC.bridge;
   ok(/"\/native\/shell" -> Cap\.SHELL/.test(bridge), "端点映射到 Cap.SHELL");
