@@ -2,6 +2,8 @@ package me.bmax.apatch.dsh
 
 import android.content.Context
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.StandardCharsets
 import org.json.JSONObject
 import kotlinx.coroutines.delay
@@ -246,17 +248,17 @@ object DshRuntimeInstall {
         K.scope.launch {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
-                clearSeedLedger()
+                DshRuntimeInstall.clearSeedLedger()
                 downloadAndInstall(preserveData, newest = true)
                 if (K.current.phase != DshPhase.ERROR) {
-                    setupResolvConf()
+                    DshRuntimeInstall.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    ensureFsBridgeCli()
+                    DshRuntimeInstall.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     // 装完**不一定要**立刻拉起来：首页那条「安装」路径要把「装完」与
                     // 「启动」拆成两步，由用户在弹窗里自己决定。不拆的话，用户点「安装」
                     // 之后容器直接跑起来，而他想先看一眼装了什么的机会就没有了。
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
                 }
             }
         }
@@ -267,15 +269,15 @@ object DshRuntimeInstall {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
                 // 重装等于换了一套全新 rootfs，容器里的插件确实没了，该重新预装
-                clearSeedLedger()
+                DshRuntimeInstall.clearSeedLedger()
                 // 重装 = 装回已装那一份，不跟着通道走（否则「重装」会变成静默升级）
                 downloadAndInstall(preserveData, newest = false)
                 if (K.current.phase != DshPhase.ERROR) {
-                    setupResolvConf()
+                    DshRuntimeInstall.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    ensureFsBridgeCli()
+                    DshRuntimeInstall.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
                 }
             }
         }
@@ -294,7 +296,7 @@ object DshRuntimeInstall {
                 DshLogging.clearLog()
                 DshLogging.logInfo(CoreR.string.dsh_log_switch_runtime, entry.version, entry.tag)
                 DshRuntime.stopServer()
-                clearSeedLedger()
+                DshRuntimeInstall.clearSeedLedger()
                 K.stateFlow.update {
                     it.copy(
                         phase = DshPhase.DOWNLOADING,
@@ -305,9 +307,9 @@ object DshRuntimeInstall {
                 }
                 installMeta(entry.toMeta(), preserveData)
                 if (K.current.phase != DshPhase.ERROR) {
-                    setupResolvConf()
+                    DshRuntimeInstall.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    ensureFsBridgeCli()
+                    DshRuntimeInstall.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     DshRuntime.startAndAwaitForInstall()
                 }
@@ -368,9 +370,9 @@ object DshRuntimeInstall {
                     )
                 }
                 DshRuntime.refreshRootfsSize()
-                setupResolvConf()
+                DshRuntimeInstall.setupResolvConf()
                 DshRuntime.seedPluginsForInstall()
-                ensureFsBridgeCli()
+                DshRuntimeInstall.ensureFsBridgeCli()
                 if (!DshRuntime.checkPortConflictForInstall()) DshRuntime.startAndAwaitForInstall()
             }
         }
@@ -607,7 +609,7 @@ object DshRuntimeInstall {
             }
             for ((tag, published, meta) in metas) {
                 if (meta.arch.isNotEmpty() && meta.arch != want) continue
-                keep(entryOf(tag, published, meta))
+                DshRuntimeInstall.keep(DshRuntimeInstall.entryOf(tag, published, meta))
             }
         }
 
