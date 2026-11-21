@@ -175,8 +175,9 @@ console.log("\n── flavor 一路从 metadata 到模型 ──");
   // 2026-11：两处构造收成一个 entryOf()，所以「带上 flavor」只剩一处，但两条路径
   // （API 列表 + 滚动通道补拉）都必须经过它。
   ok((RUNTIME.match(/flavor = meta\.flavor,/g) || []).length === 1 &&
-     /fun entryOf\(tag: String, published: String, meta: DshMeta\)/.test(RUNTIME) &&
-     (RUNTIME.match(/keep\(entryOf\(/g) || []).length === 2,
+     /(?:private )?fun entryOf\(tag: String, published: String, meta: DshMeta\)/.test(RUNTIME) &&
+     // withLock 里调用私有成员要加 this@ 限定，断言两种写法都认。
+     (RUNTIME.match(/(?:this@DshRuntimeInstall\.)?keep\((?:this@DshRuntimeInstall\.)?entryOf\(/g) || []).length === 2,
     "两条路径（API 列表 + 滚动通道补拉）都经同一个构造，flavor 不会漏");
   ok(/flavor = flavorOf\(this\),/.test(RUNTIME),
     "toMeta() 带上算好的 flavor（否则切版本又退回按 tag 猜）");
