@@ -73,7 +73,7 @@ import kotlinx.coroutines.delay
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.workflow.WorkflowEdge
 import me.bmax.apatch.dsh.workflow.WorkflowPatch
-import me.bmax.apatch.dsh.WorkflowPermissions
+import me.bmax.apatch.dsh.workflow.WorkflowPermissions
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowApprovals
 import me.bmax.apatch.dsh.workflow.WorkflowCompute

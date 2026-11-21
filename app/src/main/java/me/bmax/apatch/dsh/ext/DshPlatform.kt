@@ -33,7 +33,7 @@ import me.bmax.apatch.dsh.DshState
 import me.bmax.apatch.dsh.DshTts
 import me.bmax.apatch.dsh.LogStore
 import me.bmax.apatch.dsh.PrivilegedShell
-import me.bmax.apatch.dsh.WorkflowEngine
+import me.bmax.apatch.dsh.workflow.WorkflowEngine
 import me.bmax.apatch.ui.theme.ThemeManager
 import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.HardwareMonitor

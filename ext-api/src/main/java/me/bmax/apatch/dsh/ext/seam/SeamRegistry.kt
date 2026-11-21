@@ -31,26 +31,18 @@ import me.bmax.apatch.dsh.ext.ExtensionServiceRegistry
  * 这样三条路径都不会崩，而且语义更清楚：覆写表里只有"扩展"，
  * 宿主是基线而不是"一个叫 host 的扩展"。
  */
-internal object SeamRegistry {
+object SeamRegistry {
 
     @Volatile
-    private var defaults: Defaults? = null
+    @Volatile
+    private var provider: SeamProvider? = null
 
     /**
      * 宿主默认实现。
      *
      * [FsSeam] 不在这里：它带 `extensionDir`，每个扩展一份，由 [HostSeams] 直接 new。
      */
-    private class Defaults(val ctx: Context?) {
-        val runtime: RuntimeSeam = HostRuntimeSeam()
-        val event: EventSeam = HostEventSeam()
-        val capability: CapabilitySeam = HostCapabilitySeam()
-        // 这四个要 Context。ctx 为 null（未初始化）时给 null，取用时返回"不可用"实现。
-        val shell: ShellSeam? = ctx?.let { HostShellSeam(it) }
-        val device: DeviceSeam? = ctx?.let { HostDeviceSeam(it) }
-        val ui: UiSeam? = ctx?.let { HostUiSeam(it) }
-        val backup: BackupSeam? = ctx?.let { HostBackupSeam(it) }
-    }
+    private var provider: SeamProvider? = null
 
     /**
      * 初始化宿主默认实现。可重复调用（幂等）。
@@ -59,40 +51,46 @@ internal object SeamRegistry {
      * 不该占覆写表里的位置。
      */
     @Synchronized
-    fun install(ctx: Context) {
-        if (defaults != null) return
-        defaults = Defaults(ctx.applicationContext)
+    fun install(ctx: Context, p: SeamProvider) {
+        if (provider != null) return
+        fallbackContext = ctx.applicationContext
+        provider = p
     }
 
     /** 宿主默认实现是否已就绪（测试与诊断用）。 */
-    fun isInstalled(): Boolean = defaults != null
+    fun isInstalled(): Boolean = provider != null
 
     // ── 取用：先问覆写表，没有就用宿主默认 ──
     //
     // 每个都写成 `resolve(type) { default }`：熔断时 resolve 会短路返回 default，
     // 这正是我们要的行为（熔断后不能还有扩展在跑，但宿主自己得能跑）。
 
-    fun runtime(): RuntimeSeam = resolve(RuntimeSeam::class.java) { requireDefaults().runtime }
+    fun runtime(): RuntimeSeam = resolve(RuntimeSeam::class.java) { requireProvider().runtime }
 
     fun shell(): ShellSeam = resolve(ShellSeam::class.java) {
-        requireDefaults().shell ?: UnavailableShell
+        requireProvider().shell ?: UnavailableShell
     }
 
     fun device(): DeviceSeam = resolve(DeviceSeam::class.java) {
-        requireDefaults().device ?: UnavailableDevice
+        requireProvider().device ?: UnavailableDevice
     }
 
     fun ui(): UiSeam = resolve(UiSeam::class.java) {
-        requireDefaults().ui ?: UnavailableUi
+        requireProvider().ui ?: UnavailableUi
+    }
+
+    fun nativeBridge(): NativeBridgeSeam = resolve(NativeBridgeSeam::class.java) {
+        requireProvider().nativeBridge
+            ?: throw IllegalStateException("NativeBridgeSeam 需要 Context：请先 SeamRegistry.install(ctx)")
     }
 
     fun backup(): BackupSeam = resolve(BackupSeam::class.java) {
-        requireDefaults().backup ?: UnavailableBackup
+        requireProvider().backup ?: UnavailableBackup
     }
 
-    fun event(): EventSeam = resolve(EventSeam::class.java) { requireDefaults().event }
+    fun event(): EventSeam = resolve(EventSeam::class.java) { requireProvider().event }
 
-    fun capability(): CapabilitySeam = resolve(CapabilitySeam::class.java) { requireDefaults().capability }
+    fun capability(): CapabilitySeam = resolve(CapabilitySeam::class.java) { requireProvider().capability }
 
     private fun <T : Any> resolve(type: Class<T>, fallback: () -> T): T =
         ExtensionServiceRegistry.resolve(type, fallback)
@@ -105,28 +103,24 @@ internal object SeamRegistry {
      * 以及某些后台进程都可能在没有 install 的情况下碰到能力调用。
      * 抛异常的代价是整个 App 崩，而"给一个无状态默认实现"最坏只是少了个 ctx。
      *
-     * 注意 [HostRuntimeSeam] / [HostEventSeam] / [HostCapabilitySeam] 本来就是无状态的，
+     * 注意 宿主实现本来就是无状态的，
      * 所以这里只需要 ctx —— 而没 install 时也没有 ctx，只能给进程级的兜底。
      */
-    @Synchronized
-    private fun requireDefaults(): Defaults {
-        defaults?.let { return it }
-        // 极端情况（install 没跑）：用兜底 context 补一个。
-        //
-        // 拿不到 context 时**不抛异常** —— 返回一个"全部能力都不可用"的 Defaults。
-        // 为什么：熔断/早期初始化都可能走到这里，抛异常的代价是整个 App 崩，
-        // 而"能力不可用"最坏只是扩展降级。逃生通道不能自己崩。
-        //
-        // 注：@Synchronized 只能标函数/访问器，不能标表达式 —— 第一版标在
-        // `if` 语句上，编译直接报 "not applicable to target 'expression'"。
-        return Defaults(currentApplicationContext()).also { defaults = it }
-    }
+    /**
+     * 取宿主实现。
+     *
+     * install 没跑时**不抛异常**，返回「全部能力不可用」的兜底 —— 熔断与早期初始化
+     * 都可能走到这里，抛异常的代价是整个 App 崩，而"能力不可用"最坏只是扩展降级。
+     * 逃生通道不能自己崩。
+     */
+    private fun requireProvider(): SeamProvider =
+        provider ?: UnavailableProvider.also { provider = it }
 
     /** 由宿主在 `install()` 之外设置的兜底 context（见 [setFallbackContext]）。 */
     @Volatile
     private var fallbackContext: Context? = null
 
-    /** 宿主早期（`APApplication.onCreate`）调用，给 [requireDefaults] 一个兜底。 */
+    /** 宿主早期（`APApplication.onCreate`）调用，给 [requireProvider] 一个兜底。 */
     fun setFallbackContext(ctx: Context) {
         fallbackContext = ctx.applicationContext
     }
@@ -137,6 +131,58 @@ internal object SeamRegistry {
     //
     // 每个方法都返回"失败"而不是抛异常：扩展拿到它们时最多是功能不可用，
     // 不会因为宿主早期状态把自己崩掉。
+
+    /**
+     * 兜底实现：所有能力都"不可用"。
+     *
+     * 只在 install 没跑时出现（正常启动路径不会）。每个方法返回失败而不是抛异常 ——
+     * 扩展拿到它最多是功能不可用，不会因为宿主早期状态把自己崩掉。
+     */
+    private object UnavailableProvider : SeamProvider {
+        override val runtime: RuntimeSeam = UnavailableRuntime
+        override val event: EventSeam = UnavailableEvent
+        override val capability: CapabilitySeam = UnavailableCapability
+        override val shell: ShellSeam = UnavailableShell
+        override val device: DeviceSeam = UnavailableDevice
+        override val ui: UiSeam = UnavailableUi
+        override val backup: BackupSeam = UnavailableBackup
+        override val nativeBridge: NativeBridgeSeam = UnavailableNativeBridge
+    }
+
+    private object UnavailableRuntime : RuntimeSeam {
+        override fun state() = RuntimeState(installed = false, running = false, installing = false)
+        override fun observe(handler: (RuntimeState) -> Unit): () -> Unit = { }
+        override fun exec(bashCommand: String) = throw IllegalStateException("runtime 未就绪")
+        override fun execCapture(bashCommand: String, timeoutMs: Long) = ""
+        override fun execStreaming(bashCommand: String, timeoutMs: Long, onLine: (String) -> Unit) = -1
+        override fun attach(context: Context) { }
+        override fun awaitRunning(timeoutMs: Long) = false
+        override fun start(context: Context) = false
+        override fun hold(context: Context) { }
+        override fun log(message: String) { }
+    }
+
+    private object UnavailableEvent : EventSeam {
+        override fun subscribe(event: String, handler: (Map<String, Any?>) -> Unit): () -> Unit = { }
+        override fun emit(event: String, payload: Map<String, Any?>) { }
+    }
+
+    private object UnavailableCapability : CapabilitySeam {
+        override fun declared(): List<String> = emptyList()
+        override fun available(name: String) = false
+        override fun hostVersion() = "unknown"
+    }
+
+    private object UnavailableNativeBridge : NativeBridgeSeam {
+        override fun handle(ctx: Context, method: String, path: String, params: Map<String, String>) =
+            503 to """{"error":"native bridge 未就绪"}"""
+        override fun isForeground(ctx: Context) = false
+        override fun str(ctx: Context, resId: Int, vararg args: Any) = ""
+        override fun err(msg: String, reason: String) = """{"error":"$msg","reason":"$reason"}"""
+        override fun stageDir(ctx: Context) = java.io.File("/dev/null")
+        override fun stageGuestPath(name: String) = ""
+        override fun trimStage(dir: java.io.File) { }
+    }
 
     private object UnavailableShell : ShellSeam {
         override fun hasRoot() = false

@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import android.content.Context
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
@@ -34,6 +34,9 @@ import me.bmax.apatch.dsh.workflow.WorkflowStepResult
 import me.bmax.apatch.dsh.workflow.WorkflowStepState
 import me.bmax.apatch.dsh.workflow.interpolate
 import me.bmax.apatch.dsh.workflow.effectiveCaps
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.DshKernelState
 
 /**
  * 工作流执行引擎：宿主 App 侧的顺序执行器。
@@ -57,11 +60,11 @@ import me.bmax.apatch.dsh.workflow.effectiveCaps
  *
  * ## 退出码为什么要自己起进程读
  *
- * 容器侧已有的 [DshRuntime.execRootfsStreaming] 只回输出、不回退出码，而工作流必须区分
- * 「命令跑完了」和「命令失败了」。所以这里用 [DshRuntime.execRootfs] 自己起进程、自己读流、
+ * 容器侧已有的 [RuntimeSeam.execStreaming] 只回输出、不回退出码，而工作流必须区分
+ * 「命令跑完了」和「命令失败了」。所以这里用 [RuntimeSeam.exec] 自己起进程、自己读流、
  * 自己取 `exitValue()`；代价是多二十行，换来的是 `exit_1` 这种可判断的结果。
  */
-internal object WorkflowEngine {
+object WorkflowEngine {
 
     data class StartResult(val ok: Boolean, val runId: String?, val reason: String)
 
@@ -108,7 +111,7 @@ internal object WorkflowEngine {
          */
         entryId: String? = null,
     ): StartResult {
-        DshRuntime.attach(ctx.applicationContext)
+        SeamRegistry.runtime().attach(ctx.applicationContext)
         val runId = WorkflowStore.newRunId()
         // 授权必须在**开跑之前**落好：命令一旦开始跑，它内部对回环桥的调用就要命中这份授权，
         // 否则长流程的每一步还会逐条弹窗 —— 而免掉那些重复弹窗正是这次批准的意义。
@@ -134,7 +137,7 @@ internal object WorkflowEngine {
             // 前台服务把进程钉住：工作流的语义是「跑完为止」，不能因为用户切走就被回收。
             // 用 HOLD 而不是 START —— 只占住进程，不顺带把容器拉起来（纯 shell 的工作流
             // 不该因为自己存在而启动一整套 DSH）。
-            runCatching { HarnessService.hold(ctx.applicationContext) }
+            runCatching { SeamRegistry.runtime().hold(ctx.applicationContext) }
             try {
                 execute(ctx.applicationContext, run, entryId)
             } catch (e: CancellationException) {
@@ -306,11 +309,11 @@ internal object WorkflowEngine {
                     }
                     run = run.copy(state = WorkflowRunState.WAITING_DSH)
                     persist()
-                    if (DshRuntime.state.value.phase != DshPhase.RUNNING && flag(node.config("autostartDsh"), true)) {
+                    if (!SeamRegistry.runtime().state().running && flag(node.config("autostartDsh"), true)) {
                         log("[${node.id}] DSH 未运行，先启动并等待（最多 ${node.timeoutMs / 1000}s）")
-                        runCatching { HarnessService.start(ctx) }
+                        runCatching { SeamRegistry.runtime().start(ctx) }
                     }
-                    val up = DshRuntime.awaitRunning(node.timeoutMs)
+                    val up = SeamRegistry.runtime().awaitRunning(node.timeoutMs)
                     run = run.copy(state = WorkflowRunState.RUNNING)
                     branches[node.id] = up
                     val hasBranch = def.outgoing(node.id).any { it.whenExpr.isNotBlank() }
@@ -350,7 +353,7 @@ internal object WorkflowEngine {
                             } else {
                                 val title = interpolate(node.config("title"), varsSnapshot).ifBlank { def.name }
                                 val body = interpolate(node.config("text"), varsSnapshot)
-                                val res = DshNativeBridge.handle(
+                                val res = SeamRegistry.nativeBridge().handle(
                                     ctx,
                                     "POST",
                                     "/native/notify",
@@ -408,7 +411,7 @@ internal object WorkflowEngine {
                                     }
                                     put("reason", "workflow:${def.name} ($runId)")
                                 }
-                                val res = DshNativeBridge.handle(ctx, spec.method, spec.path, payload)
+                                val res = SeamRegistry.nativeBridge().handle(ctx, spec.method, spec.path, payload)
                                 output = res.second
                                 exitCode = if (res.first in 200..299) 0 else res.first
                                 if (res.first in 200..299) {
@@ -421,7 +424,7 @@ internal object WorkflowEngine {
                         }
 
                         WorkflowActionType.DSH, WorkflowActionType.SHELL -> {
-                            if (action == WorkflowActionType.DSH && !DshRuntime.awaitRunning(node.timeoutMs)) {
+                            if (action == WorkflowActionType.DSH && !SeamRegistry.runtime().awaitRunning(node.timeoutMs)) {
                                 state = WorkflowStepState.FAILED
                                 reason = "dsh_unavailable"
                             } else {
@@ -436,7 +439,7 @@ internal object WorkflowEngine {
                                     // 整份输出攒在内存里（外部审计 P2-1b）。超限的行只计数。
                                     var kept = 0
                                     var dropped = 0
-                                    val proc = DshRuntime.execRootfs(cmd)
+                                    val proc = SeamRegistry.runtime().exec(cmd)
                                     currentProcess[runId] = proc
                                     val reader = Thread {
                                         runCatching {
@@ -550,7 +553,7 @@ internal object WorkflowEngine {
                                 finishCanceled(ctx, runId, "canceled")
                                 return
                             }
-                            val running = DshRuntime.state.value.phase == DshPhase.RUNNING
+                            val running = SeamRegistry.runtime().state().running
                             if ((until == "running" && running) || (until == "stopped" && !running)) {
                                 ok = true
                                 break
@@ -623,9 +626,9 @@ internal object WorkflowEngine {
             "run_id" to runId,
             "workflow_id" to def.id,
             "workflow_name" to def.name,
-            "dsh_port" to DshRuntime.state.value.port.toString(),
-            "dsh_url" to "http://127.0.0.1:${DshRuntime.state.value.port}",
-            "dsh_state" to DshRuntime.state.value.phase.name.lowercase(),
+            "dsh_port" to DshKernelState.port().toString(),
+            "dsh_url" to "http://127.0.0.1:${DshKernelState.port()}",
+            "dsh_state" to if (SeamRegistry.runtime().state().running) "running" else "stopped",
         )
 
     private fun flag(raw: String, default: Boolean): Boolean = when (raw.trim().lowercase()) {

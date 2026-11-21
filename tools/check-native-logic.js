@@ -441,7 +441,7 @@ ok(SRC.rt.includes("dsh_log_bundle_unresolvable_user"),
 // 这里复刻 PrivPolicy.needsConfirm 并逐格对拍，同时检查它没有被写成两处。
 console.log("── 限制模式与两张清单 ──");
 {
-  const privSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt");
+  const privSrc = read("core-kernel/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt");
   const privCode = code(privSrc);
   const shellSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   // 复刻体：判定只有两个来源。这一行比旧的三档 when 短得多，但错了就是"每次调用都静默放行"
@@ -459,7 +459,8 @@ console.log("── 限制模式与两张清单 ──");
   ok(/getBoolean\(DshEnv\.KEY_PRIV_RESTRICT_MODE, false\)/.test(privCode),
     "限制模式默认关（钉在读的那一处：迁移里也写了同一个键，钉错地方会让「默认改开」从门禁底下溜过去）");
   for (const cap of ["SHELL", "DISPLAY", "CAMERA", "MIC", "SMS"]) {
-    ok(new RegExp("DshNativeBridge\\.Cap\\." + cap + "\\.id").test(privSrc),
+    // Cap 已下沉 :core-kernel（收口轮），PrivPolicy 直接用短名。
+    ok(new RegExp("(?:DshNativeBridge\\.)?Cap\\." + cap + "\\.id").test(privSrc),
       "能力清单默认含 " + cap + "（旧模型里 CAMERA/MIC/SMS 启用后再没被问过，放进来才是新增的闸）");
   }
   ok(/getStringSet\(DshEnv\.KEY_PRIV_RESTRICT_CAPS, null\)\?\.toSet\(\) \?: DEFAULT_RESTRICTED/.test(privCode),

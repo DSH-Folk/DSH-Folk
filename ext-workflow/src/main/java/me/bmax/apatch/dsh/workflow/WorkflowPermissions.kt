@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import android.Manifest
 import android.app.AppOpsManager
@@ -23,6 +23,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.PrivilegedShell
 
 /**
  * 工作流开跑前的 **Android 层权限检查**。
@@ -44,7 +46,7 @@ import me.bmax.apatch.res.R as CoreR
  * 检查是**幂等**的：用户从设置页回来，弹窗重新算一遍（[Gate.pending] 的同一份请求上重查），
  * 所以「我给了权限但弹窗还说缺」这种情况不会出现。
  */
-internal object WorkflowPermissions {
+object WorkflowPermissions {
 
     /** 检查项的类型 —— 决定了「去授权」是按哪个按钮。 */
     enum class Kind { RUNTIME, SPECIAL }
@@ -93,36 +95,36 @@ internal object WorkflowPermissions {
         fun add(item: Item) { out.putIfAbsent(item.id, item) }
         val capIds = caps.toSet()
         // 声明了任何一项会发通知的能力，就要通知权限
-        if (capIds.any { it == DshNativeBridge.Cap.NOTIFY.id || it == DshNativeBridge.Cap.FULL_SCREEN_NOTIFY.id }) {
+        if (capIds.any { it == Cap.NOTIFY.id || it == Cap.FULL_SCREEN_NOTIFY.id }) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(runtime(Item.ID_NOTIFY, CoreR.string.dsh_workflow_perm_notify, Manifest.permission.POST_NOTIFICATIONS))
             }
         }
-        if (capIds.contains(DshNativeBridge.Cap.FULL_SCREEN_NOTIFY.id) && Build.VERSION.SDK_INT >= 34) {
+        if (capIds.contains(Cap.FULL_SCREEN_NOTIFY.id) && Build.VERSION.SDK_INT >= 34) {
             add(special(Item.ID_FULL_SCREEN, CoreR.string.dsh_workflow_perm_full_screen, Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT))
         }
-        if (capIds.contains(DshNativeBridge.Cap.CAMERA.id)) {
+        if (capIds.contains(Cap.CAMERA.id)) {
             add(runtime(Item.ID_CAMERA_ALIAS, CoreR.string.dsh_workflow_perm_camera, Manifest.permission.CAMERA))
         }
-        if (capIds.contains(DshNativeBridge.Cap.MIC.id)) {
+        if (capIds.contains(Cap.MIC.id)) {
             add(runtime(Item.ID_MIC_ALIAS, CoreR.string.dsh_workflow_perm_mic, Manifest.permission.RECORD_AUDIO))
         }
-        if (capIds.contains(DshNativeBridge.Cap.CONTACTS.id)) {
+        if (capIds.contains(Cap.CONTACTS.id)) {
             add(runtime(Item.ID_CONTACTS_ALIAS, CoreR.string.dsh_workflow_perm_contacts, Manifest.permission.READ_CONTACTS))
         }
-        if (capIds.contains(DshNativeBridge.Cap.CALENDAR.id)) {
+        if (capIds.contains(Cap.CALENDAR.id)) {
             add(runtime(Item.ID_CALENDAR_ALIAS, CoreR.string.dsh_workflow_perm_calendar, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
         }
-        if (capIds.contains(DshNativeBridge.Cap.SMS.id)) {
+        if (capIds.contains(Cap.SMS.id)) {
             add(runtime(Item.ID_SMS_ALIAS, CoreR.string.dsh_workflow_perm_sms, Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS))
         }
-        if (capIds.contains(DshNativeBridge.Cap.LOCATION.id)) {
+        if (capIds.contains(Cap.LOCATION.id)) {
             add(runtime(Item.ID_LOCATION_ALIAS, CoreR.string.dsh_workflow_perm_location, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
-        if (capIds.contains(DshNativeBridge.Cap.PHONE.id)) {
+        if (capIds.contains(Cap.PHONE.id)) {
             add(runtime(Item.ID_PHONE_ALIAS, CoreR.string.dsh_workflow_perm_phone, Manifest.permission.READ_PHONE_STATE))
         }
-        if (capIds.contains(DshNativeBridge.Cap.MEDIA.id)) {
+        if (capIds.contains(Cap.MEDIA.id)) {
             val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 listOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
             } else {
@@ -130,19 +132,19 @@ internal object WorkflowPermissions {
             }
             add(runtime(Item.ID_MEDIA_ALIAS, CoreR.string.dsh_workflow_perm_media, *perms.toTypedArray()))
         }
-        if (capIds.contains(DshNativeBridge.Cap.A11Y.id)) {
+        if (capIds.contains(Cap.A11Y.id)) {
             add(special(Item.ID_A11Y, CoreR.string.dsh_workflow_perm_a11y, Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
-        if (capIds.contains(DshNativeBridge.Cap.USAGE.id)) {
+        if (capIds.contains(Cap.USAGE.id)) {
             add(special(Item.ID_USAGE, CoreR.string.dsh_workflow_perm_usage, Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
-        if (capIds.contains(DshNativeBridge.Cap.SETTINGS.id)) {
+        if (capIds.contains(Cap.SETTINGS.id)) {
             add(special(Item.ID_SETTINGS, CoreR.string.dsh_workflow_perm_settings, Settings.ACTION_MANAGE_WRITE_SETTINGS))
         }
-        if (capIds.contains(DshNativeBridge.Cap.INSTALL.id)) {
+        if (capIds.contains(Cap.INSTALL.id)) {
             add(special(Item.ID_INSTALL, CoreR.string.dsh_workflow_perm_install, Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
         }
-        if (capIds.contains(DshNativeBridge.Cap.SHELL.id) || capIds.contains(DshNativeBridge.Cap.DISPLAY.id)) {
+        if (capIds.contains(Cap.SHELL.id) || capIds.contains(Cap.DISPLAY.id)) {
             // 提权通道不是 Android 权限，而是「设备上到底有没有一条能用的通道」。它同样
             // 只能跳页面（设置 → 安全 → 权限通道），所以归在 SPECIAL。
             add(special(Item.ID_SHELL, CoreR.string.dsh_workflow_perm_shell, null))

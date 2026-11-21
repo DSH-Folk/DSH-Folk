@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.display
 
 import android.content.Context
 import android.util.Log
@@ -9,6 +9,8 @@ import java.util.Locale
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.display.DisplayMirror
 import me.bmax.apatch.dsh.display.DisplayServer
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
+import me.bmax.apatch.dsh.PrivilegedShell
 
 /**
  * 虚拟屏能力的工具面（`/native/display/…`），接进 [DshNativeBridge] 既有的能力档、
@@ -79,8 +81,8 @@ object DshDisplay {
         method == "POST" && path == "/native/display/key" -> key(ctx, params)
         method == "POST" && path == "/native/display/launch" -> launch(ctx, params)
         method == "POST" && path == "/native/display/stop" -> stop(ctx)
-        else -> 404 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_unknown_endpoint, method, path),
+        else -> 404 to SeamRegistry.nativeBridge().err(
+            SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_unknown_endpoint, method, path),
             "unknown_endpoint",
         )
     }
@@ -134,25 +136,25 @@ object DshDisplay {
         if (err != null) return err
         return runCatching {
             val png = svc.requestScreenshot(display)
-                ?: return@runCatching 500 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_frame),
+                ?: return@runCatching 500 to SeamRegistry.nativeBridge().err(
+                    SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_no_frame),
                     "no_frame",
                 )
             if (png.isEmpty()) {
-                return@runCatching 500 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_frame),
+                return@runCatching 500 to SeamRegistry.nativeBridge().err(
+                    SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_no_frame),
                     "no_frame",
                 )
             }
-            val dir = DshNativeBridge.stageDir(ctx).apply { mkdirs() }
+            val dir = SeamRegistry.nativeBridge().stageDir(ctx).apply { mkdirs() }
             val name = "display-${display}-${System.currentTimeMillis()}.png"
             File(dir, name).writeBytes(png)
-            DshNativeBridge.trimStage(dir)
+            SeamRegistry.nativeBridge().trimStage(dir)
             val (pw, ph) = pngSize(png)
             200 to JSONObject()
                 .put("ok", true)
                 .put("display", display)
-                .put("path", DshNativeBridge.stageGuestPath(name))
+                .put("path", SeamRegistry.nativeBridge().stageGuestPath(name))
                 .put("bytes", png.size)
                 .put("width", pw)
                 .put("height", ph)
@@ -196,8 +198,8 @@ object DshDisplay {
         val raw = params["key"]?.trim().orEmpty()
         if (raw.isEmpty()) return badParam(ctx, "key")
         val code = raw.toIntOrNull() ?: KEY_NAMES[raw.lowercase(Locale.ROOT)]
-            ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_key, raw),
+            ?: return 400 to SeamRegistry.nativeBridge().err(
+                SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_bad_key, raw),
                 "bad_key",
             )
         return runCatching {
@@ -213,8 +215,8 @@ object DshDisplay {
         val pkg = params["package"]?.trim().orEmpty()
         if (pkg.isEmpty()) return badParam(ctx, "package")
         if (!pkg.matches(Regex("[A-Za-z0-9_.]+"))) {
-            return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_package, pkg),
+            return 400 to SeamRegistry.nativeBridge().err(
+                SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_bad_package, pkg),
                 "bad_package",
             )
         }
@@ -249,8 +251,8 @@ object DshDisplay {
             // 用户刚在小窗上亲手终止了这块屏：说清楚，别让 agent 以为是自己参数写错了。
             // 服务端对已销毁的 id 不报错（输入注入直接落空），所以这个判断必须由我们做。
             if (DisplayServer.terminatedByUser(id)) {
-                return 0 to (409 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_terminated),
+                return 0 to (409 to SeamRegistry.nativeBridge().err(
+                    SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_terminated),
                     "display_terminated_by_user",
                 ))
             }
@@ -260,8 +262,8 @@ object DshDisplay {
         if (current <= 0) {
             // 以前这里回落到 0，而 0 是**真实屏幕** —— 会话没了之后再点一下，就变成点用户自己的
             // 手机屏幕了，还没有任何提示。没有会话时必须报错，让 agent 去建屏或显式写 --display 0。
-            return 0 to (409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_session),
+            return 0 to (409 to SeamRegistry.nativeBridge().err(
+                SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_no_session),
                 "no_session",
             ))
         }
@@ -287,21 +289,21 @@ object DshDisplay {
         }
         // 带上传入的细节（服务端起不来时它才是那句真正有用的话：推送失败第几块、解密失败、
         // 或"进程没起来"）；能力可用性给的是"该怎么补救"，两者拼起来才是完整的一句话。
-        val base = DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_unavailable)
+        val base = SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_unavailable)
         val msg = if (detail.isNullOrBlank()) base else "$base（$detail）"
-        return 503 to DshNativeBridge.err(msg, reason)
+        return 503 to SeamRegistry.nativeBridge().err(msg, reason)
     }
 
     private fun badParam(ctx: Context, name: String): Pair<Int, String> =
-        400 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_param, name),
+        400 to SeamRegistry.nativeBridge().err(
+            SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_bad_param, name),
             "bad_param",
         )
 
     private fun failure(ctx: Context, e: Throwable, reason: String): Pair<Int, String> {
         Log.w(TAG, "虚拟屏操作失败($reason): ${e.message}")
-        return 500 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_failed, e.message ?: ""),
+        return 500 to SeamRegistry.nativeBridge().err(
+            SeamRegistry.nativeBridge().str(ctx, CoreR.string.dsh_native_err_display_failed, e.message ?: ""),
             reason,
         )
     }

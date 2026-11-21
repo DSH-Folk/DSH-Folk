@@ -53,6 +53,40 @@ interface RuntimeSeam {
     ): String
 
     /** 写一行到扩展日志（会出现在宿主的日志界面里）。 */
+    /**
+     * 把运行时与当前 Context 绑定（首次使用前必须调一次）。
+     *
+     * 工作流引擎要自己起容器进程，而起进程前运行时必须已 attach ——
+     * 否则 exec 会因拿不到 rootfs 路径而失败。宿主在 Application.onCreate
+     * 里已经 attach 过，扩展再调一次是幂等的。
+     */
+    fun attach(context: android.content.Context)
+
+    /**
+     * 等运行时就绪（带超时）。
+     *
+     * @return true 表示在超时内真的跑起来了；false 表示超时或失败 ——
+     *   调用方**必须**按失败处理。工作流里「等 DSH 起来再跑下一步」靠它，
+     *   把 false 当成功会让后续节点在一个没起来的运行时上执行。
+     */
+    fun awaitRunning(timeoutMs: Long): Boolean
+
+    /**
+     * 启动运行时服务（不等待就绪）。
+     *
+     * 工作流的 autostart 节点用它：先起服务，再用 [awaitRunning] 等它真的可用。
+     * 分成两步是因为「起」是异步的 —— 起完立刻判 running 会永远为假。
+     */
+    fun start(context: android.content.Context): Boolean
+
+    /**
+     * 短暂持有服务不被系统回收。
+     *
+     * 工作流跑长命令期间用：Android 可能在内存紧张时杀掉后台服务，
+     * 而工作流正等着它的输出。hold 让它在这段时间内保持前台优先级。
+     */
+    fun hold(context: android.content.Context)
+
     fun log(message: String)
 }
 

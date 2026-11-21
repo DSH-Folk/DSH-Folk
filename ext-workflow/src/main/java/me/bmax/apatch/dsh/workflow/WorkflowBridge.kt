@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import android.content.Context
 import kotlinx.coroutines.delay
@@ -23,6 +23,11 @@ import me.bmax.apatch.dsh.workflow.workflowDiff
 import me.bmax.apatch.dsh.workflow.isStaleFormat
 import me.bmax.apatch.dsh.workflow.toJson
 import me.bmax.apatch.dsh.workflow.effectiveCaps
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.DshEnv
+import me.bmax.apatch.dsh.PrivPolicy
+import me.bmax.apatch.dsh.PrivRisk
 
 /**
  * 自动化工作流的 HTTP 端点族（`/workflow/…`），挂在 [DshFsBridge] 的同一个回环 socket 上。
@@ -44,7 +49,7 @@ import me.bmax.apatch.dsh.workflow.effectiveCaps
  * `run` 批准后按 `declaredCaps` 落一份**随运行失效**的授权（[WorkflowGrants]）。没声明的能力
  * 照旧逐条弹窗；危险命令还要用户在批准页**单独勾选**才免问（见 [WorkflowApprovals]）。
  */
-internal object WorkflowBridge {
+object WorkflowBridge {
 
     private const val MAX_BODY_BYTES = 256 * 1024
 
@@ -236,11 +241,11 @@ internal object WorkflowBridge {
         reason: String,
         wait: Boolean?,
     ): Pair<Int, String> {
-        if (!DshNativeBridge.isForeground(ctx)) {
+        if (!SeamRegistry.nativeBridge().isForeground(ctx)) {
             // 弹窗只有前台才看得见。不在前台就把这条连接留着等一个永远不会出现的弹窗 = 静默超时。
             return 409 to err(str(ctx, CoreR.string.dsh_workflow_err_foreground), "not_foreground")
         }
-        val allowedCaps = DshNativeBridge.Cap.entries.map { it.id }.toSet()
+        val allowedCaps = Cap.entries.map { it.id }.toSet()
         val validation = WorkflowValidator.validate(submitted, allowedCaps)
         if (!validation.ok) {
             return 400 to err(
@@ -480,7 +485,7 @@ internal object WorkflowBridge {
         }
     }
 
-    private fun str(ctx: Context, resId: Int, vararg args: Any): String = DshNativeBridge.str(ctx, resId, *args)
+    private fun str(ctx: Context, resId: Int, vararg args: Any): String = SeamRegistry.nativeBridge().str(ctx, resId, *args)
 
     private fun err(msg: String, reason: String): String =
         JSONObject().put("ok", false).put("reason", reason).put("error", msg).toString()

@@ -58,6 +58,20 @@ internal class HostRuntimeSeam : RuntimeSeam {
         onLine: (String) -> Unit,
     ): String = DshRuntime.execRootfsStreaming(bashCommand, timeoutMs, onLine)
 
+    override fun attach(context: android.content.Context) {
+        DshRuntime.attach(context)
+    }
+
+    override fun awaitRunning(timeoutMs: Long): Boolean =
+        runCatching { DshRuntime.awaitRunning(timeoutMs) }.getOrDefault(false)
+
+    override fun start(context: android.content.Context): Boolean =
+        runCatching { me.bmax.apatch.dsh.HarnessService.start(context); true }.getOrDefault(false)
+
+    override fun hold(context: android.content.Context) {
+        runCatching { me.bmax.apatch.dsh.HarnessService.hold(context) }
+    }
+
     override fun log(message: String) {
         ExtLog.log(message)
     }

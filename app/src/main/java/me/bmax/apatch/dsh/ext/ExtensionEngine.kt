@@ -60,7 +60,7 @@ object ExtensionEngine {
             // 给它一个独立目录，避免和真实扩展 id 撞车。
             runCatching {
                 me.bmax.apatch.dsh.ext.seam.SeamRegistry.setFallbackContext(ctx)
-                me.bmax.apatch.dsh.ext.seam.SeamRegistry.install(ctx)
+                me.bmax.apatch.dsh.ext.seam.SeamRegistry.install(ctx, me.bmax.apatch.dsh.ext.seam.HostSeamProvider(ctx))
                 // 「已引导过」的落盘实现：prefs 文件名是宿主细节，
                 // 不该写进 :ext-api（那会把它固化成公共契约）。
                 ExtensionBootPipeline.setBootstrappedRecorder {

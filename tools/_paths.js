@@ -38,6 +38,20 @@ const ROOT = path.resolve(__dirname, "..");
  * 重构每搬一个文件，在这里加一行。这是**唯一**需要跟着改动的地方。
  */
 const MOVED = {
+  // 收口轮（务实策略）：不硬拆 DshNativeBridge，改用 NativeBridgeSeam 隔离后搬迁。
+  // 这批文件都是「整文件迁入」—— 没有在搬迁时顺手拆内部。
+  "app/src/main/java/me/bmax/apatch/dsh/DshDisplay.kt":
+    "ext-display/src/main/java/me/bmax/apatch/dsh/display/DshDisplay.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowBridge.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowBridge.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowEngine.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowEngine.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowPermissions.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowPermissions.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/ext/seam/SeamRegistry.kt":
+    "ext-api/src/main/java/me/bmax/apatch/dsh/ext/seam/SeamRegistry.kt",
   // Batch C：dsh_strings.xml 迁入 :core-res。
   //
   // 为什么迁：nonTransitiveRClass 下每个模块只能看自己的 R，而 DshRuntime / DshSource /

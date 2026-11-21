@@ -64,8 +64,8 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.DshRuntime
-import me.bmax.apatch.dsh.WorkflowEngine
-import me.bmax.apatch.dsh.WorkflowPermissions
+import me.bmax.apatch.dsh.workflow.WorkflowEngine
+import me.bmax.apatch.dsh.workflow.WorkflowPermissions
 import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
 import me.bmax.apatch.ui.component.WorkflowDetailDialog
 import me.bmax.apatch.ui.component.WorkflowGraphPreview
