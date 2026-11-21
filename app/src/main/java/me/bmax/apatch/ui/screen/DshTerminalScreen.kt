@@ -61,8 +61,8 @@ import me.bmax.apatch.dsh.DshPtySession
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.isImeVisible
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 private const val KEY_FONT_SP = "dsh_term_font_sp"
 

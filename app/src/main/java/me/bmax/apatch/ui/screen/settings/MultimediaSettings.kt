@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.screen.settings
 
 import android.content.ActivityNotFoundException
 import android.net.Uri
+import me.bmax.apatch.util.ui.showToast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -39,7 +40,6 @@ import me.bmax.apatch.ui.theme.VibrationConfig
 import me.bmax.apatch.util.MusicManager
 import me.bmax.apatch.util.SoundEffectManager
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
-import me.bmax.apatch.dsh.showToast
 
 @Composable
 fun formatTime(millis: Int): String {

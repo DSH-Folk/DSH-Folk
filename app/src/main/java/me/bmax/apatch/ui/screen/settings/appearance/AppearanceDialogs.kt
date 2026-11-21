@@ -30,8 +30,8 @@ import me.bmax.apatch.R
 import me.bmax.apatch.ui.theme.ThemeManager
 import me.bmax.apatch.ui.theme.refreshTheme
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 private data class APColor(
     val name: String, @param:StringRes val nameId: Int

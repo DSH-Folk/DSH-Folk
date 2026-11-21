@@ -192,8 +192,8 @@ import me.bmax.apatch.util.ui.navBarLiquefiable
 import me.bmax.apatch.util.ui.rememberNavBarGlassLiquidState
 import me.bmax.apatch.util.ui.isRealTimeBlurAvailable
 import me.bmax.apatch.util.ui.isImeVisible
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 class MainActivity : AppCompatActivity() {
     private var isLoading = true

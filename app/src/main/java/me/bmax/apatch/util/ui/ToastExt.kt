@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.util.ui
 
 import android.content.Context
 import android.graphics.PixelFormat

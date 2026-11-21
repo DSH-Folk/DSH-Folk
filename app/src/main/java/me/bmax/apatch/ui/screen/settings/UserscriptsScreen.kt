@@ -70,10 +70,10 @@ import me.bmax.apatch.util.ui.HomeBottomSpacer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.WebScripts
-import me.bmax.apatch.dsh.showToast
 
 /**
  * 「用户脚本」管理页：一个不需要发版的扩展口。

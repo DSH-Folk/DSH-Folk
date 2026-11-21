@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen.settings
 
+import me.bmax.apatch.util.ui.showToast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +50,6 @@ import androidx.compose.material3.Icon
 import java.security.SecureRandom
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.backup.DshBackupArchive
-import me.bmax.apatch.dsh.showToast
 
 /**
  * 救急 CLI 的常用命令。

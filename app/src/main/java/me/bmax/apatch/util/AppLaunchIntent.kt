@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.util
 
 import android.content.Context
 import android.content.Intent

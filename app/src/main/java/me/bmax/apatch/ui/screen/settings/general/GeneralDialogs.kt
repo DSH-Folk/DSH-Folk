@@ -35,9 +35,9 @@ import me.bmax.apatch.R
 import me.bmax.apatch.ui.screen.settings.AppTitle
 import me.bmax.apatch.util.*
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
+import me.bmax.apatch.util.ui.showToast
 import java.io.File
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

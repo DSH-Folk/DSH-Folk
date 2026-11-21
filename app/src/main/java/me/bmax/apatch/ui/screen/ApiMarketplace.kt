@@ -1,5 +1,6 @@
 package me.bmax.apatch.ui.screen
 
+import me.bmax.apatch.util.ui.showToast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,7 +31,6 @@ import me.bmax.apatch.ui.component.AppLoadingIndicator
 import me.bmax.apatch.ui.model.ApiMarketplaceItem
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.ui.viewmodel.ApiMarketplaceViewModel
-import me.bmax.apatch.dsh.showToast
 
 @Destination<RootGraph>
 @OptIn(ExperimentalMaterial3Api::class)

@@ -78,8 +78,8 @@ import me.bmax.apatch.ui.DshWebUi
 import me.bmax.apatch.ui.component.copyInfoToClipboard
 import me.bmax.apatch.ui.component.copyableInfo
 import me.bmax.apatch.ui.theme.BackgroundConfig
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 /**
  * 所有首页布局共用的 DSH 运行时状态层。

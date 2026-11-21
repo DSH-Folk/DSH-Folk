@@ -13,8 +13,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import me.bmax.apatch.dsh.Cap
-import me.bmax.apatch.dsh.Access
 
 /**
  * 原生能力申请的**两段式**状态机，桥在这里阻塞等用户。
@@ -57,8 +55,8 @@ object DshElevationRequests {
 
     data class Request(
         val id: Long,
-        val cap: Cap,
-        val access: Access,
+        val cap: DshNativeBridge.Cap,
+        val access: DshNativeBridge.Access,
         val reason: String,
         /**
          * 这次申请对应的命令（可多行），原文照显给用户。
@@ -99,8 +97,8 @@ object DshElevationRequests {
 
     /** 最近一次结论。容器侧靠它回答「我上一次申请怎么样了」。 */
     data class Outcome(
-        val cap: Cap,
-        val access: Access,
+        val cap: DshNativeBridge.Cap,
+        val access: DshNativeBridge.Access,
         val decision: Decision,
         val atMs: Long,
     )
@@ -108,8 +106,8 @@ object DshElevationRequests {
     /** 第二段：App 层已同意，但 Android 层还缺权限。 */
     data class OsRequest(
         val id: Long,
-        val cap: Cap,
-        val access: Access,
+        val cap: DshNativeBridge.Cap,
+        val access: DshNativeBridge.Access,
         /** 缺什么，人类可读（弹窗正文直接用）。 */
         val missing: List<String>,
         /** 需要跳系统设置页时给的动作；不需要则为 null。 */
@@ -167,8 +165,8 @@ object DshElevationRequests {
     /** 提交一次申请；已有待处理申请时返回 null（容器侧对应 409）。 */
     @Synchronized
     fun submit(
-        cap: Cap,
-        access: Access,
+        cap: DshNativeBridge.Cap,
+        access: DshNativeBridge.Access,
         reason: String,
         command: String? = null,
         invocation: String? = null,
@@ -247,8 +245,8 @@ object DshElevationRequests {
     /** 登记第二段；已有待处理时返回 null（调用方直接返回缺少权限的结果即可）。 */
     @Synchronized
     fun askOs(
-        cap: Cap,
-        access: Access,
+        cap: DshNativeBridge.Cap,
+        access: DshNativeBridge.Access,
         missing: List<String>,
         settingsAction: String?,
     ): OsRequest? {

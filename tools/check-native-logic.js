@@ -29,11 +29,7 @@ const SRC = {
   cam: read("app/src/main/java/me/bmax/apatch/dsh/DshCamera.kt"),
   pd: read("app/src/main/java/me/bmax/apatch/dsh/DshPersonalData.kt"),
   ds: read("app/src/main/java/me/bmax/apatch/dsh/DshDeviceSense.kt"),
-  // 能力实现已抽到 NativeCapRouter（:ext-device-caps，Checkpoint 4），
-  // 断言要同时看桥（分派）与路由（实现）。
-  bridge: (read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt") + "\n" +
-    read("ext-device-caps/src/main/java/me/bmax/apatch/dsh/devicecaps/NativeCapRouter.kt") + "\n" +
-    read("ext-device-caps/src/main/java/me/bmax/apatch/dsh/devicecaps/NativeMediaOps.kt")),
+  bridge: read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt"),
   rt: (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt")),
 };
 const CODE = Object.fromEntries(Object.entries(SRC).map(([k, v]) => [k, code(v)]));
@@ -446,7 +442,6 @@ ok(SRC.rt.includes("dsh_log_bundle_unresolvable_user"),
 console.log("── 限制模式与两张清单 ──");
 {
   const privSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt");
-
   const privCode = code(privSrc);
   const shellSrc = read("app/src/main/java/me/bmax/apatch/dsh/PrivilegedShell.kt");
   // 复刻体：判定只有两个来源。这一行比旧的三档 when 短得多，但错了就是"每次调用都静默放行"
@@ -464,8 +459,7 @@ console.log("── 限制模式与两张清单 ──");
   ok(/getBoolean\(DshEnv\.KEY_PRIV_RESTRICT_MODE, false\)/.test(privCode),
     "限制模式默认关（钉在读的那一处：迁移里也写了同一个键，钉错地方会让「默认改开」从门禁底下溜过去）");
   for (const cap of ["SHELL", "DISPLAY", "CAMERA", "MIC", "SMS"]) {
-    // Cap 已下沉 :core-kernel，PrivPolicy 直接用短名（预检会盯旧包路径）。
-    ok(new RegExp("(?:DshNativeBridge\\.)?Cap\\." + cap + "\\.id").test(privSrc),
+    ok(new RegExp("DshNativeBridge\\.Cap\\." + cap + "\\.id").test(privSrc),
       "能力清单默认含 " + cap + "（旧模型里 CAMERA/MIC/SMS 启用后再没被问过，放进来才是新增的闸）");
   }
   ok(/getStringSet\(DshEnv\.KEY_PRIV_RESTRICT_CAPS, null\)\?\.toSet\(\) \?: DEFAULT_RESTRICTED/.test(privCode),
@@ -797,10 +791,8 @@ console.log("\n── 特权通道约束 ──");
     // 旧写法只给 shell 记 decision/restrictMode，于是 a11y/虚拟屏的"为什么没问"无从复盘
     // （真机报告里 153 条 a11y 调用全部答不出）。这里钉住：两个字段在 shell 判定**之前**
     // 就写进 entry，只有 channel/uid 留在 shell 分支里。
-    // 在本块内重新读：routerSrc 是上一个块的局部变量。
-    const routerSrc = read("ext-device-caps/src/main/java/me/bmax/apatch/dsh/devicecaps/NativeCapRouter.kt");
-    const at = routerSrc.indexOf("fun privAuditExtra(");
-    const body = at < 0 ? "" : routerSrc.slice(at, routerSrc.indexOf("\n    }\n", at));
+    const at = bridge.indexOf("private fun privAuditExtra(");
+    const body = at < 0 ? "" : bridge.slice(at, bridge.indexOf("\n    }\n", at));
     const shellAt = body.indexOf("if (cap == Cap.SHELL)");
     const modeAt = body.indexOf('"restrictMode"');
     const decAt = body.indexOf('"decision"');

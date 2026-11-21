@@ -1,8 +1,6 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
-import me.bmax.apatch.dsh.Cap
-import me.bmax.apatch.dsh.Access
 
 /**
  * 一条特权操作的风险等级。
@@ -15,7 +13,7 @@ import me.bmax.apatch.dsh.Access
  * （`risk: dangerous` 这条记录不随策略改动而变），以及做「危险操作清单」的内置内容。
  */
 // PrivRisk 已抽到 :core-kernel 的 PrivRisk.kt（Checkpoint 1）：
-// PrivilegedShell 下沉后要用它，而 PrivPolicy 依赖 Cap 无法下沉。
+// PrivilegedShell 下沉后要用它，而 PrivPolicy 依赖 DshNativeBridge.Cap 无法下沉。
 
 /**
  * 特权调用的策略判定。**唯一实现**：宿主侧的门禁（[DshNativeBridge]）与容器侧的提示词都
@@ -24,7 +22,7 @@ import me.bmax.apatch.dsh.Access
  *
  * ## 模型：档位 + 限制模式 + 两张清单
  *
- * - **档位**（[Access]，按能力）决定「允不允许做」。首次调用某能力必然弹一次
+ * - **档位**（[DshNativeBridge.Access]，按能力）决定「允不允许做」。首次调用某能力必然弹一次
  *   （默认是空集，所以这是唯一绕不过去的边界），弹窗的「允许（长期）」改的就是它。
  * - **[restrictMode] 关**（默认）：能力启用之后不再逐条问。
  * - **[restrictMode] 开**：[restrictedCaps] 里的能力**每次都问**，不在清单里的直接通过。
@@ -44,7 +42,7 @@ import me.bmax.apatch.dsh.Access
  * 只有「确实有旧 prefs」这一个事实用来决定要不要弹一次「策略已改变」的说明（见
  * [policyNoticePending]）。
  */
-object PrivPolicy {
+internal object PrivPolicy {
     private fun prefs(ctx: Context) =
         ctx.getSharedPreferences(DshEnv.PREF, Context.MODE_PRIVATE)
 
@@ -60,11 +58,11 @@ object PrivPolicy {
 
     /** 能力清单的默认内容：打开限制模式后这五项每次都要申请。 */
     val DEFAULT_RESTRICTED: Set<String> = linkedSetOf(
-        Cap.SHELL.id,
-        Cap.DISPLAY.id,
-        Cap.CAMERA.id,
-        Cap.MIC.id,
-        Cap.SMS.id,
+        DshNativeBridge.Cap.SHELL.id,
+        DshNativeBridge.Cap.DISPLAY.id,
+        DshNativeBridge.Cap.CAMERA.id,
+        DshNativeBridge.Cap.MIC.id,
+        DshNativeBridge.Cap.SMS.id,
     )
 
     /**
@@ -77,10 +75,10 @@ object PrivPolicy {
     fun restrictedCaps(ctx: Context): Set<String> =
         prefs(ctx).getStringSet(DshEnv.KEY_PRIV_RESTRICT_CAPS, null)?.toSet() ?: DEFAULT_RESTRICTED
 
-    fun isRestricted(ctx: Context, cap: Cap): Boolean =
+    fun isRestricted(ctx: Context, cap: DshNativeBridge.Cap): Boolean =
         restrictedCaps(ctx).contains(cap.id)
 
-    fun setCapRestricted(ctx: Context, cap: Cap, on: Boolean) {
+    fun setCapRestricted(ctx: Context, cap: DshNativeBridge.Cap, on: Boolean) {
         val next = restrictedCaps(ctx).toMutableSet()
         if (on) next.add(cap.id) else next.remove(cap.id)
         prefs(ctx).edit().putStringSet(DshEnv.KEY_PRIV_RESTRICT_CAPS, next).apply()

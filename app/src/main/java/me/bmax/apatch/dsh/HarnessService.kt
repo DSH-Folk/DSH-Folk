@@ -18,9 +18,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
-import me.bmax.apatch.dsh.appLaunchIntent
+import me.bmax.apatch.util.appLaunchIntent
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.appLaunchIntent
 
 /**
  * DSH 前台服务：让 `dsh web` 常驻，通知条显示状态并提供「停止」。

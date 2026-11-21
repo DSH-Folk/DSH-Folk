@@ -22,7 +22,7 @@ import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.ui.component.rememberConfirmDialog
 import me.bmax.apatch.ui.theme.FontConfig
 import me.bmax.apatch.ui.theme.refreshTheme
-import me.bmax.apatch.dsh.showToast
+import me.bmax.apatch.util.ui.showToast
 
 @Composable
 fun AppearanceFontSection(

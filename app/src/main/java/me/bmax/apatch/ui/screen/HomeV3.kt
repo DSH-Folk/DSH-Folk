@@ -54,9 +54,9 @@ import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.SystemInfoCollector
 import me.bmax.apatch.util.Version.getManagerVersion
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.util.ui.showToast
 import kotlinx.coroutines.launch
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 private val managerVersion = getManagerVersion()
 

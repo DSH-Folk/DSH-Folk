@@ -70,8 +70,8 @@ import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.ui.theme.BackgroundManager
 import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.showToast
 
 /**
  * 网格风格首页（原 KernelSU 风格布局）。

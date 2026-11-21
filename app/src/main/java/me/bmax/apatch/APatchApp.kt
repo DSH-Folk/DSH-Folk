@@ -21,6 +21,7 @@ import android.os.Process
 import android.util.Log
 import me.bmax.apatch.dsh.ext.ExtensionEngine
 import me.bmax.apatch.dsh.ext.ExtensionSafetyGuard
+import me.bmax.apatch.util.ui.showToast
 import androidx.core.content.edit
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -42,7 +43,6 @@ import coil.decode.ImageDecoderDecoder
 import coil.util.DebugLogger
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
-import me.bmax.apatch.dsh.showToast
 
 lateinit var apApp: APApplication
 
