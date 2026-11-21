@@ -36,7 +36,6 @@ import me.bmax.apatch.dsh.PrivPolicy
 import me.bmax.apatch.dsh.PrivilegedShell
 import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.dsh.showToast
-import me.bmax.apatch.dsh.DshEnv
 
 /**
  * 各能力的具体实现：通知、toast、振动、剪贴板、分享、拨号、设备信息，
@@ -55,18 +54,6 @@ import me.bmax.apatch.dsh.DshEnv
  * 一个回答「能不能做」，一个回答「怎么做」。
  */
 object NativeCapRouter {
-
-    class Once(val access: Access, val expiresAtMs: Long)
-
-
-    val onceStore = ConcurrentHashMap<Cap, Once>()
-
-
-    const val ACCESS_PREFIX = "native_bridge_access_"
-
-
-    fun prefs(ctx: Context) =
-        ctx.getSharedPreferences(DshEnv.PREF, Context.MODE_PRIVATE)
 
     const val NOTIFICATION_ID_BASE = 2000
     const val MAX_NOTIFICATION_SLOT = 999
