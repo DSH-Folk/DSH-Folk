@@ -33,6 +33,7 @@ import me.bmax.apatch.util.appString
 import org.json.JSONArray
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.backup.DshBackupArchive
 
 /** 运行时阶段。 */
 object DshRuntime : DshRuntimeHost {

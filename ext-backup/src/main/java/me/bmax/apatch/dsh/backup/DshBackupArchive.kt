@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.backup
 
 import android.content.Context
 import org.json.JSONObject
@@ -12,6 +12,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
+import me.bmax.apatch.dsh.DshEnv
 
 /**
  * 导出范围。**枚举顺序就是滑块的档位顺序**，界面上不要另外排一遍。
@@ -163,7 +164,23 @@ object DshBackupArchive {
     fun isSessionFile(name: String): Boolean = SESSION_FILE_RE.matches(name)
 
     /** 向插件请求的 DSH 分区：**永远不含 sessions**（会话由我们在本地按数量补）。 */
-    fun pluginSections(): List<String> = DshConfigBackup.DEFAULT_SECTIONS
+    /**
+     * 默认导出的分区清单。
+     *
+     * 从 [me.bmax.apatch.dsh.DshConfigBackup] 搬过来：那个类还在 :app（它依赖 ui.theme），
+     * 而本对象已迁 :ext-backup —— 反向依赖 :app 是架构禁止的。清单本身是纯数据，
+     * 搬过来后 `DshConfigBackup` 反过来引用这里，方向就正了。
+     *
+     * sessions 不在里面：它是逐会话文件复制，体积能到几百 MB，且含敏感信息。
+     * 想要的话用户在页面上勾「包含会话数据」，走显式加进去。
+     */
+    val DEFAULT_SECTIONS = listOf(
+        "settings", "ui", "providers", "plugins", "mcp", "prompts",
+        "skills", "agentPresets", "agentInstructions", "workspaces",
+        "pluginFiles", "credentialsStatus", "self",
+    )
+
+    fun pluginSections(): List<String> = DEFAULT_SECTIONS
 
     /**
      * 取某个条目的长度（不存在返回 -1）。
@@ -439,7 +456,7 @@ object DshBackupArchive {
             "exporter",
             JSONObject().apply {
                 put("name", "DSH-Folk")
-                put("version", me.bmax.apatch.BuildConfig.VERSION_NAME)
+                put("version", me.bmax.apatch.dsh.KernelEnv.appVersionName)
             },
         )
         put(

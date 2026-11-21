@@ -87,6 +87,8 @@ const MOVED = {
     "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshBackupCrypto.kt",
   "app/src/main/java/me/bmax/apatch/dsh/DshCloudBackup.kt":
     "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshCloudBackup.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshBackupArchive.kt":
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshBackupArchive.kt",
   "app/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt":
     "core-kernel/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt",
   "app/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt":

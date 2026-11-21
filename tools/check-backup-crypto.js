@@ -162,7 +162,11 @@ ok(/RandomAccessFile/.test(cryptoKt), '流式加密用随机写回填 header（t
 /* --------------------------------------------------------- 4. 补包链路 */
 section('4. 补包：checksums 必须重算、secrets.enc 必须与 encrypted 同进退');
 ok(/private val SESSION_FILE_RE = Regex/.test(archiveKt), '会话文件名用正则判据（新旧格式都认）');
-ok(/fun pluginSections\(\): List<String> = DshConfigBackup\.DEFAULT_SECTIONS/.test(archiveKt), '向插件要的分区里不含 sessions');
+// DEFAULT_SECTIONS 已搬进 DshBackupArchive（原在 :app 的 DshConfigBackup，迁模块后要单向依赖）。
+ok(/fun pluginSections\(\): List<String> = DEFAULT_SECTIONS/.test(archiveKt) &&
+  /val DEFAULT_SECTIONS = listOf\(/.test(archiveKt) &&
+  !/DEFAULT_SECTIONS = listOf\([^)]*"sessions"/.test(archiveKt),
+  '向插件要的分区里不含 sessions');
 ok(/sections\.put\("sessions", sessionDirs\.isNotEmpty\(\)\)/.test(archiveKt), 'manifest.sections.sessions 跟着实际内容写');
 ok(
   /put\("encrypted", plan\.password\.isNotEmpty\(\)\)/.test(archiveKt) ||

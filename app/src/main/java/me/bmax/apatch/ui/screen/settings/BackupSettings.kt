@@ -50,6 +50,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import java.security.SecureRandom
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.backup.ExportPlan
+import me.bmax.apatch.dsh.backup.BackupScope
+import me.bmax.apatch.dsh.backup.DshBackupArchive
 
 /**
  * 救急 CLI 的常用命令。

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import me.bmax.apatch.dsh.backup.DshBackupArchive
 
 /**
  * 「软件数据」——App 自己的设置与原生权限记录。

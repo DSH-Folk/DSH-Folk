@@ -25,6 +25,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
+import me.bmax.apatch.dsh.backup.ExportPlan
+import me.bmax.apatch.dsh.backup.DshBackupArchive
 
 /**
  * DSH 配置备份 / 迁移。
@@ -70,11 +72,11 @@ object DshConfigBackup {
      * 插件侧也 defaultIncluded=false —— 想要的话用户在页面上勾
      * 「包含会话数据」，走 [sections] 显式加进去。
      */
-    val DEFAULT_SECTIONS = listOf(
-        "settings", "ui", "providers", "plugins", "mcp", "prompts",
-        "skills", "agentPresets", "agentInstructions", "workspaces",
-        "pluginFiles", "credentialsStatus", "self",
-    )
+    /**
+     * 默认导出分区。**定义在 [DshBackupArchive]**（那边已迁 :ext-backup），
+     * 这里只是转发 —— 两个对象原本各持一份，迁模块后必须单向依赖。
+     */
+    val DEFAULT_SECTIONS: List<String> get() = DshBackupArchive.DEFAULT_SECTIONS
 
     /** 要导出给插件的 `only` 列表；[includeSessions] 为真时追加 sessions 分区。 */
     fun sections(includeSessions: Boolean): List<String> =
