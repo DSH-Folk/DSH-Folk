@@ -667,7 +667,7 @@ object DshRuntime : DshRuntimeHost {
     fun linkBecomesSymlink(): Boolean = !hardlinkSupported() || effectiveRuntimeId() == "proroot"
 
     /** 复制 proot 的 NEEDED 依赖到可写 lib 目录。 */
-    private fun ensureRuntimeFiles() {
+    internal fun ensureRuntimeFiles() {
         val libDir = File(appContext.filesDir, "lib").apply { mkdirs() }
         DshEnv.tmpDir(appContext).mkdirs()
         // 每条 exec 路径都要保证 DNS 在：冷启动直接进插件页 / 终端页时不会走 bootstrap，
@@ -719,8 +719,6 @@ object DshRuntime : DshRuntimeHost {
         timeoutMs: Long = 60_000L,
         onLine: (String) -> Unit,
     ): String = DshExec.execRootfsStreaming(bashCommand, timeoutMs, onLine)
-
-    fun flush() = DshExec.flush()
 
     /** [DshExec] 要拼 libproot.so 的路径；保持 private 语义但跨对象可见。 */
     internal fun nativeLibFor(name: String): File = nativeLib(name)

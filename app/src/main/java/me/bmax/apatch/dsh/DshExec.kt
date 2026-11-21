@@ -3,6 +3,7 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import java.io.File
 import java.io.OutputStream
+import java.util.concurrent.TimeUnit
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.res.R as CoreR
 
@@ -49,7 +50,7 @@ object DshExec {
         val env = pb.environment()
         // proot 的启动前提**无条件**设，不按「当前选中的运行时」跳过。
         //
-        // 与 ensureRuntimeFiles() 里那条同一个道理：`prootBaseArgv()` 是全局兜底（chroot 的
+        // 与 DshRuntime.ensureRuntimeFiles() 里那条同一个道理：`prootBaseArgv()` 是全局兜底（chroot 的
         // PTY 回退、spawnArgv 返回 null 时的回退、运行时不可用时的回退），所以即使选的是
         // chroot/proroot，这个进程也可能真的去 exec libproot.so。缺了会这样：
         //  - 缺 LD_LIBRARY_PATH → linker 找不到 filesDir/lib/libtalloc.so.2。真机（issue #12，
@@ -107,7 +108,7 @@ object DshExec {
 
     /** 在 rootfs 内执行一条 bash 命令（stderr 合并进 stdout）。 */
     fun execRootfs(bashCommand: String): Process {
-        ensureRuntimeFiles()
+        DshRuntime.ensureRuntimeFiles()
         val rt = DshRuntime.runtime()
         // 扩展拦截点（热路径！每次容器命令都会过这里）：
         // 先判有没有人注册（一次 map 查空就返回，不分配对象），再跑 Hook。
@@ -146,7 +147,7 @@ object DshExec {
 
     /** 启动交互式 bash（供终端页；cd/export 状态保持）。 */
     fun execRootfsInteractive(): Process {
-        ensureRuntimeFiles()
+        DshRuntime.ensureRuntimeFiles()
         val rt = DshRuntime.runtime()
         val guest = listOf("/bin/bash")
         val argv = rt.spawnArgv(guest, guestEnv()) ?: (prootBaseArgv() + guest)
@@ -179,7 +180,7 @@ object DshExec {
      * 不一样的环境里，少一个 PROOT_LOADER 就直接起不来。
      */
     fun ptyArgv(vararg guestCmd: String): Array<String> {
-        ensureRuntimeFiles()
+        DshRuntime.ensureRuntimeFiles()
         // chroot 走不了 PTY：Termux 的 terminal-emulator 是 openpty + fork + execvp，而 chroot
         // 需要先 su 提权、再 mount --bind 组装挂载视图 —— 这两步没法塞进一个 execvp。所以这里
         // 显式退回 proot 的 argv：终端页是「进容器敲命令」的入口，宁可用 proot 也必须能用。
@@ -271,7 +272,7 @@ object DshExec {
             // 超时：先杀进程让读流拿到 EOF，再给读线程一点时间收尾
             p.destroyForcibly()
             reader.join(1_000)
-            logWarn(CoreR.string.dsh_log_cmd_timeout, timeoutMs / 1000, bashCommand.take(120))
+            DshLogging.logWarn(CoreR.string.dsh_log_cmd_timeout, timeoutMs / 1000, bashCommand.take(120))
         } else if (!p.waitFor(2, TimeUnit.SECONDS)) {
             // 流已关但进程还在（少见：子孙进程继承了 stdout 又提前关掉）
             p.destroyForcibly()
