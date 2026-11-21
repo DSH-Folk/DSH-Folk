@@ -1,6 +1,7 @@
 package me.bmax.apatch.util
 
 import android.content.Context
+import me.bmax.apatch.dsh.InternalKernelApi
 import android.util.Log
 import com.topjohnwu.superuser.Shell
 import me.bmax.apatch.dsh.KernelEnv
@@ -144,7 +145,8 @@ internal fun createRootShellSafe(globalMnt: Boolean = false): Shell {
     }
 }
 
-internal fun createRootShellStrict(
+@InternalKernelApi
+fun createRootShellStrict(
     globalMnt: Boolean = false,
     reason: String = "unknown"
 ): Shell {

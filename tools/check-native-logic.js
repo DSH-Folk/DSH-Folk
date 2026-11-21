@@ -426,7 +426,8 @@ ok(SRC.rt.includes("dsh_log_bundle_unresolvable_user"),
     SRC.rt.indexOf("private suspend fun awaitWebToken"),
     SRC.rt.indexOf("private fun httpResponds"),
   );
-  ok(/TOKEN_WAIT_MS/.test(waitBody) && /internal const val TOKEN_WAIT_MS = \d+_?\d*L/.test(SRC.rt),
+  // 下沉 :core-kernel 后 internal 对 :app 不可见，放宽为 public + @InternalKernelApi
+  ok(/TOKEN_WAIT_MS/.test(waitBody) && /(?:internal )?const val TOKEN_WAIT_MS = \d+_?\d*L/.test(SRC.rt),
     "等待有上限：拿不到 token 也不能把启动卡死");
   ok(waitBody.includes("serverProcess?.isAlive != false"), "进程死了就不等了（超时日志会盖掉真正的失败原因）");
   ok(/logInfo\((?:Core)?R\.string\.dsh_log_token_captured, token\.length\)/.test(waitBody),

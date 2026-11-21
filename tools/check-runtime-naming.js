@@ -218,8 +218,9 @@ console.log("\n── 分页与滚动通道 ──");
     "Releases API 翻页（一页 100 条，滚动 tag 已经在第 3 页）");
   ok(/if \(got < RELEASES_PER_PAGE\) break/.test(RT),
     "页没给满就停（不靠异常控制流程）");
-  ok(/internal const val RELEASES_PER_PAGE = 100/.test(CONSTS) &&
-     /internal const val MAX_RELEASE_PAGES = 3/.test(CONSTS),
+  // 下沉 :core-kernel 后放宽为 public + @InternalKernelApi
+  ok(/(?:internal )?const val RELEASES_PER_PAGE = 100/.test(CONSTS) &&
+     /(?:internal )?const val MAX_RELEASE_PAGES = 3/.test(CONSTS),
     "分页参数是具名常量（300 条 >= 当下 270 多）");
   ok(/RuntimeVersion\.ROLLING_TAGS\.map/.test(RT),
     "四个滚动 tag 无条件补拉（API 里它们排在很后面，滑到精简档才是空列表）");

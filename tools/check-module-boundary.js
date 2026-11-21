@@ -204,6 +204,41 @@ for (const [mod, dir] of Object.entries(MODULES)) {
   }
 }
 
+// ── internal 可见性：被 :app 用到的符号不能是 internal ──
+
+console.log("\n── internal 跨模块可见性 ──");
+{
+  // Kotlin 的 internal 是**模块**级。文件下沉后，原本模块内的 internal 成员
+  // 对 :app 就不可见了 —— 报错是 "Cannot access 'fun X': it is internal in file"，
+  // 但本地没有编译器，只有 CI 才会炸。所以在这里提前拦。
+  const appSrc = MODULES.app && walkKt(MODULES.app)
+    .map((f) => stripComments(fs.readFileSync(f, "utf8")))
+    .join("\n");
+
+  const offenders = [];
+  for (const [mod, dir] of Object.entries(MODULES)) {
+    if (mod === "app" || !ALLOWED[mod]) continue;
+    for (const f of walkKt(dir)) {
+      const code = stripComments(fs.readFileSync(f, "utf8"));
+      for (const m of code.matchAll(
+        /^internal (?:object|class|interface|fun|val|const val) +([A-Za-z_][A-Za-z0-9_]*)/gm,
+      )) {
+        const sym = m[1];
+        if (!new RegExp("(?:^|[^A-Za-z0-9_])" + sym + "(?:[^A-Za-z0-9_]|$)").test(appSrc)) continue;
+        offenders.push(path.relative(ROOT, f) + ": " + sym + " 是 internal，但 :app 在用");
+      }
+    }
+  }
+
+  if (offenders.length === 0) {
+    ok("被 :app 使用的符号都不是 internal");
+  } else {
+    fail(offenders.length + " 个符号是 internal 却被 :app 引用：");
+    for (const o of offenders.slice(0, 12)) console.log("      " + o);
+    if (offenders.length > 12) console.log("      …还有 " + (offenders.length - 12) + " 个");
+  }
+}
+
 // ── 自检：脚本本身得能判红 ──
 
 console.log("\n── 自检 ──");

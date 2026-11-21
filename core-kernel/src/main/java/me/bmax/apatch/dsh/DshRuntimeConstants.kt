@@ -55,7 +55,8 @@ import org.json.JSONObject
  * 所以放宽到 180s：宁可多等一会，也不要因为宿主加载慢就把一个好运行时判死。
  * 「卡住不退」那种真故障仍有 [PROROOT_FAIL_LIMIT] 兜底，不会无限重试。
  */
-internal const val READY_TIMEOUT_MS = 180_000L
+@InternalKernelApi
+const val READY_TIMEOUT_MS = 180_000L
 
 /**
  * 等待服务就绪期间，每隔多久往日志里打一行心跳。
@@ -64,7 +65,8 @@ internal const val READY_TIMEOUT_MS = 180_000L
  * 中间没有任何信息 —— 进程还在不在、端口有没有监听、等了多久，全都看不见。
  * 取 15 秒：一条启动最多 6 行，不会把日志刷爆，又足够定位是哪一段卡住。
  */
-internal const val READY_HEARTBEAT_MS = 15_000L
+@InternalKernelApi
+const val READY_HEARTBEAT_MS = 15_000L
 
 /**
  * 端口已响应后，再等认证 token 多久才按「没有 token」继续。
@@ -77,7 +79,8 @@ internal const val READY_HEARTBEAT_MS = 15_000L
  * 取 30s：手机上插件树加载通常在这个量级以内。等不到也不卡死 —— 超时就按无 token
  * 继续（那说明这份运行时的输出格式变了，日志里会写明）。
  */
-internal const val TOKEN_WAIT_MS = 30_000L
+@InternalKernelApi
+const val TOKEN_WAIT_MS = 30_000L
 
 /**
  * Releases API 的分页参数。
@@ -87,10 +90,13 @@ internal const val TOKEN_WAIT_MS = 30_000L
  * 排在第三页。三条上限（300 条）对当下的规模有近一倍余量，同时把「仓库里 release
  * 涨到几千条」这种情况挡在 3 次请求以内。
  */
-internal const val RELEASES_PER_PAGE = 100
-internal const val MAX_RELEASE_PAGES = 3
+@InternalKernelApi
+const val RELEASES_PER_PAGE = 100
+@InternalKernelApi
+const val MAX_RELEASE_PAGES = 3
 /** 等 token 时的轮询间隔：这行通常在 1s 内到，密一点能让「已就绪」尽快翻过来。 */
-internal const val TOKEN_POLL_MS = 200L
+@InternalKernelApi
+const val TOKEN_POLL_MS = 200L
 
 /**
  * proroot 连续失败到此次数即强制回退 proot 并清掉用户选择。
@@ -98,15 +104,19 @@ internal const val TOKEN_POLL_MS = 200L
  * 取 1（失败即回退）：proroot 的失败模式是内核相关的确定性失败，重试同一台
  * 设备不会有不同结果，让用户白等第二、三次没有意义。
  */
-internal const val PROROOT_FAIL_LIMIT = 1
+@InternalKernelApi
+const val PROROOT_FAIL_LIMIT = 1
 
 /** profile pnpm 设置里固定导入方式（见 [ensureProfilePnpmSettings]）。 */
-internal const val PNPM_IMPORT_KEY = "packageImportMethod"
+@InternalKernelApi
+const val PNPM_IMPORT_KEY = "packageImportMethod"
 
-internal const val PNPM_IMPORT_LINE = "packageImportMethod: copy"
+@InternalKernelApi
+const val PNPM_IMPORT_LINE = "packageImportMethod: copy"
 
 /** v1.3 写进 /root/.npmrc 的无效行，只为清理它而保留。 */
-internal const val NPMRC_LEGACY_LINE = "package-import-method=copy"
+@InternalKernelApi
+const val NPMRC_LEGACY_LINE = "package-import-method=copy"
 
 /**
  * 首启预装的插件（npm 包名，已人工验证可装）。
@@ -121,7 +131,8 @@ internal const val NPMRC_LEGACY_LINE = "package-import-method=copy"
  * 往这个清单里加包是安全的：[seedPlugins] 按包名逐个记账，老用户下次冷启动
  * 会补装增量（不会因为「已完成」标记而永远跳过）。
  */
-internal val SEED_PLUGINS =
+@InternalKernelApi
+val SEED_PLUGINS =
 listOf("dsh-web-mobile", "dshmarket", "dsh-config-manager", "dsh-folk-cloud")
 
 /**
@@ -138,9 +149,11 @@ listOf("dsh-web-mobile", "dshmarket", "dsh-config-manager", "dsh-folk-cloud")
  * `config-manager` 这个 loader id 被声明两次而整棵插件树起不来。两者都在本清单里、
  * 各自独立安装到 profile 顶层，互为并列。
  */
-internal val SEED_SPECS = mapOf("dsh-folk-cloud" to "github:DSH-Folk/dsh-folk-cloud")
+@InternalKernelApi
+val SEED_SPECS = mapOf("dsh-folk-cloud" to "github:DSH-Folk/dsh-folk-cloud")
 
-internal val SEED_MIN_VERSIONS = mapOf(
+@InternalKernelApi
+val SEED_MIN_VERSIONS = mapOf(
 "dsh-folk-cloud" to "0.6.0",
 "dsh-config-manager" to "0.4.3",
 "dshmarket" to "1.73.15",
@@ -155,7 +168,8 @@ internal val SEED_MIN_VERSIONS = mapOf(
  * [DshPluginRepo.install] 在镜像线路里当作最后一条候选。tgz 装的是这个固定版本，
  * 装上后用户可在插件商店自行更新到更新的版本。
  */
-internal val SEED_FALLBACK_TGZ = mapOf(
+@InternalKernelApi
+val SEED_FALLBACK_TGZ = mapOf(
 "dsh-folk-cloud" to
     "https://github.com/DSH-Folk/dsh-folk-cloud/releases/download/v0.6.0/dsh-folk-cloud-0.6.0.tgz",
 )
@@ -184,14 +198,17 @@ internal val SEED_FALLBACK_TGZ = mapOf(
  * `npm view @deepseek-ai/dsh-web-app@<版本> dist.tarball` 取包，读它 package.json 里
  * `dsh.bundle.patch` 指向的文件的 `- id:` 行，再和预装包的同类声明取交集。
  */
-internal val RETIRED_SEED_PLUGINS = mapOf("dsh-file-upload" to "file-upload")
+@InternalKernelApi
+val RETIRED_SEED_PLUGINS = mapOf("dsh-file-upload" to "file-upload")
 
 /** 启动日志里「profile 声明了 bundles 但包解析不到」的行（声明残留时出现）。 */
-internal val PROFILE_BUNDLE_RE =
+@InternalKernelApi
+val PROFILE_BUNDLE_RE =
 Regex("cannot resolve profile bundle [\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE)
 
 /** 启动日志里「重复 loader entry id」的行（0.1.5 内置能力与三方插件重名时出现）。 */
-internal val DUP_ENTRY_RE = Regex("duplicate loader entry id[: ]+([A-Za-z0-9_.@/-]+)", RegexOption.IGNORE_CASE)
+@InternalKernelApi
+val DUP_ENTRY_RE = Regex("duplicate loader entry id[: ]+([A-Za-z0-9_.@/-]+)", RegexOption.IGNORE_CASE)
 
 /**
  * 「预装补修」轮次（见 [applySeedRepair]）。
@@ -201,7 +218,8 @@ internal val DUP_ENTRY_RE = Regex("duplicate loader entry id[: ]+([A-Za-z0-9_.@/
  *   2 = 1.9.2.7：github/git 插件安装改走 gh-proxy 镜像线路（1.9.2.6）后，重试一次
  *       之前因直连 github 失败而记账没生效的预装包（dsh-folk-cloud 首当其冲）
  */
-internal const val SEED_REPAIR_REV = 2
+@InternalKernelApi
+const val SEED_REPAIR_REV = 2
 
 /**
  * 同一个运行时版本下，最多允许几轮「补装没生效的预装包」。
@@ -210,7 +228,8 @@ internal const val SEED_REPAIR_REV = 2
  * 还能再试一次；两次都不行就认定这个环境下装不上，不再每次开机重跑 pnpm。
  * 换运行时版本会重置这个计数（见 [applySeedEnvRetry]）。
  */
-internal const val SEED_MAX_PASSES = 2
+@InternalKernelApi
+const val SEED_MAX_PASSES = 2
 
 /** 样例目录名（容器内 `/root/.dsh/<这个名字>/`）。 */
 /** 写到容器里的 DSL 文档文件名（与 `dsh-workflow` / 工具插件约定）。 */
@@ -221,7 +240,8 @@ internal const val SEED_MAX_PASSES = 2
  * 照样失败（真机实测就是这样），而 [PROROOT_FAIL_LIMIT] = 1 会一次就把用户的
  * proroot 偏好静默清掉。
  */
-internal val PLUGIN_FAILURE_MARKS = listOf(
+@InternalKernelApi
+val PLUGIN_FAILURE_MARKS = listOf(
 "plugin tree failed to load",
 "client bundles not found",
 "failed to apply loader entry modules",

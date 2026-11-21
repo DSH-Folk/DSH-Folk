@@ -12,7 +12,8 @@ import java.nio.charset.StandardCharsets
  *
  * 与 [DshRuntimeEnv] 同样的原则：只接显式参数，不依赖 DshRuntime 的 private 成员。
  */
-internal object DshRuntimeFiles {
+@InternalKernelApi
+object DshRuntimeFiles {
     /** 内容不同才写。返回是否真的写了（调用方要打日志时用得上）。 */
     fun writeIfChanged(file: File, text: String): Boolean {
         file.parentFile?.mkdirs()

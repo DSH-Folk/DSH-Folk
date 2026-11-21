@@ -34,7 +34,8 @@ import java.io.File
  * - 用的是**写入时的系统时间**：用户改过设备时间/时区时，旧行的语义会跟着变（本地时间格式），
  *   与 logcat 那条按行首解析的路径同一个前提。
  */
-internal object DshLogWindow {
+@InternalKernelApi
+object DshLogWindow {
 
     /**
      * 裁切结果。
