@@ -6,8 +6,8 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.net.URL
-import me.bmax.apatch.R
 import org.json.JSONArray
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 运行时下载源解析与测速（移植 DSHM SourceManager 的思路，简化为三候选 + 自定义）。
@@ -396,15 +396,15 @@ object DshSource {
      * API 33 以下是实打实的（应用内语言只作用于 Activity）。
      */
     fun labelRes(source: String): Int = when (source) {
-        SOURCE_AUTO -> R.string.dsh_source_auto
-        SOURCE_GITHUB -> R.string.dsh_source_github
-        SOURCE_GHPROXY_CF -> R.string.dsh_source_ghproxy_cf
-        SOURCE_GHPROXY_AXISNOW -> R.string.dsh_source_ghproxy_axisnow
-        SOURCE_GHPROXY_MAIN -> R.string.dsh_source_ghproxy_main
-        SOURCE_GHPROXY_V4 -> R.string.dsh_source_ghproxy_v4
-        SOURCE_GHPROXY_CDN -> R.string.dsh_source_ghproxy_cdn
-        SOURCE_CUSTOM -> R.string.dsh_source_custom
-        else -> R.string.dsh_source_auto
+        SOURCE_AUTO -> CoreR.string.dsh_source_auto
+        SOURCE_GITHUB -> CoreR.string.dsh_source_github
+        SOURCE_GHPROXY_CF -> CoreR.string.dsh_source_ghproxy_cf
+        SOURCE_GHPROXY_AXISNOW -> CoreR.string.dsh_source_ghproxy_axisnow
+        SOURCE_GHPROXY_MAIN -> CoreR.string.dsh_source_ghproxy_main
+        SOURCE_GHPROXY_V4 -> CoreR.string.dsh_source_ghproxy_v4
+        SOURCE_GHPROXY_CDN -> CoreR.string.dsh_source_ghproxy_cdn
+        SOURCE_CUSTOM -> CoreR.string.dsh_source_custom
+        else -> CoreR.string.dsh_source_auto
     }
 
     /**

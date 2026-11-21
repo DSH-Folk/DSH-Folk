@@ -54,6 +54,7 @@ kotlin {
 
 dependencies {
     implementation(project(":ext-api"))
+    implementation(project(":core-res"))
     implementation(project(":core-kernel"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

@@ -26,13 +26,13 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.util.LocaleCtx
 import me.bmax.apatch.util.UpdateChecker
 import me.bmax.apatch.util.appString
 import org.json.JSONArray
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /** 运行时阶段。 */
 object DshRuntime : DshRuntimeHost {
@@ -540,12 +540,12 @@ object DshRuntime : DshRuntimeHost {
         // 插件树加载失败与运行时无关：以前这条判据排在 chroot 分支**之后**，于是插件报错
         // 也会把 chroot 判死并回退 proot（评审 P0-3 附带项）。判据必须先跑。
         if (lastLogSuggestsPluginFailure()) {
-            logWarn(R.string.dsh_log_plugin_stage_failure)
+            logWarn(CoreR.string.dsh_log_plugin_stage_failure)
             return false
         }
         if (id == "chroot") {
             prefs().edit().putString(DshEnv.KEY_RUNTIME, "proot").apply()
-            logWarn(R.string.dsh_log_proroot_failed, "chroot: " + why)
+            logWarn(CoreR.string.dsh_log_proroot_failed, "chroot: " + why)
             prorootFellBack = true
             return true
         }
@@ -554,8 +554,8 @@ object DshRuntime : DshRuntimeHost {
             prefs().edit().putString(DshEnv.KEY_RUNTIME, "proot").putInt(DshEnv.KEY_PROROOT_FAIL, 0).apply()
             // 两条独立的完整句子，而不是把「连续 N 次」拼进一句 —— 片段拼接在
             // 别的语言里语序就散了（这也是为什么没有 dsh_log_proroot_failed_prefix）
-            if (n > 1) logWarn(R.string.dsh_log_proroot_failed_times, n, why)
-            else logWarn(R.string.dsh_log_proroot_failed, why)
+            if (n > 1) logWarn(CoreR.string.dsh_log_proroot_failed_times, n, why)
+            else logWarn(CoreR.string.dsh_log_proroot_failed, why)
             prorootFellBack = true
             true
         } else {
@@ -624,7 +624,7 @@ object DshRuntime : DshRuntimeHost {
 
     /** 插件树加载失败的可修复提示；无此迹象时返回 null。 */
     fun pluginTreeFailureHint(): String? =
-        if (lastLogSuggestsPluginFailure()) str(R.string.dsh_err_plugin_tree_failed) else null
+        if (lastLogSuggestsPluginFailure()) str(CoreR.string.dsh_err_plugin_tree_failed) else null
 
     private fun nativeLib(name: String): File = File(DshEnv.nativeLibDir(appContext), name)
 
@@ -650,7 +650,7 @@ object DshRuntime : DshRuntimeHost {
                 Files.write(src.toPath(), byteArrayOf('o'.code.toByte(), 'k'.code.toByte()))
                 Files.createLink(dst.toPath(), src.toPath())
                 ok = dst.isFile && dst.length() == 2L
-                if (!ok) detail = str(R.string.dsh_log_hardlink_unreadable)
+                if (!ok) detail = str(CoreR.string.dsh_log_hardlink_unreadable)
             } catch (e: Throwable) {
                 ok = false
                 detail = "${e.javaClass.simpleName}: ${e.message}"
@@ -956,7 +956,7 @@ object DshRuntime : DshRuntimeHost {
             // 超时：先杀进程让读流拿到 EOF，再给读线程一点时间收尾
             p.destroyForcibly()
             reader.join(1_000)
-            logWarn(R.string.dsh_log_cmd_timeout, timeoutMs / 1000, bashCommand.take(120))
+            logWarn(CoreR.string.dsh_log_cmd_timeout, timeoutMs / 1000, bashCommand.take(120))
         } else if (!p.waitFor(2, TimeUnit.SECONDS)) {
             // 流已关但进程还在（少见：子孙进程继承了 stdout 又提前关掉）
             p.destroyForcibly()
@@ -1006,7 +1006,7 @@ object DshRuntime : DshRuntimeHost {
                     // DshSource.runtimeArch 的注释），那份 rootfs 一执行就 SIGILL，
                     // 而 isRuntimeInstalled 只看文件在不在、会一直认为「已安装」——
                     // 不在这里自愈，用户就只能手动重装运行时才能脱困。
-                    logWarn(R.string.dsh_log_arch_mismatch_redownload)
+                    logWarn(CoreR.string.dsh_log_arch_mismatch_redownload)
                     downloadAndInstall()
                     if (_state.value.phase == DshPhase.ERROR) return@withLock
                 }
@@ -1034,7 +1034,7 @@ object DshRuntime : DshRuntimeHost {
             else -> ELF_MACHINE_X86_64
         }
         if (machine == want) return@runCatching false
-        logWarn(R.string.dsh_log_node_machine, machine, want)
+        logWarn(CoreR.string.dsh_log_node_machine, machine, want)
         true
     }.getOrDefault(false)
 
@@ -1062,7 +1062,7 @@ object DshRuntime : DshRuntimeHost {
         // 并停止：四个预装包逐个 exit 127 只是刷屏，用户得不到任何可行动的信息。
         // 恢复路径就是更新运行时 —— 不含 pnpm 的旧 rootfs 已从两个通道重新发布。
         if (!pnpmInstalled()) {
-            logWarn(R.string.dsh_log_missing_pnpm)
+            logWarn(CoreR.string.dsh_log_missing_pnpm)
             return
         }
 
@@ -1073,7 +1073,7 @@ object DshRuntime : DshRuntimeHost {
             DshPluginRepo.pruneUnresolvableBundles(managedSeedPackages())
         }.getOrElse { emptySet() }
         if (prunedStale.isNotEmpty()) {
-            logInfo(R.string.dsh_log_bundle_pruned, joinForLog(prunedStale))
+            logInfo(CoreR.string.dsh_log_bundle_pruned, joinForLog(prunedStale))
         }
 
         val p = prefs()
@@ -1130,14 +1130,14 @@ object DshRuntime : DshRuntimeHost {
         // 也要走一次卸载把声明摘干净（dsh 解析不到那条声明就拒绝启动）。
         val shadowedInstalled = shadowed.filter { it in installed || it in bundleState.declared }
         for (pkg in shadowedInstalled) {
-            logWarn(R.string.dsh_log_seed_shadow_uninstall, pkg, RETIRED_SEED_PLUGINS[pkg] ?: pkg)
+            logWarn(CoreR.string.dsh_log_seed_shadow_uninstall, pkg, RETIRED_SEED_PLUGINS[pkg] ?: pkg)
             runCatching {
                 DshPluginRepo.uninstall(pkg, onLine = { line -> appendLog(line) })
             }.onFailure { appendLog(it.message ?: it.javaClass.simpleName) }
         }
         val shadowedSkipped = shadowed - shadowedInstalled.toSet()
         if (shadowedSkipped.isNotEmpty()) {
-            logInfo(R.string.dsh_log_seed_skip_builtin, joinForLog(shadowedSkipped))
+            logInfo(CoreR.string.dsh_log_seed_skip_builtin, joinForLog(shadowedSkipped))
         }
         // 历史遗留：这些包以前被记成「试过了」。摘掉它们 —— 万一以后换回不含该能力的
         // 运行时，实时判定不再命中，它们就该重新预装。
@@ -1154,15 +1154,15 @@ object DshRuntime : DshRuntimeHost {
             persistSeeded(attempted + todo)
         } else if (missing.isNotEmpty()) {
             _state.update {
-                it.copy(phase = DshPhase.EXTRACTING, progress = 0f, message = str(R.string.dsh_plugin_seeding))
+                it.copy(phase = DshPhase.EXTRACTING, progress = 0f, message = str(CoreR.string.dsh_plugin_seeding))
             }
             for (pkg in missing) {
-                logInfo(R.string.dsh_log_seeding, pkg)
+                logInfo(CoreR.string.dsh_log_seeding, pkg)
                 val code = installSeedPkgWithApproval(pkg)
                 if (code == 0) {
-                    logInfo(R.string.dsh_log_seed_done, pkg)
+                    logInfo(CoreR.string.dsh_log_seed_done, pkg)
                 } else {
-                    logWarn(R.string.dsh_log_seed_failed, pkg)
+                    logWarn(CoreR.string.dsh_log_seed_failed, pkg)
                 }
             }
             persistSeeded(attempted + todo)
@@ -1188,7 +1188,7 @@ object DshRuntime : DshRuntimeHost {
                 val conflicts = pkgs.distinct().filter { it in SEED_PLUGINS }
                 if (conflicts.isEmpty()) continue
                 for (pkg in conflicts) {
-                    logWarn(R.string.dsh_log_dup_entry_removed, pkg, id)
+                    logWarn(CoreR.string.dsh_log_dup_entry_removed, pkg, id)
                     DshPluginRepo.uninstall(pkg, onLine = { line -> appendLog(line) })
                 }
             }
@@ -1251,12 +1251,12 @@ object DshRuntime : DshRuntimeHost {
                 onLine = { line -> appendLog(line) },
                 fallbackTgz = seedFallbackTgz(pkg),
             )
-        }.getOrElse { str(R.string.dsh_log_seed_exception, it.message ?: it.javaClass.simpleName) }
+        }.getOrElse { str(CoreR.string.dsh_log_seed_exception, it.message ?: it.javaClass.simpleName) }
         var code = exitCodeOf(out)
         if (code != 0) {
             val pending = DshPluginRepo.pendingBuildApproval(out)
             if (pending.isNotEmpty()) {
-                logInfo(R.string.dsh_log_seed_builds_blocked, joinForLog(pending))
+                logInfo(CoreR.string.dsh_log_seed_builds_blocked, joinForLog(pending))
                 out = runCatching {
                     DshPluginRepo.install(
                         seedSpec(pkg),
@@ -1265,13 +1265,13 @@ object DshRuntime : DshRuntimeHost {
                         allowBuilds = pending,
                         fallbackTgz = seedFallbackTgz(pkg),
                     )
-                }.getOrElse { str(R.string.dsh_log_seed_retry_exception, it.message ?: it.javaClass.simpleName) }
+                }.getOrElse { str(CoreR.string.dsh_log_seed_retry_exception, it.message ?: it.javaClass.simpleName) }
                 code = exitCodeOf(out)
             }
         }
         // 只补一句可行动的话，不在这里修 rootfs：pnpm 由运行时自带。旧运行时那个无 shebang
         // 的 pnpm shim 会让 dsh 的 spawnSync 直接 ENOENT，报的就是这一行 —— 出路是更新运行时。
-        if (code != 0 && out.contains(DshPluginRepo.NO_PNPM)) logWarn(R.string.dsh_log_missing_pnpm)
+        if (code != 0 && out.contains(DshPluginRepo.NO_PNPM)) logWarn(CoreR.string.dsh_log_missing_pnpm)
         // exitCodeOf 解析不出退出码时返回 null —— 按失败处理（-1），调用方 `code == 0` 才是成功
         return code ?: -1
     }
@@ -1332,12 +1332,12 @@ object DshRuntime : DshRuntimeHost {
         }
         if (outdated.isEmpty()) return
         _state.update {
-            it.copy(phase = DshPhase.EXTRACTING, progress = 0f, message = str(R.string.dsh_plugin_seeding))
+            it.copy(phase = DshPhase.EXTRACTING, progress = 0f, message = str(CoreR.string.dsh_plugin_seeding))
         }
         for ((pkg, min) in outdated) {
-            logInfo(R.string.dsh_log_seed_version_upgrade, pkg, byPkg[pkg]?.installedVersion.orEmpty(), min)
+            logInfo(CoreR.string.dsh_log_seed_version_upgrade, pkg, byPkg[pkg]?.installedVersion.orEmpty(), min)
             val code = installSeedPkgWithApproval(pkg)
-            if (code == 0) logInfo(R.string.dsh_log_seed_done, pkg) else logWarn(R.string.dsh_log_seed_failed, pkg)
+            if (code == 0) logInfo(CoreR.string.dsh_log_seed_done, pkg) else logWarn(CoreR.string.dsh_log_seed_failed, pkg)
         }
         refreshRootfsSize()
         _state.update { it.copy(phase = DshPhase.NOT_READY, progress = 1f) }
@@ -1366,7 +1366,7 @@ object DshRuntime : DshRuntimeHost {
         if (retry.isNotEmpty()) {
             attempted.removeAll(retry.toSet())
             persistSeeded(attempted)
-            logInfo(R.string.dsh_log_seed_repair, joinForLog(retry))
+            logInfo(CoreR.string.dsh_log_seed_repair, joinForLog(retry))
         }
         p.edit().putInt(DshEnv.KEY_SEED_REPAIR_REV, SEED_REPAIR_REV).apply()
     }
@@ -1406,7 +1406,7 @@ object DshRuntime : DshRuntimeHost {
         }
         attempted.removeAll(retry.toSet())
         persistSeeded(attempted)
-        logInfo(R.string.dsh_log_seed_retry_missing, joinForLog(retry))
+        logInfo(CoreR.string.dsh_log_seed_retry_missing, joinForLog(retry))
         p.edit()
             .putString(DshEnv.KEY_SEED_RUNTIME, runtimeNow)
             .putInt(DshEnv.KEY_SEED_PASSES, if (lastRuntime == runtimeNow) passes + 1 else 1)
@@ -1430,7 +1430,7 @@ object DshRuntime : DshRuntimeHost {
         if (repairDuplicateLoaderEntry()) repaired = true
         if (repairUnresolvableBundles()) repaired = true
         if (_state.value.phase == DshPhase.ERROR && repaired) {
-            logInfo(R.string.dsh_log_dup_entry_retry)
+            logInfo(CoreR.string.dsh_log_dup_entry_retry)
             stopServer()
             delay(500)
             startServer()
@@ -1438,7 +1438,7 @@ object DshRuntime : DshRuntimeHost {
         }
         if (!prorootFellBack) return
         prorootFellBack = false
-        logInfo(R.string.dsh_log_retry_with_proot)
+        logInfo(CoreR.string.dsh_log_retry_with_proot)
         stopServer()
         delay(500)
         startServer()
@@ -1481,13 +1481,13 @@ object DshRuntime : DshRuntimeHost {
         if (names.isEmpty()) return false
         val seedNames = names.filter { it in SEED_PLUGINS }.toSet()
         if (seedNames.isEmpty()) {
-            logWarn(R.string.dsh_log_bundle_unresolvable_user, joinForLog(names))
+            logWarn(CoreR.string.dsh_log_bundle_unresolvable_user, joinForLog(names))
             return false
         }
         val pruned = runCatching { DshPluginRepo.pruneUnresolvableBundles(seedNames) }
             .getOrElse { emptySet() }
         if (pruned.isEmpty()) return false
-        logWarn(R.string.dsh_log_bundle_repair, joinForLog(pruned))
+        logWarn(CoreR.string.dsh_log_bundle_repair, joinForLog(pruned))
         return true
     }
 
@@ -1516,7 +1516,7 @@ object DshRuntime : DshRuntimeHost {
             .ifEmpty { RETIRED_SEED_PLUGINS.filter { (_, retiredId) -> retiredId == id }.keys.toList() }
         if (culprits.isEmpty()) return false
         for (pkg in culprits) {
-            logWarn(R.string.dsh_log_dup_entry_repair, pkg, id)
+            logWarn(CoreR.string.dsh_log_dup_entry_repair, pkg, id)
             DshPluginRepo.uninstall(pkg, onLine = { line -> appendLog(line) })
         }
         // 必须落盘：映射表（[RETIRED_SEED_PLUGINS]）没覆盖的冲突只有这里才知道，不记下来的话
@@ -1543,7 +1543,7 @@ object DshRuntime : DshRuntimeHost {
         if (serverProcess?.isAlive == true) return false
         if (!isPortInUse(port())) return false
         _state.update { it.copy(portConflict = true) }
-        logWarn(R.string.dsh_log_port_busy, port())
+        logWarn(CoreR.string.dsh_log_port_busy, port())
         return true
     }
 
@@ -1685,8 +1685,8 @@ object DshRuntime : DshRuntimeHost {
             val fsToken = ensureFsToken()
             writeFsBridgeConfig(fsPort, fsToken)
             DshFsBridge.start(fsPort, fsToken, appContext)
-            logInfo(R.string.dsh_log_bridge_up)
-        }.onFailure { logWarn(R.string.dsh_log_bridge_failed, it.message ?: it.javaClass.simpleName) }
+            logInfo(CoreR.string.dsh_log_bridge_up)
+        }.onFailure { logWarn(CoreR.string.dsh_log_bridge_failed, it.message ?: it.javaClass.simpleName) }
     }
 
     /** 强制重启 web 服务。 */
@@ -1805,7 +1805,7 @@ object DshRuntime : DshRuntimeHost {
         scope.launch {
             bootMutex.withLock {
                 clearLog()
-                logInfo(R.string.dsh_log_switch_runtime, entry.version, entry.tag)
+                logInfo(CoreR.string.dsh_log_switch_runtime, entry.version, entry.tag)
                 stopServer()
                 clearSeedLedger()
                 _state.update {
@@ -1813,7 +1813,7 @@ object DshRuntime : DshRuntimeHost {
                         phase = DshPhase.DOWNLOADING,
                         progress = 0f,
                         speedBytesPerSec = 0L,
-                        message = str(R.string.dsh_msg_downloading, entry.version),
+                        message = str(CoreR.string.dsh_msg_downloading, entry.version),
                     )
                 }
                 installMeta(entry.toMeta(), preserveData)
@@ -1859,11 +1859,11 @@ object DshRuntime : DshRuntimeHost {
             bootMutex.withLock {
                 stopServer()
                 clearLog()
-                _state.update { it.copy(phase = DshPhase.EXTRACTING, message = str(R.string.dsh_msg_installing)) }
+                _state.update { it.copy(phase = DshPhase.EXTRACTING, message = str(CoreR.string.dsh_msg_installing)) }
                 val ok = withContext(Dispatchers.IO) { installRuntimeArchive(tarball, preserveData) }
                 tarball.delete()
                 if (!ok) {
-                    fail(str(R.string.dsh_err_extract_failed))
+                    fail(str(CoreR.string.dsh_err_extract_failed))
                     return@withLock
                 }
                 prefs().edit()
@@ -1877,7 +1877,7 @@ object DshRuntime : DshRuntimeHost {
                         installed = true,
                         runtimeVersion = "imported",
                         progress = 1f,
-                        message = str(R.string.dsh_msg_runtime_ready),
+                        message = str(CoreR.string.dsh_msg_runtime_ready),
                     )
                 }
                 refreshRootfsSize()
@@ -2005,7 +2005,7 @@ object DshRuntime : DshRuntimeHost {
                     if (!tag.startsWith("runtime")) continue
                     out.add(tag to o.optString("published_at").trim())
                 }
-            }.onFailure { logWarn(R.string.dsh_log_version_list_failed) }
+            }.onFailure { logWarn(CoreR.string.dsh_log_version_list_failed) }
             // 这一页没给满 = 到头了；拉空了也停，别让网络异常变成 6 次重试
             if (got < RELEASES_PER_PAGE) break
         }
@@ -2111,7 +2111,7 @@ object DshRuntime : DshRuntimeHost {
 
         val releases = fetchRuntimeReleases()
         if (releases.isNotEmpty()) {
-            logInfo(R.string.dsh_log_version_list_api, releases.size)
+            logInfo(CoreR.string.dsh_log_version_list_api, releases.size)
             // 并发拉各 release 的 metadata：串行的话二十几个版本在慢网络上要等半分钟
             val metas = coroutineScope {
                 releases.map { (tag, published) ->
@@ -2126,7 +2126,7 @@ object DshRuntime : DshRuntimeHost {
 
         // 四个滚动 tag 无条件补一遍。API 全挂 / 限流烧完时这就是**唯一**内容，
         // 所以它不是优化，是保底：精简通道的那两行只能从这里来。
-        if (found.isEmpty()) logWarn(R.string.dsh_log_version_list_fallback)
+        if (found.isEmpty()) logWarn(CoreR.string.dsh_log_version_list_fallback)
         val rolling = coroutineScope {
             RuntimeVersion.ROLLING_TAGS.map { tag ->
                 async { fetchMetaOfTag(tag, suffix)?.let { tag to it } }
@@ -2246,13 +2246,13 @@ object DshRuntime : DshRuntimeHost {
      */
     private fun pnpmImportMethodLine(): String {
         val ws = File(DshEnv.rootfs(appContext), "$PROFILE_GUEST_REL/pnpm-workspace.yaml")
-        if (!ws.isFile) return str(R.string.dsh_log_pnpm_unconfigured)
+        if (!ws.isFile) return str(CoreR.string.dsh_log_pnpm_unconfigured)
         val line = runCatching {
             ws.readLines().firstOrNull { it.trimStart().startsWith(PNPM_IMPORT_KEY) }
         }.getOrNull()
-            ?: return str(R.string.dsh_log_pnpm_default)
+            ?: return str(CoreR.string.dsh_log_pnpm_default)
         val value = line.substringAfter(':', "").trim().ifEmpty { "?" }
-        return str(R.string.dsh_log_pnpm_from_profile, value)
+        return str(CoreR.string.dsh_log_pnpm_from_profile, value)
     }
 
     // ────────────────────────── web 服务 ──────────────────────────
@@ -2291,7 +2291,7 @@ object DshRuntime : DshRuntimeHost {
         // 自己写下的 STARTING 误当成「已有人在启动」。
         if (serverProcess?.isAlive == true) return
         if (!DshEnv.isRuntimeInstalled(appContext)) {
-            _state.update { it.copy(phase = DshPhase.NOT_READY, message = str(R.string.dsh_msg_not_installed)) }
+            _state.update { it.copy(phase = DshPhase.NOT_READY, message = str(CoreR.string.dsh_msg_not_installed)) }
             return
         }
         // 最低 App 版本闸门：运行时要求比当前 App 更高的版本时，直接拦下并指路去
@@ -2299,7 +2299,7 @@ object DshRuntime : DshRuntimeHost {
         // 会与旧 App 预装的三方插件冲突，而旧 App 既没有预装跳过、也没有自愈逻辑。
         val minApp = _state.value.requiredAppVersion
         if (_state.value.appUpdateRequired && minApp != null) {
-            val detail = str(R.string.dsh_runtime_min_app_required, minApp)
+            val detail = str(CoreR.string.dsh_runtime_min_app_required, minApp)
             appendLog("! $detail")
             _state.update { it.copy(phase = DshPhase.ERROR, message = detail) }
             return
@@ -2364,36 +2364,36 @@ object DshRuntime : DshRuntimeHost {
             append("exec node --expose-internals \"\$DSH_REAL\" web" + opts + " 2>&1; ")
             // 这行在容器里由 shell 输出，会被 forwardOutput 原样转进日志。文案取自
             // 资源（跟随应用语言），单引号要转义成 shell 能接受的形式。
-            append("else echo '[DSH-Folk] " + shellSingleQuoted(str(R.string.dsh_log_dsh_missing_in_container)) + "'; exit 1; fi")
+            append("else echo '[DSH-Folk] " + shellSingleQuoted(str(CoreR.string.dsh_log_dsh_missing_in_container)) + "'; exit 1; fi")
         }
 
-        logInfo(R.string.dsh_log_runtime_mode, runtime().displayName())
+        logInfo(CoreR.string.dsh_log_runtime_mode, runtime().displayName())
         // 设备信息（裁剪版）：只留厂商 + 型号 + 系统版本。完整字段在报障包的 basic.txt 里，
         // 但那份得解压、翻文件才看得到；而这份日志是随手复制/导出转发的（设置 → 常规 →
         // 发送日志，或首页那张启动日志卡），开头就得能答出「这是哪台设备」。
         logInfo(
-            R.string.dsh_log_device,
+            CoreR.string.dsh_log_device,
             "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} · " +
                 "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})",
         )
         // 架构写进日志：x86_64 + arm 转译设备上「装了哪个包 / 用了哪份 rootfs」是首要排障线索
         logInfo(
-            R.string.dsh_log_arch,
+            CoreR.string.dsh_log_arch,
             DshSource.runtimeArch(),
             android.os.Build.SUPPORTED_ABIS.joinToString("/"),
         )
-        logInfo(R.string.dsh_log_hardlink, hardlinkLogLine())
-        logInfo(R.string.dsh_log_pnpm_import, pnpmImportMethodLine())
-        logInfo(R.string.dsh_log_starting_web, port)
+        logInfo(CoreR.string.dsh_log_hardlink, hardlinkLogLine())
+        logInfo(CoreR.string.dsh_log_pnpm_import, pnpmImportMethodLine())
+        logInfo(CoreR.string.dsh_log_starting_web, port)
         if (lan) {
             val ip = lanIp()
             if (ip != null) {
-                logInfo(R.string.dsh_log_lan_on, ip, port)
+                logInfo(CoreR.string.dsh_log_lan_on, ip, port)
             } else {
-                logInfo(R.string.dsh_log_lan_on_no_ip)
+                logInfo(CoreR.string.dsh_log_lan_on_no_ip)
             }
         } else {
-            logInfo(R.string.dsh_log_lan_off)
+            logInfo(CoreR.string.dsh_log_lan_off)
         }
 
         // 扩展拦截点：**启动容器进程之前的最后一道口子**。
@@ -2422,13 +2422,13 @@ object DshRuntime : DshRuntimeHost {
             // 不能把上一轮已死的进程留在字段里：[awaitReady] 会把它读成
             // 「进程已退出」，盖掉真正的启动失败原因。
             serverProcess = null
-            val detail = str(R.string.dsh_err_start_failed, e.message ?: e.javaClass.simpleName)
+            val detail = str(CoreR.string.dsh_err_start_failed, e.message ?: e.javaClass.simpleName)
             appendLog("! $detail")
             // 不再限定 proroot：noteProrootFailure 自己认得 chroot（切回 proot 并返回 true），
             // 而调用点那句 `runtimeId() == "proroot"` 会让 chroot 的回退分支永远不可达
             // —— issue #12 里 chroot 起不来时用户就卡在「每次都失败」。
             if (noteProrootFailure(detail)) {
-                logInfo(R.string.dsh_log_switched_to_proot)
+                logInfo(CoreR.string.dsh_log_switched_to_proot)
             }
             _state.update { it.copy(phase = DshPhase.ERROR, message = detail) }
             return
@@ -2442,7 +2442,7 @@ object DshRuntime : DshRuntimeHost {
         // 而这两种在运行日志里此前一个字都没有。放在后台跑，不拖慢启动。
         scope.launch(kotlinx.coroutines.Dispatchers.IO) { attachmentDiag() }
         startedAt = System.currentTimeMillis()
-        _state.update { it.copy(phase = DshPhase.STARTING, port = port, message = str(R.string.dsh_msg_starting)) }
+        _state.update { it.copy(phase = DshPhase.STARTING, port = port, message = str(CoreR.string.dsh_msg_starting)) }
     }
 
     /** 逐行转发容器输出到日志（node 重定向到文件是块缓冲，不逐行读日志面板会空白）。 */
@@ -2957,7 +2957,7 @@ object DshRuntime : DshRuntimeHost {
         )
         if (patched != src) {
             target.writeText(patched, StandardCharsets.UTF_8)
-            logInfo(R.string.dsh_log_lan_patched)
+            logInfo(CoreR.string.dsh_log_lan_patched)
         }
     }
 
@@ -2986,7 +2986,7 @@ object DshRuntime : DshRuntimeHost {
             val out = src.replace("HttpOnly; SameSite=Strict", "HttpOnly; SameSite=Lax")
             if (out != src && runCatching { t.writeText(out, StandardCharsets.UTF_8) }.isSuccess) patched++
         }
-        if (patched > 0) logInfo(R.string.dsh_log_cookie_samesite_patched, patched)
+        if (patched > 0) logInfo(CoreR.string.dsh_log_cookie_samesite_patched, patched)
     }
 
     /**
@@ -3024,7 +3024,7 @@ object DshRuntime : DshRuntimeHost {
         // 文案会盖掉那个更具体的原因。
         if (_state.value.phase == DshPhase.ERROR) return
         if (serverProcess == null) {
-            val detail = str(R.string.dsh_err_no_process)
+            val detail = str(CoreR.string.dsh_err_no_process)
             appendLog("! $detail")
             _state.update { it.copy(phase = DshPhase.ERROR, message = detail) }
             return
@@ -3121,18 +3121,18 @@ object DshRuntime : DshRuntimeHost {
                     it.copy(
                         phase = DshPhase.RUNNING,
                         progress = 1f,
-                        message = str(R.string.dsh_msg_service_ready, it.webUrl),
+                        message = str(CoreR.string.dsh_msg_service_ready, it.webUrl),
                     )
                 }
-                logInfo(R.string.dsh_log_ready, port())
+                logInfo(CoreR.string.dsh_log_ready, port())
                 prefs().edit().putInt(DshEnv.KEY_PROROOT_FAIL, 0).apply()
                 return
             }
             if (serverProcess?.isAlive == false) {
-                val base = str(R.string.dsh_err_process_exited)
+                val base = str(CoreR.string.dsh_err_process_exited)
                 appendLog("! $base")
                 if (noteProrootFailure(base)) {
-                    logInfo(R.string.dsh_log_switched_to_proot)
+                    logInfo(CoreR.string.dsh_log_switched_to_proot)
                 }
                 // 插件树失败时给出可执行的下一步，而不是只说「进程已退出」
                 val detail = pluginTreeFailureHint() ?: base
@@ -3144,10 +3144,10 @@ object DshRuntime : DshRuntimeHost {
         // 超时同样算 proroot 一次失败：进程没退但服务始终起不来（proroot 在部分内核上
         // 卡在 seccomp/ptrace 上就是这种表现），只记「进程退出」那一路会让用户永远
         // 卡在坏运行时上，自动回退 proot 的兜底形同不存在。
-        val detail = str(R.string.dsh_err_start_timeout)
+        val detail = str(CoreR.string.dsh_err_start_timeout)
         appendLog("! $detail")
         if (noteProrootFailure(detail)) {
-            logInfo(R.string.dsh_log_switched_to_proot)
+            logInfo(CoreR.string.dsh_log_switched_to_proot)
         }
         _state.update { it.copy(phase = DshPhase.ERROR, message = detail) }
     }
@@ -3172,17 +3172,17 @@ object DshRuntime : DshRuntimeHost {
             serverProcess?.isAlive != false
         ) {
             if (!announced) {
-                logInfo(R.string.dsh_log_token_waiting)
+                logInfo(CoreR.string.dsh_log_token_waiting)
                 announced = true
             }
             delay(TOKEN_POLL_MS)
         }
         val token = _state.value.webToken
         if (token == null) {
-            appendLog("! " + str(R.string.dsh_log_token_timeout, TOKEN_WAIT_MS / 1000))
+            appendLog("! " + str(CoreR.string.dsh_log_token_timeout, TOKEN_WAIT_MS / 1000))
         } else {
             // 只记长度，不记 token 本身：长度够用来判断有没有被截断（base64url(32 字节) = 43）
-            logInfo(R.string.dsh_log_token_captured, token.length)
+            logInfo(CoreR.string.dsh_log_token_captured, token.length)
         }
     }
 
@@ -3239,7 +3239,7 @@ object DshRuntime : DshRuntimeHost {
         serverProcess = null
         startedAt = 0L
         DshFsBridge.stop()
-        _state.update { it.copy(phase = DshPhase.NOT_READY, pid = null, message = str(R.string.dsh_msg_stopped)) }
+        _state.update { it.copy(phase = DshPhase.NOT_READY, pid = null, message = str(CoreR.string.dsh_msg_stopped)) }
     }
 
     /**
@@ -3380,7 +3380,7 @@ object DshRuntime : DshRuntimeHost {
         val ok = hardlinkSupported()
         val detail = hardlinkDetail()
         return buildString {
-            append(str(if (ok) R.string.dsh_log_hardlink_yes else R.string.dsh_log_hardlink_no))
+            append(str(if (ok) CoreR.string.dsh_log_hardlink_yes else CoreR.string.dsh_log_hardlink_no))
             if (detail.isNotEmpty()) append("（$detail）")
             append(" · ")
             append(
@@ -3388,9 +3388,9 @@ object DshRuntime : DshRuntimeHost {
                     // proroot 无条件加 --link2symlink，探测结果在它下面不代表 guest 的实际能力。
                     // 用 effectiveRuntimeId：x86_64 上「选了 proroot」但跑的是 proot，
                     // 说成「proroot 无条件启用 l2s」与同一份日志第一行自相矛盾。
-                    effectiveRuntimeId() == "proroot" -> str(R.string.dsh_log_hardlink_l2s_forced)
-                    !ok -> str(R.string.dsh_log_hardlink_l2s_on)
-                    else -> str(R.string.dsh_log_hardlink_l2s_off)
+                    effectiveRuntimeId() == "proroot" -> str(CoreR.string.dsh_log_hardlink_l2s_forced)
+                    !ok -> str(CoreR.string.dsh_log_hardlink_l2s_on)
+                    else -> str(CoreR.string.dsh_log_hardlink_l2s_off)
                 }
             )
         }

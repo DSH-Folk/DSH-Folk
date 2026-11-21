@@ -1,10 +1,10 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
-import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
 import java.io.File
 import java.nio.charset.StandardCharsets
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 容器运行时抽象：把「怎么进 rootfs 执行命令」独立出来，让 proot 与 proroot 并存、可切换。
@@ -104,10 +104,10 @@ interface ContainerRuntime {
     /** 现有实现：Termux proot，APK 内置。 */
     class Proot(private val ctx: Context, private val nativeLibProot: File?) : ContainerRuntime {
         override fun id() = "proot"
-        override fun displayName() = ctx.appString(R.string.dsh_mode_proot_name)
+        override fun displayName() = ctx.appString(CoreR.string.dsh_mode_proot_name)
         override fun available() = nativeLibProot != null && nativeLibProot.exists()
         override fun unavailableReason() =
-            if (available()) "" else ctx.appString(R.string.dsh_mode_proot_missing)
+            if (available()) "" else ctx.appString(CoreR.string.dsh_mode_proot_missing)
 
         override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): List<String> {
             val argv = ArrayList<String>()
@@ -152,7 +152,7 @@ interface ContainerRuntime {
      */
     class Proroot(private val ctx: Context, private val dir: File) : ContainerRuntime {
         override fun id() = "proroot"
-        override fun displayName() = ctx.appString(R.string.dsh_mode_proroot_name)
+        override fun displayName() = ctx.appString(CoreR.string.dsh_mode_proroot_name)
 
         override fun available(): Boolean = LIBS.all { File(dir, it).let { f -> f.isFile && f.length() > 0 } }
 
@@ -162,9 +162,9 @@ interface ContainerRuntime {
             // 非 arm64 设备上五个文件必然全缺，报「缺 5 个文件」会把用户引到去找文件；
             // 真实原因是上游不支持这个架构，直接说清楚。
             if (!android.os.Build.SUPPORTED_ABIS.contains("arm64-v8a")) {
-                return ctx.appString(R.string.dsh_mode_proroot_arch_only)
+                return ctx.appString(CoreR.string.dsh_mode_proroot_arch_only)
             }
-            return ctx.appString(R.string.dsh_mode_proroot_missing, missing.size, missing.first())
+            return ctx.appString(CoreR.string.dsh_mode_proroot_missing, missing.size, missing.first())
         }
 
         override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): List<String> {
@@ -256,13 +256,13 @@ interface ContainerRuntime {
     class Chroot(private val ctx: Context) : ContainerRuntime {
         override fun id() = "chroot"
 
-        override fun displayName() = ctx.appString(R.string.dsh_mode_chroot_name)
+        override fun displayName() = ctx.appString(CoreR.string.dsh_mode_chroot_name)
 
         /** 需要 root 通道就绪。不等同于「沙箱可用」—— 沙箱能不能用是 DSH 侧的事。 */
         override fun available(): Boolean =
             PrivilegedShell.reach(ctx)?.channel == PermissionManager.Channel.ROOT
 
-        override fun unavailableReason(): String = ctx.appString(R.string.dsh_mode_chroot_needs_root)
+        override fun unavailableReason(): String = ctx.appString(CoreR.string.dsh_mode_chroot_needs_root)
 
         /** 不用宿主 argv 前缀：命令经脚本送进去，见 [spawnArgv]。 */
         override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): List<String> = emptyList()

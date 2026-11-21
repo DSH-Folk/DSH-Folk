@@ -760,8 +760,8 @@ ok(!/dsh_userscripts_paste/.test(screen) && !/dsh_userscripts_pick/.test(screen)
 {
   const manifest = fs.readFileSync("app/src/main/AndroidManifest.xml", "utf8");
   const activity = read(SRC_WEBUI);
-  const zhS = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8");
-  const enS = fs.readFileSync("app/src/main/res/values/dsh_strings.xml", "utf8");
+  const zhS = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
+  const enS = read("app/src/main/res/values/dsh_strings.xml");
   const block = manifest.slice(
     manifest.indexOf(".ui.DshWebUiActivity"),
     manifest.indexOf("MTDataFilesWakeUpActivity")

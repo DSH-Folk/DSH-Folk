@@ -35,6 +35,7 @@ include(":ext-api")
 //
 // 依赖方向严格单向：:ext-* → :core-kernel → :ext-api，:app → 全部。
 // 禁止横向（:ext-a → :ext-b）与反向（任何模块 → :app）。
+include(":core-res")
 include(":core-kernel")
 include(":ext-workflow")
 include(":ext-display")

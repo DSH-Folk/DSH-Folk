@@ -38,6 +38,17 @@ const ROOT = path.resolve(__dirname, "..");
  * 重构每搬一个文件，在这里加一行。这是**唯一**需要跟着改动的地方。
  */
 const MOVED = {
+  // Batch C：dsh_strings.xml 迁入 :core-res。
+  //
+  // 为什么迁：nonTransitiveRClass 下每个模块只能看自己的 R，而 DshRuntime / DshSource /
+  // ContainerRuntime 要下沉到 :core-kernel，Batch D 的 6 个 :ext-* 也都要用这些字符串。
+  //
+  // 为什么登记 MOVED 而不是改 20 个脚本：脚本传的是**完整仓库相对路径**，
+  // 不是逻辑名，step 3 的模块搜索接不住 —— MOVED 就是为"整棵子树搬走"准备的。
+  "app/src/main/res/values/dsh_strings.xml":
+    "core-res/src/main/res/values/dsh_strings.xml",
+  "app/src/main/res/values-zh-rCN/dsh_strings.xml":
+    "core-res/src/main/res/values-zh-rCN/dsh_strings.xml",
   // 例：
   // "dsh/DshRuntime.kt": "core-kernel/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt",
 };

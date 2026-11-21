@@ -245,7 +245,7 @@ if (snapRestoreSpan) {
 }
 ok(/R\.string\.dsh_bk_snapshot_confirm_body,\s*snap\.id,\s*pendingActions/.test(screen),
   "确认框把快照 id 与动作数摆出来（含「会卸载快照里没有的插件」这句）");
-const confirmBody = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8")
+const confirmBody = read("app/src/main/res/values-zh-rCN/dsh_strings.xml")
   .match(/<string name="dsh_bk_snapshot_confirm_body">([\s\S]*?)<\/string>/);
 ok(confirmBody !== null && /卸载/.test(confirmBody[1]) && /pre-restore/.test(confirmBody[1]),
   "确认文案讲明会卸载插件、以及插件侧的 pre-restore 双保险");
@@ -439,7 +439,7 @@ for (const d of ['pendingRemoteRestore', 'pendingRemoteDelete', 'pendingSnapshot
   ok(new RegExp(d + '\\?\.let').test(screen), d + " 有确认对话框");
 }
 ok(/dsh_bk_snapshot_delete_confirm_body/.test(screen) &&
-  /回滚点/.test(fs.readFileSync('app/src/main/res/values-zh-rCN/dsh_strings.xml', 'utf8')),
+  /回滚点/.test(read("app/src/main/res/values-zh-rCN/dsh_strings.xml")),
   "删快照的确认文案说清「删掉的是回滚点」");
 ok(/dsh_bk_remote_restore_confirm_body/.test(screen) && /dsh_bk_remote_delete_confirm_body/.test(screen),
   "恢复/删除备份各有一句确认文案");
@@ -494,7 +494,7 @@ ok(/dsh_bk_secrets_in_archive/.test(backup) && /dsh_bk_secrets_placeholder/.test
   "两种情况各有明确说法：含原文 / 只有空占位");
 ok(/import-secrets encrypted=/.test(backup) && /keys=\" \+ secretsInfo\.keys\.size/.test(backup),
   "凭据情况进日志（bugreport 里可判）");
-const zh = fs.readFileSync('app/src/main/res/values-zh-rCN/dsh_strings.xml', 'utf8');
+const zh = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
 ok(/导出时没勾「含 vault」/.test(zh) && /这是导出时的选择，不是导入出了错/.test(zh),
   "空占位那条解释清「不可恢复的原因在导出侧」，不让人以为导入坏了");
 

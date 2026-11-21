@@ -22,7 +22,8 @@
 const fs = require("fs");
 
 const ROOT = __dirname + "/..";
-const read = (rel) => fs.readFileSync(require("path").join(ROOT, rel), "utf8");
+// 走 _paths：dsh_strings.xml 已迁入 :core-res（MOVED 里有登记）
+const read = (rel) => require("./_paths.js").read(rel);
 const bridge = read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt");
 const cli = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
 const host = read("app/src/main/assets/dsh-folk-host.mjs");

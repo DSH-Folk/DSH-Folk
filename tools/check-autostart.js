@@ -22,7 +22,7 @@ const STRINGS = "app/src/main/res/values/dsh_strings.xml";
 
 const src = Object.fromEntries(
   Object.entries({ a: A, svc: SVC, rcv: RCV, hs: HS, sh: SH, a11y: A11Y, manifest: MANIFEST, strings: STRINGS })
-    .map(([k, p]) => [k, fs.readFileSync(p, "utf8")])
+    .map(([k, p]) => [k, require("./_paths.js").read(p)])
 );
 /**
  * 取一个 `when (x) {` 的主体，并判断它有没有**顶层** else 分支。

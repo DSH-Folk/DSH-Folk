@@ -328,7 +328,7 @@ const server = http.createServer((req, res) => {
     ok(/dsh-native troubleshoot/.test(prompt) && /which screen to open, in what order/.test(prompt),
       "提示词在「这些状态词怎么修」的地方指到这条命令");
     for (const f of ["app/src/main/res/values/dsh_strings.xml", "app/src/main/res/values-zh-rCN/dsh_strings.xml"]) {
-      const res = fs.readFileSync(f, "utf8");
+      const res = require("./_paths.js").read(f);
       ok(["intro", "no_channel", "root", "shizuku", "adb", "cap", "perm", "rom"]
         .every((k) => res.includes('name="dsh_troubleshoot_' + k + '"')),
         f + "：八个段落都在");

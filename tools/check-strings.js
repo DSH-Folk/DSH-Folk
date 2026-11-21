@@ -15,8 +15,10 @@ const { read, exists } = require("./_paths.js");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const EN = "app/src/main/res/values/dsh_strings.xml";
-const ZH = "app/src/main/res/values-zh-rCN/dsh_strings.xml";
+// dsh_strings.xml 已迁入 :core-res（Batch C）：DshRuntime 要下沉 :core-kernel，
+// 而 nonTransitiveRClass 下各模块只能看自己的 R。路径跟着改，**不复制**资源。
+const EN = "core-res/src/main/res/values/dsh_strings.xml";
+const ZH = "core-res/src/main/res/values-zh-rCN/dsh_strings.xml";
 
 function parse(file) {
   const raw = read(file);

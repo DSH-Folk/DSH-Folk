@@ -378,14 +378,16 @@ console.log("── 日志时间窗口裁切（DshLogWindow） ──");
 console.log("── 启动日志里的设备信息 ──");
 {
   const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
-  const zh = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8");
+  const zh = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
   ok(/name="dsh_log_device"/.test(zh), "dsh_log_device 有中文文案");
-  ok(/logInfo\(\s*R\.string\.dsh_log_device,/.test(runtime) &&
+  // DshRuntime 下沉到 :core-kernel 后 R 改名为 CoreR（资源在 :core-res）。
+  // 断言认两种前缀，迁移前后都能验。
+  ok(/logInfo\(\s*(?:Core)?R\.string\.dsh_log_device,/.test(runtime) &&
     /Build\.MANUFACTURER/.test(runtime) && /Build\.MODEL/.test(runtime) &&
     /VERSION\.RELEASE/.test(runtime) && /VERSION\.SDK_INT/.test(runtime),
     "启动横幅写一行设备信息（厂商 + 型号 + Android 版本）");
   // 裁剪：这一行里不许出现整段 Build 字段（那是 basic.txt 的活）
-  const call = (runtime.match(/logInfo\(\s*R\.string\.dsh_log_device,[\s\S]{0,400}?\n\s*\)/) || [""])[0];
+  const call = (runtime.match(/logInfo\(\s*(?:Core)?R\.string\.dsh_log_device,[\s\S]{0,400}?\n\s*\)/) || [""])[0];
   ok(call.length > 0 && !/FINGERPRINT|Build\.DEVICE|Build\.PRODUCT|Build\.BRAND/.test(call),
     "这一行是裁剪版：不带 FINGERPRINT / DEVICE / PRODUCT / BRAND（完整字段留在 basic.txt）");
 }

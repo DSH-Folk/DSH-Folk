@@ -429,7 +429,7 @@ ok(SRC.rt.includes("dsh_log_bundle_unresolvable_user"),
   ok(/TOKEN_WAIT_MS/.test(waitBody) && /internal const val TOKEN_WAIT_MS = \d+_?\d*L/.test(SRC.rt),
     "等待有上限：拿不到 token 也不能把启动卡死");
   ok(waitBody.includes("serverProcess?.isAlive != false"), "进程死了就不等了（超时日志会盖掉真正的失败原因）");
-  ok(/logInfo\(R\.string\.dsh_log_token_captured, token\.length\)/.test(waitBody),
+  ok(/logInfo\((?:Core)?R\.string\.dsh_log_token_captured, token\.length\)/.test(waitBody),
     "日志只记 token 长度，不记 token 本身");
 }
 
@@ -1164,7 +1164,7 @@ console.log("─ 预装/安装日志降噪");
     /dsh_plug_log_summary/.test(repo) && /dsh_plug_log_peer_note/.test(repo) &&
     /dsh_plug_log_exit_code/.test(repo),
     "收尾给摘要 + peer 说明 + 非零退出码那句人话");
-  const zh = fs.readFileSync('app/src/main/res/values-zh-rCN/dsh_strings.xml', 'utf8');
+  const zh = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
   ok(/dsh_plug_log_peer_note/.test(zh) && /由 DSH 运行时提供/.test(zh),
     "peer 说明解释了「为什么缺是正常的」");
 }
@@ -1223,8 +1223,8 @@ const capsSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/Permis
   ok(/startInSearchMode\s*=\s*false/.test(hubSrc),
     "并且显式写成 false —— 删掉这一行也能过，但下次有人想「顺手改回 true」时就少了一句挡着的注释");
 }
-const nativeZh = fs.readFileSync("app/src/main/res/values-zh-rCN/dsh_strings.xml", "utf8");
-const nativeEn = fs.readFileSync("app/src/main/res/values/dsh_strings.xml", "utf8");
+const nativeZh = read("app/src/main/res/values-zh-rCN/dsh_strings.xml");
+const nativeEn = read("app/src/main/res/values/dsh_strings.xml");
 ok(/dsh_native_off_hint_kept">[^<]*%1\$d/.test(nativeZh) && /dsh_native_off_hint_kept">[^<]*%1\$d/.test(nativeEn),
   "「档位保留」那句带条数占位符（中英一致由 check-strings 盯）");
 ok(/保留/.test(nativeZh),
