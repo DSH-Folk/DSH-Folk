@@ -32,6 +32,8 @@ import me.bmax.apatch.dsh.workflow.WorkflowRunState
 import me.bmax.apatch.dsh.workflow.WorkflowSchema
 import me.bmax.apatch.dsh.workflow.WorkflowStepResult
 import me.bmax.apatch.dsh.workflow.WorkflowStepState
+import me.bmax.apatch.dsh.workflow.interpolate
+import me.bmax.apatch.dsh.workflow.effectiveCaps
 
 /**
  * 工作流执行引擎：宿主 App 侧的顺序执行器。

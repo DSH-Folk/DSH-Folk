@@ -18,6 +18,11 @@ import me.bmax.apatch.dsh.workflow.WorkflowNodeType
 import me.bmax.apatch.dsh.workflow.WorkflowPatch
 import me.bmax.apatch.dsh.workflow.WorkflowRun
 import me.bmax.apatch.dsh.workflow.WorkflowSchema
+import me.bmax.apatch.dsh.workflow.definitionFromJson
+import me.bmax.apatch.dsh.workflow.workflowDiff
+import me.bmax.apatch.dsh.workflow.isStaleFormat
+import me.bmax.apatch.dsh.workflow.toJson
+import me.bmax.apatch.dsh.workflow.effectiveCaps
 
 /**
  * 自动化工作流的 HTTP 端点族（`/workflow/…`），挂在 [DshFsBridge] 的同一个回环 socket 上。

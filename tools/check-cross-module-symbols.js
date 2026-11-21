@@ -70,10 +70,24 @@ function walk(dir, out = []) {
  */
 function defsOf(src) {
   const names = new Set();
-  const re = /^\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public |internal |private |abstract |open |sealed |data |enum |annotation |value |inline |suspend |const |override )*(?:object|class|interface|fun|val|var) +([A-Za-z_][A-Za-z0-9_]*)/gm;
+  const re = /^\s*(?:@\w+(?:\([^)]*\))?\s*)*(?:public |internal |private |abstract |open |sealed |data |enum |annotation |value |inline |suspend |const |override )*(?:object|class|interface|fun|val|var) +(?:[A-Za-z_][A-Za-z0-9_.<>?]*\.)?([A-Za-z_][A-Za-z0-9_]*)/gm;
   let m;
   while ((m = re.exec(src)) !== null) names.add(m[1]);
   return names;
+}
+
+/**
+ * 同 [defsOf]，但带声明行原文，且**只收顶格（无缩进）的顶层声明**。
+ *
+ * 缩进的声明（枚举项、object 成员、嵌套 class）不是顶层符号，
+ * 跨模块引用时由外层类型带入，不该单独索引。
+ */
+function defLinesOf(src) {
+  const out = [];
+  const re = /^(?:@\w+(?:\([^)]*\))?\s*)*(?:public |internal |private |abstract |open |sealed |data |enum |annotation |value |inline |suspend |const |override )*(?:object|class|interface|fun|val|var) +(?:[A-Za-z_][A-Za-z0-9_.<>?]*\.)?([A-Za-z_][A-Za-z0-9_]*)/gm;
+  let m;
+  while ((m = re.exec(src)) !== null) out.push({ name: m[1], defLine: m[0] });
+  return out;
 }
 
 /** 收集一个文件 import 进来的名字（含 as 别名）。 */
@@ -97,7 +111,7 @@ const cache = new Map();
 function infoOf(f) {
   if (cache.has(f)) return cache.get(f);
   const src = strip(fs.readFileSync(f, "utf8"));
-  const info = { src, defs: defsOf(src), pkg: pkgOf(src) };
+  const info = { src, defs: defsOf(src), defLines: defLinesOf(src), pkg: pkgOf(src) };
   cache.set(f, info);
   return info;
 }
@@ -107,7 +121,7 @@ for (const mod of [...MODULES, ...INDEX_ONLY]) {
   moduleFiles.set(mod, files);
   for (const f of files) {
     const { src, defs, pkg } = infoOf(f);
-    for (const name of defs) {
+    for (const { name, defLine } of defLinesOf(src)) {
       // 只索引「大写开头且不是全大写」的名字：类型、object、伴生常量。
       //
       // 排除两类：
@@ -117,7 +131,17 @@ for (const mod of [...MODULES, ...INDEX_ONLY]) {
       //
       // 注意用「有大写也有小写」而不是「第二个字符是小写」：后者会漏掉
       // APApplication、IDshShellService 这类连续大写的驼峰名。
-      if (!/^[A-Z]/.test(name) || name === name.toUpperCase()) continue;
+      // 索引两类：
+      // 1. 大写开头的类型（排除全大写常量）；
+      // 2. **非 private/internal 的顶层 fun/val** —— 扩展函数在别处以
+      //    `.name(` 调用，迁包后必须 import。这条是漏过的真错：
+      //    WorkflowBridge 里 `def.toJson()` 在 WorkflowModels 迁走后编译失败。
+      const isType = /^[A-Z]/.test(name) && name !== name.toUpperCase();
+      // 必须顶格（无缩进）才是真·顶层声明；缩进的是枚举项、成员、嵌套声明。
+      // 早期版本没查这个，把 `Cap.SHELL("shell")` 的枚举项当成顶层 val。
+      const isPublicTopFun =
+        /^(?:fun|val) /.test(defLine) && !/^(?:private|internal) /.test(defLine);
+      if (!isType && !isPublicTopFun) continue;
       if (!index.has(name)) index.set(name, []);
       index.get(name).push({ module: mod, file: f, pkg });
     }
@@ -147,7 +171,19 @@ const BUILTIN = new Set(("Any Array ArrayList Boolean Byte Char Class Comparable
   "InputStream OutputStream BufferedReader BufferedWriter FileInputStream FileOutputStream " +
   "ByteArray CharArray Process ProcessBuilder TimeUnit System Runtime " +
   "getString getInt getLong getBoolean getFloat edit apply commit putString putInt " +
-  "putLong putBoolean remove clear contains keySet all keys values entries").split(/\s+/));
+  "putLong putBoolean remove clear contains keySet all keys values entries " +
+  // kotlin.io / java.util.zip 的标准扩展函数：与 :app 的同名工具方法撞名
+  "inputStream outputStream bufferedInputStream bufferedOutputStream reader writer " +
+  "copyTo forEachLine readLines readBytes writeBytes useLines " +
+  // kotlin.text / 集合的常见扩展
+  "format padStart padEnd repeat reversed chunked windowed zipWithNext " +
+  "associateWith mapValues mapKeys filterKeys filterValues toSortedMap " +
+  "sortedByDescending maxByOrNull minByOrNull sumBy doubleValue intValue " +
+  "runCatchingResult getOrDefault getOrPut putIfAbsent computeIfAbsent " +
+  "forEachIndexed mapIndexedNotNull onEachIndexed " +
+  // Android / Java 平台方法
+  "decode encode parse valueOf name ordinal entries values clone notify wait " +
+  "getClass getSimpleName isInstance newInstance setAccessible").split(/\s+/));
 
 /**
  * 常见注解名：Kotlin/JVM 标准库的注解在很多模块里都有同名类（比如 :app 的
@@ -183,7 +219,14 @@ for (const mod of MODULES) {
     const re = /(?<![\w.])([A-Z][A-Za-z0-9_]*)(?=[\s(.:<>,)?\[])/g;
     let m;
     while ((m = re.exec(src)) !== null) used.add(m[1]);
-    for (const name of used) {
+    // 顶层函数 / 扩展函数的调用：`name(` 或 `.name(`。
+    // 它们是小写开头，上面的大写扫描抓不到 —— 而迁包后同样必须 import。
+    const usedFns = new Set();
+    const fnRe = /(?<![\w])(?:\\.)?([a-z][A-Za-z0-9_]*)\s*\(/g;
+    let fm;
+    while ((fm = fnRe.exec(src)) !== null) usedFns.add(fm[1]);
+
+    for (const name of [...used, ...usedFns]) {
       if (defs.has(name) || samePkg.has(name) || imps.has(name) || BUILTIN.has(name)) continue;
       if (ANNOTATIONS.has(name)) continue;
       const hits = index.get(name);

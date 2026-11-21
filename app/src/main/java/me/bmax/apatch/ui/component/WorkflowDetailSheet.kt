@@ -37,9 +37,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import me.bmax.apatch.dsh.WorkflowDefinition
-import me.bmax.apatch.dsh.effectiveCaps
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowDefinition
+import me.bmax.apatch.dsh.workflow.effectiveCaps
 
 /**
  * 流程详情弹窗：**点列表里的一行就弹这个**，不再在行内就地展开。

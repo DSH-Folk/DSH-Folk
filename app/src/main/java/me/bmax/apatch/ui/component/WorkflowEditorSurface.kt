@@ -92,7 +92,6 @@ import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.WorkflowActionCatalog
 import me.bmax.apatch.dsh.WorkflowCompute
 import me.bmax.apatch.dsh.WorkflowActionType
-import me.bmax.apatch.dsh.effectiveCaps
 import me.bmax.apatch.dsh.WorkflowExpandType
 import me.bmax.apatch.dsh.WorkflowDefinition
 import me.bmax.apatch.dsh.WorkflowEdge
@@ -103,7 +102,6 @@ import me.bmax.apatch.dsh.WorkflowPinKind
 import me.bmax.apatch.dsh.WorkflowPinSpec
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowValidator
-import me.bmax.apatch.dsh.workflowDiff
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowCompute
 import me.bmax.apatch.dsh.workflow.WorkflowValidator
@@ -118,6 +116,8 @@ import me.bmax.apatch.dsh.workflow.WorkflowPatch
 import me.bmax.apatch.dsh.workflow.WorkflowPinKind
 import me.bmax.apatch.dsh.workflow.WorkflowPinSpec
 import me.bmax.apatch.dsh.workflow.WorkflowSchema
+import me.bmax.apatch.dsh.workflow.workflowDiff
+import me.bmax.apatch.dsh.workflow.effectiveCaps
 
 /** 自动保存的可见状态。 */
 private enum class SaveState { IDLE, SAVING, SAVED, FAILED }

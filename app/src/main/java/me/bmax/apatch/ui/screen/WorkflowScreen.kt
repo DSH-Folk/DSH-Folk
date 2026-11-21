@@ -72,8 +72,6 @@ import me.bmax.apatch.dsh.WorkflowRun
 import me.bmax.apatch.dsh.WorkflowRunState
 import me.bmax.apatch.dsh.WorkflowStore
 import me.bmax.apatch.dsh.WorkflowValidator
-import me.bmax.apatch.dsh.isStaleFormat
-import me.bmax.apatch.dsh.toJson
 import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
 import me.bmax.apatch.ui.component.WorkflowDetailDialog
 import me.bmax.apatch.ui.component.WorkflowGraphPreview
@@ -85,6 +83,8 @@ import me.bmax.apatch.dsh.workflow.WorkflowValidator
 import me.bmax.apatch.dsh.workflow.WorkflowDefinition
 import me.bmax.apatch.dsh.workflow.WorkflowRun
 import me.bmax.apatch.dsh.workflow.WorkflowRunState
+import me.bmax.apatch.dsh.workflow.isStaleFormat
+import me.bmax.apatch.dsh.workflow.toJson
 
 /**
  * 设置 → 功能 → 自动化工作流。
