@@ -26,7 +26,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import me.bmax.apatch.R
 import me.bmax.apatch.util.LocaleCtx
 import me.bmax.apatch.util.UpdateChecker
 import me.bmax.apatch.util.appString
