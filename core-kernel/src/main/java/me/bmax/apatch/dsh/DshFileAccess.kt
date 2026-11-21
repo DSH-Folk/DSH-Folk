@@ -5,7 +5,6 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
-import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import org.json.JSONArray
 import org.json.JSONObject
