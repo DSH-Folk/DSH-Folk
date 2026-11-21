@@ -129,7 +129,7 @@ object DshRuntimeInstall {
         runCatching {
             DshRuntimeFiles.writeIfChanged(
                 File(DshEnv.dshHome(K.appContext), DshRuntime.TROUBLESHOOT_DOC_NAME),
-                nativeTroubleshootDoc(),
+                DshRuntime.nativeTroubleshootDocForInstall(),
             )
         }.onFailure { android.util.Log.w(DshRuntime.TAG, "写 ${DshRuntime.TROUBLESHOOT_DOC_NAME} 失败: ${it.message}") }
         // 工作流 DSL 说明：容器里的 `dsh-workflow` 与工具插件的提示词段都读它，写在这儿是为了
@@ -180,7 +180,7 @@ object DshRuntimeInstall {
     /** 启动回环桥（选空闲端口 + 写配置 + 监听）。文件端点与原生端点共用它。 */
     internal fun startFsBridge() {
         runCatching {
-            val fsPort = findFreePort(DshFsBridge.PORT_BASE)
+            val fsPort = DshPortConfig.findFreePort(DshFsBridge.PORT_BASE)
             val fsToken = DshRuntimeInstall.ensureFsToken()
             DshRuntimeInstall.writeFsBridgeConfig(fsPort, fsToken)
             DshFsBridge.start(fsPort, fsToken, K.appContext)
@@ -194,8 +194,8 @@ object DshRuntimeInstall {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
                 delay(500)
-                if (checkPortConflict()) return@withLock
-                startAndAwait()
+                if (DshRuntime.checkPortConflictForInstall()) return@withLock
+                DshRuntime.startAndAwaitForInstall()
             }
         }
     }
@@ -223,7 +223,7 @@ object DshRuntimeInstall {
             block()
         } finally {
             // 端口被占说明容器里已经有一份在跑：保持现状，别在别人的端口上再起一份
-            if (!checkPortConflict()) startAndAwait()
+            if (!DshRuntime.checkPortConflictForInstall()) DshRuntime.startAndAwaitForInstall()
         }
     }
 
@@ -246,12 +246,12 @@ object DshRuntimeInstall {
         // 只改 phase 与 message：webUrl 是**计算属性**（由 port + token 拼出来），
         // 不是构造参数，写不了；pid / webToken 也不该在这里清 ——
         // 装完不启动时它们本来就是空的。
-        K.current = K.current.copy(
+        K.setState { it.copy(
             phase = DshPhase.NOT_READY,
             progress = 0f,
             speedBytesPerSec = 0L,
             message = "",
-        )
+        ) }
     }
 
     fun updateRuntime(preserveData: Boolean = true, autoStart: Boolean = true) {
@@ -259,16 +259,16 @@ object DshRuntimeInstall {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
                 DshRuntimeInstall.clearSeedLedger()
-                downloadAndInstall(preserveData, newest = true)
+                DshRuntime.downloadAndInstall(preserveData, newest = true)
                 if (K.current.phase != DshPhase.ERROR) {
                     DshRuntimeInstall.setupResolvConf()
-                    seedPlugins()
+                    DshRuntime.seedPluginsForInstall()
                     DshRuntimeInstall.ensureFsBridgeCli()
-                    if (checkPortConflict()) return@withLock
+                    if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     // 装完**不一定要**立刻拉起来：首页那条「安装」路径要把「装完」与
                     // 「启动」拆成两步，由用户在弹窗里自己决定。不拆的话，用户点「安装」
                     // 之后容器直接跑起来，而他想先看一眼装了什么的机会就没有了。
-                    if (autoStart) startAndAwait() else DshRuntimeInstall.markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
                 }
             }
         }
@@ -281,13 +281,13 @@ object DshRuntimeInstall {
                 // 重装等于换了一套全新 rootfs，容器里的插件确实没了，该重新预装
                 DshRuntimeInstall.clearSeedLedger()
                 // 重装 = 装回已装那一份，不跟着通道走（否则「重装」会变成静默升级）
-                downloadAndInstall(preserveData, newest = false)
+                DshRuntime.downloadAndInstall(preserveData, newest = false)
                 if (K.current.phase != DshPhase.ERROR) {
                     DshRuntimeInstall.setupResolvConf()
-                    seedPlugins()
+                    DshRuntime.seedPluginsForInstall()
                     DshRuntimeInstall.ensureFsBridgeCli()
-                    if (checkPortConflict()) return@withLock
-                    if (autoStart) startAndAwait() else DshRuntimeInstall.markInstalledIdle()
+                    if (DshRuntime.checkPortConflictForInstall()) return@withLock
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
                 }
             }
         }
@@ -315,13 +315,13 @@ object DshRuntimeInstall {
                         message = DshLogging.str(CoreR.string.dsh_msg_downloading, entry.version),
                     )
                 }
-                installMeta(entry.toMeta(), preserveData)
+                DshRuntime.installMeta(entry.toMeta(), preserveData)
                 if (K.current.phase != DshPhase.ERROR) {
                     DshRuntimeInstall.setupResolvConf()
-                    seedPlugins()
+                    DshRuntime.seedPluginsForInstall()
                     DshRuntimeInstall.ensureFsBridgeCli()
-                    if (checkPortConflict()) return@withLock
-                    startAndAwait()
+                    if (DshRuntime.checkPortConflictForInstall()) return@withLock
+                    DshRuntime.startAndAwaitForInstall()
                 }
             }
         }
@@ -359,7 +359,7 @@ object DshRuntimeInstall {
                 DshRuntime.stopServer()
                 DshLogging.clearLog()
                 K.stateFlow.update { it.copy(phase = DshPhase.EXTRACTING, message = DshLogging.str(CoreR.string.dsh_msg_installing)) }
-                val ok = withContext(Dispatchers.IO) { installRuntimeArchive(tarball, preserveData) }
+                val ok = withContext(Dispatchers.IO) { DshRuntime.installRuntimeArchive(tarball, preserveData) }
                 tarball.delete()
                 if (!ok) {
                     DshLogging.fail(DshLogging.str(CoreR.string.dsh_err_extract_failed))
@@ -381,9 +381,9 @@ object DshRuntimeInstall {
                 }
                 DshRuntime.refreshRootfsSize()
                 DshRuntimeInstall.setupResolvConf()
-                seedPlugins()
+                DshRuntime.seedPluginsForInstall()
                 DshRuntimeInstall.ensureFsBridgeCli()
-                if (!checkPortConflict()) startAndAwait()
+                if (!DshRuntime.checkPortConflictForInstall()) DshRuntime.startAndAwaitForInstall()
             }
         }
     }
@@ -396,7 +396,7 @@ object DshRuntimeInstall {
      */
     override fun runtimeSource(ctx: Context): String {
         val setting = DshSource.setting(ctx)
-        if (!raceEnabled(RACE_RUNTIME)) {
+        if (!DshRuntime.raceEnabled(RACE_RUNTIME)) {
             return if (setting == DshSource.SOURCE_AUTO) DshSource.SOURCE_GITHUB else setting
         }
         return DshSource.resolve(ctx)
@@ -543,7 +543,7 @@ object DshRuntimeInstall {
     suspend fun checkRuntimeUpdate(): RuntimeCheckResult = K.updateCheckMutex.withLock {
         withContext(Dispatchers.IO) {
         if (!DshEnv.isRuntimeInstalled(K.appContext)) return@withContext RuntimeCheckResult()
-        val meta = fetchNewestMeta() ?: return@withContext RuntimeCheckResult(failure = true)
+        val meta = DshRuntime.fetchNewestMeta() ?: return@withContext RuntimeCheckResult(failure = true)
         val local = K.prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
         // 本地版本未知（早期版本装的，没记过）时不谎报有更新：重装要重下 150MB，
         // 不能靠猜就让用户付这个代价；也没法说「已是最新」——那同样是猜的

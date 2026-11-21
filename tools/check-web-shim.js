@@ -286,7 +286,7 @@ ok(/CHANNEL_STABLE, CHANNEL_SLIM -> true/.test(rt) && /CHANNEL_BETA, CHANNEL_SLI
   "测试通道接受正式版+测试版，正式通道不接受测试版");
 // fetchNewestMeta 已搬到 DshRuntimeInstaller.kt（同包扩展函数）：断言改为看「扩展函数 + 调用点」。
 ok(/internal fun DshRuntime\.fetchNewestMeta\(\): DshMeta\?/.test(rt) &&
-  /val meta = fetchNewestMeta\(\) \?: return@withContext RuntimeCheckResult\(failure = true\)/.test(rt),
+  /val meta = (?:DshRuntime\.)?fetchNewestMeta\(\) \?: return@withContext RuntimeCheckResult\(failure = true\)/.test(rt),
   "检查更新在候选里取最新（不再只看所选通道那一个 tag）");
 ok(/DshRuntime\.updateRuntime\(true\)/.test(read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt")) &&
   "自动检测更新的确认框调 updateRuntime（不是 reinstallRuntime），检测到的新版本才会被真正下载");
