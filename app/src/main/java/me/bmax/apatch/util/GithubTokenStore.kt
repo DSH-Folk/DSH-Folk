@@ -6,7 +6,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
-import me.bmax.apatch.dsh.KernelEnv
+import me.bmax.apatch.APApplication
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -62,8 +62,8 @@ object GithubTokenStore {
     private const val GCM_TAG_BITS = 128
 
     private fun prefs(context: Context): SharedPreferences =
-        runCatching { KernelEnv.hostPrefs }
-            .getOrElse { context.applicationContext.getSharedPreferences(KernelEnv.hostPrefsName, Context.MODE_PRIVATE) }
+        runCatching { APApplication.sharedPreferences }
+            .getOrElse { context.applicationContext.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE) }
 
     private fun keyStore(): KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 

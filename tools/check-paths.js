@@ -77,11 +77,9 @@ console.log("── _paths.js 解析行为 ──");
   ok(p.resolve("core-kernel/src/main/java/me/bmax/apatch/dsh/DshEnv.kt")
       === p.resolve("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt"),
     "resolve 会跨模块回退（包路径相同就命中）");
-  // DshEnv 已下沉到 :core-kernel（Batch C），所以反过来验：
-  // 物理位置在 core-kernel，app 侧路径必须为 false（exists 不跨模块回退）。
-  ok(!p.exists("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt"),
-    "exists 对『文件不在这里』返回 false（不回退到 core-kernel）");
-  ok(p.exists("core-kernel/src/main/java/me/bmax/apatch/dsh/DshEnv.kt"),
+  ok(!p.exists("core-kernel/src/main/java/me/bmax/apatch/dsh/DshEnv.kt"),
+    "exists 对『文件不在这里』返回 false（不回退到 app）");
+  ok(p.exists("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt"),
     "exists 对真实路径返回 true");
 
   // 6) 找不到必须抛，不能返回空串

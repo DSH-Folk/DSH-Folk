@@ -169,12 +169,7 @@ console.log("\n── 字符串（两种语言都要） ──");
 
 console.log("\n── 提示词：状态进事实、开着就明说 ──");
 {
-  // Batch C 之后 DshHostPrompt 在 :core-kernel，够不着 :app 的 A11yOwn。
-  // 档位改由宿主注入（APatchApp 里的 KernelEnv.setHostFactsProvider），
-  // 内核只负责把 hf.a11yOwnMode 写进事实。两条边都要验。
-  const appSrc = read("app/src/main/java/me/bmax/apatch/APatchApp.kt");
-  ok(/\.put\("a11yHideOwn", hf\.a11yOwnMode\)/.test(PROMPT) &&
-    /a11yOwnMode = A11yOwn\.mode\(c\)/.test(appSrc),
+  ok(/\.put\("a11yHideOwn", A11yOwn\.mode\(ctx\)\)/.test(PROMPT),
     "host-facts 里带上当前档位（插件按 mtime 失效，改档位下一轮就生效）");
   ok(/private const val PLUGIN_REV = 20/.test(PROMPT),
     "插件内容版本 +1（改了 .mjs 必须抬，否则落盘的还是旧内容）");

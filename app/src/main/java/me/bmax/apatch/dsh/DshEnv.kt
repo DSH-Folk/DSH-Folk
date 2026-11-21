@@ -92,9 +92,7 @@ object DshEnv {
             dst.parentFile?.mkdirs()
             if (dst.exists()) dst.deleteRecursively()
             // 与运行时恢复同一理由：跨挂载点 renameTo 会静默失败 → 认领回来的数据其实没搬过去
-            // 走 KernelEnv 的日志回调而不是 DshRuntime.appendLog：后者要 DshEnv.serverLog，
-            // 会形成 DshEnv → DshRuntime → DshEnv 的环，闭包撑到 57 个文件。
-            renameOrCopy(src, dst) { msg -> KernelEnv.log("[preserve] $msg") }
+            renameOrCopy(src, dst) { msg -> DshRuntime.appendLog("[preserve] $msg") }
         }
         if (PRESERVED_PATHS.none { File(stash, it).exists() }) {
             runCatching { stash.deleteRecursively() }

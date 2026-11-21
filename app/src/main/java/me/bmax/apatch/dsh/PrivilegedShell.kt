@@ -344,7 +344,7 @@ internal object PrivilegedShell {
             append(' ').append(shellArg(command))
         }
         val raw = try {
-            KernelEnv.exec(argv, timeoutMs)
+            DshRuntime.execRootfsForOutput(argv, timeoutMs)
         } catch (e: Throwable) {
             Log.w(TAG, "adb-shell 执行失败: ${e.message}")
             return ExecOutcome(-1, "", "", false, "channel_lost")
