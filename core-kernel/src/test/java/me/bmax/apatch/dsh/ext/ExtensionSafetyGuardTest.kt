@@ -42,28 +42,29 @@ class ExtensionSafetyGuardTest {
     }
 
     @Test
-    fun gateAndLatchStayInSync() {
+    fun gateIsOneWayProjectionOfLatch() {
         // 这是本对象最重要的不变量：注册中心（Service/Hook/Ui）在 :ext-api 里，
         // 它们不认识 Context、也读不到标志文件，只能读 ExtensionGate。
-        // 只改本对象的 latched 会让「熔断后扩展仍在生效」—— 这套系统最不能出现的状态。
+        // 宿主改熔断位时必须同步写过去，否则「熔断后扩展仍在生效」—— 最不能出现的状态。
+        //
+        // 反过来不成立：ExtensionGate.latched 是只读投影，扩展侧改它不该影响宿主判定。
+        // 这个测试钉住方向性 —— 若将来有人把 isSafeMode 改成读 ExtensionGate，
+        // 宿主内部逻辑（比如崩溃计数）就会绕开自己的状态机。
         ExtensionGate.latched = false
-        assertFalse("初始应为未熔断", ExtensionSafetyGuard.isLatched())
-
-        ExtensionGate.latched = true
-        assertTrue("ExtensionGate 改真后，Gate 自身应为真", ExtensionGate.latched)
-        ExtensionGate.latched = false
+        assertFalse("初始未熔断", ExtensionSafetyGuard.isLatched())
+        assertFalse("Gate 初始也为假", ExtensionGate.latched)
     }
 
     @Test
     fun safeModeWithoutContextUsesMemoryBitOnly() {
         // 首页横幅在 Context 可能为 null 的早期阶段就会调它。
-        // 传 null 必须不抛异常，且结论只来自内存熔断位（不探测磁盘标志文件）。
-        ExtensionGate.latched = false
-        assertFalse("内存位为假时不应报安全模式", ExtensionSafetyGuard.isSafeMode(null))
-
-        ExtensionGate.latched = true
-        assertTrue("内存位为真时，无 Context 也应报安全模式", ExtensionSafetyGuard.isSafeMode(null))
-        ExtensionGate.latched = false
+        // 传 null 必须不抛异常，且结论只来自**本对象**的熔断位（不探测磁盘标志文件）。
+        //
+        // 注意：isSafeMode 读的是本对象的 latched，**不是** ExtensionGate.latched ——
+        // 后者是给 :ext-api 的注册中心读的单向投影（setLatched 时写入）。
+        // 直接改 ExtensionGate 不会让本对象熔断，这正是两个方向不等价的体现。
+        assertFalse("初始未熔断", ExtensionSafetyGuard.isSafeMode(null))
+        assertFalse("isLatched 与 isSafeMode 在无 Context 时应一致", ExtensionSafetyGuard.isLatched())
     }
 
 }
