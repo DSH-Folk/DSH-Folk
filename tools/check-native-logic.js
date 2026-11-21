@@ -1238,7 +1238,12 @@ ok(/保留/.test(nativeZh),
 // "No usable native binding found for node-addon-require-builtin-linux-arm64-gnu"。
 // 这个开关必须放在 applyEnv（所有 exec 路径共用）里，而不是只加在 startServer 那一处。
 {
-  const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
+  // 执行相关的实现已迁到 DshExec.kt（Checkpoint 1 拆解）：applyEnv / baseArgv /
+  // execRootfs* 都在那里。DshRuntime 只留同名转发。
+  const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshExec.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
   const envFn = (runtime.match(/private fun applyEnv\(pb: ProcessBuilder\) \{[\s\S]*?\n    \}/) || [""])[0];
   ok(envFn.length > 0, "找到 applyEnv（容器环境构造的唯一入口）");
   ok(/env\["NARB_DISABLE_NATIVE_CACHE"\] = "1"/.test(envFn),
