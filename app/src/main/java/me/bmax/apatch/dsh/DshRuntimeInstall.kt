@@ -105,7 +105,7 @@ object DshRuntimeInstall {
         )) {
             runCatching {
                 DshRuntimeFiles.writeScript(File(bin, name), script)
-            }.onFailure { android.util.Log.w(TAG, "写 $name 失败: ${it.message}") }
+            }.onFailure { android.util.Log.w(DshRuntime.TAG, "写 $name 失败: ${it.message}") }
         }
         // 权限桥疑难解答：agent 报错时用 `dsh-native troubleshoot` 读它。和上面的脚本一样
         // 按内容比对再写 —— 换应用语言后这份清单必须跟着变，否则 agent 拿到的是上一门语言的步骤。
@@ -114,7 +114,7 @@ object DshRuntimeInstall {
                 File(DshEnv.dshHome(K.appContext), DshRuntime.TROUBLESHOOT_DOC_NAME),
                 DshRuntime.nativeTroubleshootDocForInstall(),
             )
-        }.onFailure { android.util.Log.w(TAG, "写 ${DshRuntime.TROUBLESHOOT_DOC_NAME} 失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(DshRuntime.TAG, "写 ${DshRuntime.TROUBLESHOOT_DOC_NAME} 失败: ${it.message}") }
         // 工作流 DSL 说明：容器里的 `dsh-workflow` 与工具插件的提示词段都读它，写在这儿是为了
         // 「实现改了、文档跟着改」——否则 agent 会照着一份过时说明写定义，然后在校验器那里撞墙。
         // 样例定义：agent 抄一份改，比从零写更不容易漏字段；设置页也拿它当新建模板。
@@ -124,7 +124,7 @@ object DshRuntimeInstall {
             for ((sampleName, sampleText) in DshRuntime.WORKFLOW_SAMPLES) {
                 DshRuntimeFiles.writeIfChanged(File(dir, sampleName + ".json"), sampleText)
             }
-        }.onFailure { android.util.Log.w(TAG, "写工作流样例失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(DshRuntime.TAG, "写工作流样例失败: ${it.message}") }
         // 容器就绪：通知扩展来装自己的命令。
         //
         // 放在这里而不是 install 的末尾，是因为 ensureFsBridgeCli 是"运行时可用"的
@@ -132,13 +132,13 @@ object DshRuntimeInstall {
         // "装完运行时还得重启一次应用才生效"的窗口。
         runCatching {
             me.bmax.apatch.dsh.ext.ExtensionEngine.me.bmax.apatch.dsh.ext.ExtensionEngine.notifyContainerReady(K.appContext)
-        }.onFailure { android.util.Log.w(TAG, "通知扩展容器就绪失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(DshRuntime.TAG, "通知扩展容器就绪失败: ${it.message}") }
         runCatching {
             DshRuntimeFiles.writeIfChanged(
                 File(DshEnv.dshHome(K.appContext), DshRuntime.WORKFLOW_DSL_DOC_NAME),
                 DshRuntime.WORKFLOW_DSL_DOC,
             )
-        }.onFailure { android.util.Log.w(TAG, "写 $DshRuntime.WORKFLOW_DSL_DOC_NAME 失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(DshRuntime.TAG, "写 $DshRuntime.WORKFLOW_DSL_DOC_NAME 失败: ${it.message}") }
     }
 
     /**
@@ -152,12 +152,12 @@ object DshRuntimeInstall {
      */
     fun refreshContainerCli() {
         runCatching { ensureFsBridgeCli() }
-            .onFailure { android.util.Log.w(TAG, "刷新容器侧 CLI 失败: ${it.message}") }
+            .onFailure { android.util.Log.w(DshRuntime.TAG, "刷新容器侧 CLI 失败: ${it.message}") }
         // 插件与 cordis 挂载项也要一起补：agent 看到工作流的**唯一**通道就是这两个插件
         // （工具描述 + 提示词段）。只补 CLI 与指南的话，升级后没重启过容器的设备上，agent
         // 依然什么都不知道 —— 这正是实测里「折腾半天不知道怎么用」的成因。
         runCatching { DshHostPrompt.ensureInstalled(K.appContext) }
-            .onFailure { android.util.Log.w(TAG, "刷新容器侧插件失败: ${it.message}") }
+            .onFailure { android.util.Log.w(DshRuntime.TAG, "刷新容器侧插件失败: ${it.message}") }
     }
 
     /** 启动回环桥（选空闲端口 + 写配置 + 监听）。文件端点与原生端点共用它。 */
@@ -698,7 +698,7 @@ object DshRuntimeInstall {
             // 追加顶层键而不是解析重写整个 YAML：这文件里还有 minimumReleaseAgeExclude、
             // allowBuilds 等结构化内容，字符串追加最不容易弄坏别人的配置
             ws.writeText(old + sep + PNPM_IMPORT_LINE + "\n", StandardCharsets.UTF_8)
-            android.util.Log.i(TAG, "已写入 profile pnpm 设置: $PNPM_IMPORT_LINE")
+            android.util.Log.i(DshRuntime.TAG, "已写入 profile pnpm 设置: $PNPM_IMPORT_LINE")
         }
     }
 
@@ -718,7 +718,7 @@ object DshRuntimeInstall {
         } else {
             rc.writeText(kept.joinToString("\n").trimEnd() + "\n", StandardCharsets.UTF_8)
         }
-        android.util.Log.i(TAG, "已清理无效的 npmrc 行: $NPMRC_LEGACY_LINE")
+        android.util.Log.i(DshRuntime.TAG, "已清理无效的 npmrc 行: $NPMRC_LEGACY_LINE")
     }
 
     /**

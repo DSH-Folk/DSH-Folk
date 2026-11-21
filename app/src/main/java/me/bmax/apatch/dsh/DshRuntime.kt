@@ -64,15 +64,15 @@ object DshRuntime : DshRuntimeHost {
     // ── 容器侧脚本与文档 ──────────────────────────────────────────────────────
     // 内容在同包 [DshRuntimeScripts]（约一千二百行 raw string）。这里只留引用：调用点零改动，
     // 要改脚本、DSL 说明或样例，去那个文件。
-    private val FS_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.FS_BRIDGE_CLI_SCRIPT
-    private val SAF_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.SAF_BRIDGE_CLI_SCRIPT
-    private val NATIVE_CLI_SCRIPT: String get() = DshRuntimeScripts.NATIVE_CLI_SCRIPT
-    private val WORKFLOW_CLI_SCRIPT: String get() = DshRuntimeScripts.WORKFLOW_CLI_SCRIPT
-    private val WORKFLOW_DSL_DOC: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC
-    private val WORKFLOW_SAMPLES: Map<String, String> get() = DshRuntimeScripts.WORKFLOW_SAMPLES
-    private val WORKFLOW_SAMPLES_DIR: String get() = DshRuntimeScripts.WORKFLOW_SAMPLES_DIR
-    private val WORKFLOW_DSL_DOC_NAME: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC_NAME
-    private val TROUBLESHOOT_DOC_NAME: String get() = DshRuntimeScripts.TROUBLESHOOT_DOC_NAME
+    internal val FS_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.FS_BRIDGE_CLI_SCRIPT
+    internal val SAF_BRIDGE_CLI_SCRIPT: String get() = DshRuntimeScripts.SAF_BRIDGE_CLI_SCRIPT
+    internal val NATIVE_CLI_SCRIPT: String get() = DshRuntimeScripts.NATIVE_CLI_SCRIPT
+    internal val WORKFLOW_CLI_SCRIPT: String get() = DshRuntimeScripts.WORKFLOW_CLI_SCRIPT
+    internal val WORKFLOW_DSL_DOC: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC
+    internal val WORKFLOW_SAMPLES: Map<String, String> get() = DshRuntimeScripts.WORKFLOW_SAMPLES
+    internal val WORKFLOW_SAMPLES_DIR: String get() = DshRuntimeScripts.WORKFLOW_SAMPLES_DIR
+    internal val WORKFLOW_DSL_DOC_NAME: String get() = DshRuntimeScripts.WORKFLOW_DSL_DOC_NAME
+    internal val TROUBLESHOOT_DOC_NAME: String get() = DshRuntimeScripts.TROUBLESHOOT_DOC_NAME
     internal fun nativeTroubleshootDoc(): String = DshRuntimeScripts.nativeTroubleshootDoc(appContext)
 
 
