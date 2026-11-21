@@ -19,12 +19,12 @@
  * 出错会回 HTML，装进去只是一段跑不起来的 JS）。
  */
 const fs = require("fs");
+// 走 _paths：ScriptMarket.kt 已迁入 :ext-userscripts（Checkpoint 2），
+// 直接 fs.readFileSync 旧路径会 ENOENT。
+const { read } = require("./_paths.js");
 
 const ROOT = __dirname + "/..";
-const MARKET = fs.readFileSync(
-  require("path").join(ROOT, "app/src/main/java/me/bmax/apatch/dsh/ScriptMarket.kt"),
-  "utf8",
-);
+const MARKET = read("app/src/main/java/me/bmax/apatch/dsh/ScriptMarket.kt");
 const SCREEN = fs.readFileSync(
   require("path").join(ROOT, "app/src/main/java/me/bmax/apatch/ui/screen/ScriptMarketScreen.kt"),
   "utf8",
@@ -48,7 +48,8 @@ console.log("\n── 端点与外壳 ──");
     "不再出现 greasyfork.org 的 API 基址（安装地址来自响应的 code_url）");
   ok(/scripts\.json\?q=/.test(MARKET) && /per_page=\$PER_PAGE/.test(MARKET),
     "搜索带 q 与 per_page（默认 100/上限 200，我们只要一页）");
-  ok(/internal const val PER_PAGE = 20/.test(MARKET) && /ScriptMarket\.PER_PAGE/.test(SCREEN),
+  // PER_PAGE 已放宽为 public（:app 的界面要读它，跨模块 internal 不可见）。
+  ok(/const val PER_PAGE = 20/.test(MARKET) && /ScriptMarket\.PER_PAGE/.test(SCREEN),
     "页大小是一个常量，界面判断「还有下一页」用的是同一个（两处写死必然写歪）");
   ok(/is JSONObject -> root\.optJSONArray\("query"\)/.test(MARKET) &&
     /is JSONArray -> root/.test(MARKET),
@@ -96,7 +97,8 @@ console.log("\n── 别把页面按住 ──");
   ok(/MAX_BYTES = 2 \* 1024 \* 1024/.test(MARKET) && /MarketException\(Fail\.SIZE\)/.test(MARKET),
     "响应有硬上限，超了报 SIZE（截断的 JS 比报错更难查）");
   ok(/disconnect\(\)/.test(MARKET), "读完就断开");
-  ok(/BuildConfig\.VERSION_NAME/.test(MARKET), "给一个可辨识的 UA（GreasyFork 只要求 Crawl-delay: 1）");
+  // 版本号改走 KernelEnv（ScriptMarket 已迁 :ext-userscripts，够不着 :app 的 BuildConfig）。
+  ok(/KernelEnv\.appVersionName/.test(MARKET), "给一个可辨识的 UA（GreasyFork 只要求 Crawl-delay: 1）");
 }
 
 console.log("\n── 接线：状态在原生侧，装完回到同一套列表 ──");

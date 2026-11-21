@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.userscripts
 
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 
@@ -6,6 +6,8 @@ import android.content.Context
 import android.net.Uri
 import org.json.JSONObject
 import java.io.File
+import me.bmax.apatch.dsh.DshEnv
+import me.bmax.apatch.dsh.compareVersions
 
 /**
  * 用户脚本：油猴 `.user.js` 的一个**够用子集**，只作用于本应用自己的那个页面。
@@ -33,7 +35,7 @@ import java.io.File
  *   WebView 分别编译，互不牵连；报错会经 `onConsoleMessage` 进应用日志。
  * - 备份目前带走 `audit/` 与 prefs，**不带** `filesDir/userscripts/`（已记在案，未做）。
  */
-internal object Userscripts {
+object Userscripts {
 
     /** 脚本目录：`filesDir/userscripts/<id>.user.js`。与 `audit/` 同一个惯例。 */
     private const val DIR = "userscripts"
@@ -356,7 +358,7 @@ internal object Userscripts {
      * 只认 `// @key value` 这一种写法（油猴也认块注释，但那种写法罕见，而且要正确处理
      * "注释里套注释"的边界；**这一批先不做**，已写在文件头的"边界"里）。
      */
-    internal fun parse(text: String): Meta {
+    fun parse(text: String): Meta {
         val out = LinkedHashMap<String, MutableList<String>>()
         var inside = false
         for (raw in text.replace("\r\n", "\n").split('\n')) {
@@ -416,7 +418,7 @@ internal object Userscripts {
             !matchesAny(url, meta.excludes)
 
     /** 油猴的 `*` 通配 → 正则（并把其余元字符转义）。 */
-    internal fun globToRegex(glob: String): String {
+    fun globToRegex(glob: String): String {
         val sb = StringBuilder("^")
         for (c in glob) {
             when {
@@ -436,7 +438,7 @@ internal object Userscripts {
      * internal 而不是 private：应用内置的那几段（见 [WebScripts]）走**同一个包装**，
      * 于是「一段一个脚本、互不牵连」这条性质对内置同样成立，也只有一处实现。
      */
-    internal fun blob(id: String, code: String, meta: Meta): String = """
+    fun blob(id: String, code: String, meta: Meta): String = """
 (function(){
   var NS = ${js(id)};
   var NAME = ${js(meta.title.ifBlank { id })};

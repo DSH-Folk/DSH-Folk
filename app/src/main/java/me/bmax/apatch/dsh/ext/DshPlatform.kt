@@ -38,7 +38,7 @@ import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.dsh.WebScripts
 import me.bmax.apatch.dsh.WorkflowEngine
 import me.bmax.apatch.ui.theme.ThemeManager
-import me.bmax.apatch.util.DshWebCompat
+import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.HardwareMonitor
 import me.bmax.apatch.util.MusicManager
 import me.bmax.apatch.util.SoundEffectManager
@@ -46,6 +46,9 @@ import me.bmax.apatch.util.UpdateChecker
 import me.bmax.apatch.util.VibrationManager
 import java.io.File
 import me.bmax.apatch.dsh.workflow.WorkflowApprovals
+import me.bmax.apatch.dsh.userscripts.Userscripts
+import me.bmax.apatch.dsh.userscripts.WebScripts
+import me.bmax.apatch.dsh.userscripts.ScriptMarket
 
 /**
  * 给扩展用的「全功能门面」：把宿主已有的各个 object 单例原样摆出来。

@@ -25,6 +25,7 @@ const fs = require("fs");
 const { read, exists } = require("./_paths.js");
 const vm = require("vm");
 
+// Userscripts.kt 已迁入 :ext-userscripts（Checkpoint 2）；_paths 的 MOVED 表负责解析。
 const SRC_US = "app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt";
 const SRC_WEBUI = "app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt";
 const SRC_ENV = "app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt";
@@ -234,7 +235,8 @@ console.log("\n── 注入体：在假 DOM 里真跑 ──");
  *
  * 注意签名是 `internal fun` —— 内置那几段（WebScripts）也走这个包装，所以它不再是 private。
  */
-const blobMatch = us.match(/internal fun blob\([\s\S]*?= """\n([\s\S]*?)\n"""\.trimIndent\(\)/);
+// blob 已放宽为 public（:app 的界面直接调它，跨模块 internal 不可见）。
+const blobMatch = us.match(/(?:internal )?fun blob\([\s\S]*?= """\n([\s\S]*?)\n"""\.trimIndent\(\)/);
 ok(blobMatch !== null, "能从 Userscripts.kt 抠出 blob");
 const blobTemplate = blobMatch ? blobMatch[1] : "";
 
@@ -476,7 +478,8 @@ ok(/browserMode && !loopback\) \{[\s\S]{0,400}Userscripts\.injections\(this, url
   ok(/const val BUILTIN_PREFIX = "builtin:"/.test(webScripts) &&
     /if \(id\.startsWith\(WebScripts\.BUILTIN_PREFIX\)\) return/.test(us),
     "内置 id 带保留前缀，用户脚本改不动它的开关（setEnabled 直接拒收）");
-  ok(/internal fun blob\(/.test(us), "内置与导入共用同一个包装（一处实现）");
+  // blob 已放宽为 public（:app 要调），但「只有一处实现」这条不变。
+  ok(/fun blob\(/.test(us), "内置与导入共用同一个包装（一处实现）");
 
   const marker = webScripts.match(/PARAM_MARKER = "([^"]+)"/);
   ok(marker !== null && webScripts.includes("text.replace(PARAM_MARKER, value)"),
@@ -701,8 +704,8 @@ ok(/var pendingDelete by remember \{ mutableStateOf<String\?>\(null\) \}/.test(s
   {
     // 总开关连逻辑一起删掉之后：只剩「脚本页逐条开关接引擎」这一件事要钉。
   {
-    const lib = require("fs").readFileSync(
-      "app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt", "utf8");
+    // 走 _paths（文件已迁 :ext-userscripts）。
+    const lib = read("app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt");
     ok(/Userscripts\.setEnabled\(context, s\.id, want\)/.test(screen) &&
       !/masterEnabled/.test(lib) && !/KEY_USERSCRIPTS_ON/.test(lib),
       "逐条开关（脚本页）接引擎；总开关逻辑已从引擎删除");

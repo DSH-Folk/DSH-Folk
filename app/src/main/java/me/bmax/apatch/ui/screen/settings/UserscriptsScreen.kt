@@ -67,13 +67,15 @@ import me.bmax.apatch.ui.component.UserscriptInstallConfirmHost
 import me.bmax.apatch.ui.component.rememberUserscriptPendingInstall
 import me.bmax.apatch.ui.component.UserscriptLinkInstallDialog
 import me.bmax.apatch.ui.screen.ScriptDetailSheet
-import me.bmax.apatch.util.DshWebCompat
+import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.userscripts.Userscripts
+import me.bmax.apatch.dsh.userscripts.WebScripts
 
 /**
  * 「用户脚本」管理页：一个不需要发版的扩展口。

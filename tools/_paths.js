@@ -49,8 +49,32 @@ const MOVED = {
     "core-res/src/main/res/values/dsh_strings.xml",
   "app/src/main/res/values-zh-rCN/dsh_strings.xml":
     "core-res/src/main/res/values-zh-rCN/dsh_strings.xml",
-  // 例：
-  // "dsh/DshRuntime.kt": "core-kernel/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt",
+  // Batch D-1（Checkpoint 2）：Workflow / Userscripts 迁入各自 :ext-* 模块。
+  // 同批还下沉了 Cap 枚举与 DshKernelState / DshWebCompat（都进 :core-kernel）。
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowActionCatalog.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowActionCatalog.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowApprovals.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowApprovals.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowCompute.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowCompute.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowGrants.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowGrants.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowModels.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowModels.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowStore.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowStore.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WorkflowValidator.kt":
+    "ext-workflow/src/main/java/me/bmax/apatch/dsh/workflow/WorkflowValidator.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/Userscripts.kt":
+    "ext-userscripts/src/main/java/me/bmax/apatch/dsh/userscripts/Userscripts.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/WebScripts.kt":
+    "ext-userscripts/src/main/java/me/bmax/apatch/dsh/userscripts/WebScripts.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/ScriptMarket.kt":
+    "ext-userscripts/src/main/java/me/bmax/apatch/dsh/userscripts/ScriptMarket.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshKernelState.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshKernelState.kt",
+  "app/src/main/java/me/bmax/apatch/util/DshWebCompat.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshWebCompat.kt",
 };
 
 /** 源码根目录候选（重构前一个，重构后逐模块增加）。 */

@@ -1,10 +1,9 @@
-package me.bmax.apatch.util
+package me.bmax.apatch.dsh
 
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.util.Log
 import androidx.webkit.WebViewCompat
-import me.bmax.apatch.dsh.DshEnv
 
 /**
  * 旧 WebView 内核的 JS 兼容垫片开关。

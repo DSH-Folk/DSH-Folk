@@ -31,6 +31,8 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ScriptMarket
 import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.userscripts.Userscripts
+import me.bmax.apatch.dsh.userscripts.ScriptMarket
 
 /**
  * 「从链接安装」弹窗：**脚本市场与用户脚本页共用同一份**。

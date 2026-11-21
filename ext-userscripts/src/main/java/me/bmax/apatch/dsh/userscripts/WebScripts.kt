@@ -1,10 +1,11 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.userscripts
 
 import android.content.Context
 import android.util.Log
-import me.bmax.apatch.util.DshWebCompat
+import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.appString
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.DshEnv
 
 /**
  * WebUI 注入脚本的**注册表**：应用内置的那几段（assets）与用户导入的那一份（filesDir）
@@ -40,7 +41,7 @@ import me.bmax.apatch.res.R as CoreR
  * 自带的全 0 —— 那本身是合法 JS（只是内边距为 0），绝不会把一个语法错注进页面。
  * 之后的尺寸变化走 `DshWebUiActivity.insetUpdateScript`（推 `window.__dshFolkInsets`）。
  */
-internal object WebScripts {
+object WebScripts {
 
     /** 注入时机，与用户脚本的 `@run-at` 同义。`END` 由 runner 的包装在 DOMContentLoaded 上执行。 */
     enum class RunAt(val id: String) {
@@ -66,7 +67,7 @@ internal object WebScripts {
     /** 内边距的四个方向（CSS 像素 = dp）。 */
     data class Insets(val top: Int, val right: Int, val bottom: Int, val left: Int) {
         /** 占位符替换用的 JS 字面量。键名与正文里的 `state.t/r/b/l` 对应。 */
-        internal fun json(): String = """{"t":$top,"r":$right,"b":$bottom,"l":$left}"""
+        fun json(): String = """{"t":$top,"r":$right,"b":$bottom,"l":$left}"""
     }
 
     /**

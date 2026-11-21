@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.userscripts.Userscripts
 
 /**
  * 脚本详情底部弹层。

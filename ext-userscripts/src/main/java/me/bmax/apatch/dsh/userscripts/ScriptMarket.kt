@@ -1,8 +1,8 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.userscripts
 
 import android.content.Context
 import android.util.Log
-import me.bmax.apatch.BuildConfig
+import me.bmax.apatch.dsh.KernelEnv
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -31,7 +31,7 @@ import java.net.URLEncoder
  *   `HttpURLConnection` 默认处理即可（别自己设 `Accept-Encoding`）。robots 只要求
  *   `Crawl-delay: 1`，我们一次搜索一页 20 条，够客气；UA 仍给一个可辨识的。
  */
-internal object ScriptMarket {
+object ScriptMarket {
 
     /** 一条搜索结果。只留界面真的要显示的字段 —— 解析成的对象越小，越不容易悄悄错。 */
     data class Hit(
@@ -69,10 +69,10 @@ internal object ScriptMarket {
      * （见 ScriptMarketScreen 的 `openMirrorPage`），绝不进我们的 HTTP 客户端、更不拿它装脚本。
      * 正文层面的镜像回落**做不到**：没有可改写的镜像路径。
      */
-    internal const val MIRROR_INDEX = "https://greasyfork-mirror.github.io/index.html"
+    const val MIRROR_INDEX = "https://greasyfork-mirror.github.io/index.html"
 
     /** 一页多少条；界面用它判断「还有下一页」——两处必须一致，所以是同一个常量。 */
-    internal const val PER_PAGE = 20
+    const val PER_PAGE = 20
 
     /** 单次响应上限：正常脚本 30KB 上下，2MB 已经很宽松，再大多半是被中间层换了内容。 */
     private const val MAX_BYTES = 2 * 1024 * 1024
@@ -151,7 +151,7 @@ internal object ScriptMarket {
      * http 的脚本页会**升到 https**（旧书签里常见），但只拼到 greasyfork 自己的域上，
      * 不会把任意 URL 拉进来。
      */
-    internal fun normalizeInstallUrl(raw: String): String? {
+    fun normalizeInstallUrl(raw: String): String? {
         val s = raw.trim()
         if (s.isEmpty() || s.any { it.isWhitespace() }) return null
         // 正文地址：已经是要取的那个东西，原样收
@@ -235,7 +235,7 @@ internal object ScriptMarket {
             conn.readTimeout = 20_000
             conn.setRequestProperty(
                 "User-Agent",
-                "DSH-Folk/" + BuildConfig.VERSION_NAME + " (Android)",
+                "DSH-Folk/" + KernelEnv.appVersionName + " (Android)",
             )
             conn.setRequestProperty("Accept", "application/json, text/javascript, */*")
             val code = runCatching { conn.responseCode }.getOrElse {

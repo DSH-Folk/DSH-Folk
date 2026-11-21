@@ -75,6 +75,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     // 运行时/容器/日志这套用到的 AndroidX 组件
     implementation(libs.androidx.appcompat)
+    // DshWebCompat 要用 WebViewCompat 查内核特性（:ext-userscripts 依赖它）。
+    implementation(libs.androidx.webkit)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.com.github.topjohnwu.libsu.core)
     implementation(libs.com.github.topjohnwu.libsu.service)
