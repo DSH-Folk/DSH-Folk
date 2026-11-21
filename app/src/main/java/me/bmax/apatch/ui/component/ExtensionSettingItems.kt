@@ -7,8 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 把扩展注册的设置项渲染进宿主设置页。
@@ -46,7 +46,7 @@ fun ExtensionSettingItems(
     SplicedColumnGroup(
         flat = flat,
         highlightKey = highlightKey,
-        title = stringResource(R.string.dsh_ext_settings_group),
+        title = stringResource(CoreR.string.dsh_ext_settings_group),
     ) {
         for (item in items) {
             item(key = item.key) {

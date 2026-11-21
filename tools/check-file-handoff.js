@@ -86,8 +86,8 @@ const dlg = code(read("app/src/main/java/me/bmax/apatch/ui/component/DshFileHand
 ok(/Dialog\(onDismissRequest/.test(dlg), "是弹窗（Dialog），不是整页");
 ok(/dsh_share_use_dsh/.test(dlg) && /dsh_share_use_backup/.test(dlg) && /dsh_share_use_theme/.test(dlg), "三个用途选项都在");
 ok(/DshFileHandoff\.copyInto/.test(dlg), "选工作区后复制文件进工作区");
-ok(/showToast\([^)]*R\.string\.dsh_handoff_copied/.test(dlg), "复制成功后弹 toast（dsh_handoff_copied）");
-ok(/clipboard\.setText/.test(dlg) && /R\.string\.dsh_handoff_prompt/.test(dlg), "提示词写入剪贴板（dsh_handoff_prompt）");
+ok(/showToast\([^)]*(?:Core)?R\.string\.dsh_handoff_copied/.test(dlg), "复制成功后弹 toast（dsh_handoff_copied）");
+ok(/clipboard\.setText/.test(dlg) && /(?:Core)?R\.string\.dsh_handoff_prompt/.test(dlg), "提示词写入剪贴板（dsh_handoff_prompt）");
 // 复制成功进 DONE 步，而不是直接拉起 Web UI；openWeb 只挂在按钮 onClick 上。
 const onSuccess = dlg.slice(dlg.indexOf("onSuccess"), dlg.indexOf("onFailure"));
 ok(/step = "DONE"/.test(onSuccess) && !/openWeb\(\)/.test(onSuccess), "复制成功进完成步，不自动拉起 Web UI（修 bug1：不再把 App 挤到后台）");

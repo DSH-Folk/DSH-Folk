@@ -350,7 +350,7 @@ ok(/kind == WorkflowApprovals\.Kind\.RUN/.test(wfBridge) &&
   /WorkflowPermissions\.Gate\.submit\(/.test(wfBridge) &&
   /WorkflowPermissions\.Gate\.awaitDecision\(gate\.id\)/.test(wfBridge),
   "桥的 RUN 分支只是查了缺失项，却没有弹窗 + 等用户结论");
-ok(/\"permission_denied\"/.test(wfBridge) && /R\.string\.dsh_workflow_err_permission_denied/.test(wfBridge),
+ok(/\"permission_denied\"/.test(wfBridge) && /(?:Core)?R\.string\.dsh_workflow_err_permission_denied/.test(wfBridge),
   "缺权限且没给授权时没有回 403 permission_denied（用户会以为「跑了」）");
 ok(/allowDangerous = verdict\.allowDangerous && dangerousNow/.test(wfBridge),
   "危险命令的豁免没有同时看「用户勾选」与「当前定义确实含危险命令」（dangerousNow 又变成算了不用）");
@@ -359,7 +359,7 @@ ok(/allowDangerous = verdict\.allowDangerous && dangerousNow/.test(wfBridge),
   const en = read("app/src/main/res/values/dsh_strings.xml");
   const used = new Set();
   for (const f of Object.values(SRC)) {
-    for (const m of f.matchAll(/R\.string\.(dsh_workflow[a-zA-Z0-9_]*)/g)) used.add(m[1]);
+    for (const m of f.matchAll(/(?:Core)?R\.string\.(dsh_workflow[a-zA-Z0-9_]*)/g)) used.add(m[1]);
   }
   const inFile = (t) => new Set([...t.matchAll(/name="(dsh_workflow[a-zA-Z0-9_]*)"/g)].map((m) => m[1]));
   const zhKeys = inFile(zh);
@@ -838,7 +838,7 @@ console.log("\u2500 #16j 节点选择面板：两个入口共用同一个组件"
   ok(/descRes = kind\.bridge\?\.descRes\?\.takeIf \{ it != 0 \} \?: kind\.descRes/.test(SRC.editorSurface),
     "卡片带说明文字（动作目录 desc 或基础节点自己的 descRes）");
   // 七张基础卡必须各自有描述，不能靠默认值 0 蒙过去。
-  ok((SRC.editorSurface.match(/R\.string\.dsh_workflow_kind_[a-z]+_desc\)/g) || []).length >= 7,
+  ok((SRC.editorSurface.match(/(?:Core)?R\.string\.dsh_workflow_kind_[a-z]+_desc\)/g) || []).length >= 7,
     "七张基础节点卡都配了描述");
   // ── 动作图标必须互不重复 ──
   //
@@ -1275,8 +1275,8 @@ console.log("\u2500 #16o 首页阶段名只有一份映射（阶段 5：Home 收
     'HomeDsh 的本地 phaseLabel 也委托给共享映射');
   // 关键：HomeDsh 里不应再出现第二份阶段名 when（出现即两份映射会分叉）
   const dshBody = dsh.slice(dsh.indexOf('private fun phaseLabel('));
-  ok(!/R\.string\.dsh_phase_downloading/.test(dshBody), 'HomeDsh 不再自带阶段名字符串表');
-  ok(/R\.string\.dsh_phase_downloading/.test(shared), '阶段名字符串表只在共享侧');
+  ok(!/(?:Core)?R\.string\.dsh_phase_downloading/.test(dshBody), 'HomeDsh 不再自带阶段名字符串表');
+  ok(/(?:Core)?R\.string\.dsh_phase_downloading/.test(shared), '阶段名字符串表只在共享侧');
 }
 
 console.log("\u2500 #16p 回环桥分端点阈值（任务 1）");
@@ -1463,7 +1463,7 @@ console.log("\u2500 #16v chroot 启动方式（真 root，实验性）");
   // 失败即回退
   ok(/if \(id == "chroot"\)/.test(dr) && /prorootFellBack = true/.test(dr), 'chroot 失败自动回退 proot');
   // UI 第三项
-  ok(/R\.string\.dsh_mode_chroot_name/.test(fs2) && /R\.string\.dsh_mode_chroot_desc/.test(fs2),
+  ok(/(?:Core)?R\.string\.dsh_mode_chroot_name/.test(fs2) && /(?:Core)?R\.string\.dsh_mode_chroot_desc/.test(fs2),
     '设置页有 chroot 选项且有说明');
 }
 
@@ -1772,7 +1772,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   const TAXONOMY = ["trigger", "logic", "general", APPTOK, "system", "number", "text",
     "condition", "widget", "image", "color", "region", "position", "list", "dict"];
   const orderBlock = (SRC.editorSurface.match(/private val EDITOR_CATEGORY_ORDER = listOf\(([\s\S]*?)\n\)/) || [])[1] || "";
-  const orderKeys = [...orderBlock.matchAll(/R\.string\.(\w+)/g)].map((m) => m[1]);
+  const orderKeys = [...orderBlock.matchAll(/(?:Core)?R\.string\.(\w+)/g)].map((m) => m[1]);
   eq(orderKeys.join(","), TAXONOMY.map((n) => CP + "wf_cat_" + n).join(","),
     "分类顺序照抄点击助手（触发器 / 逻辑控制 / 通用 / 应用管理 / 系统操作 / 数值计算 / 文本处理 / 条件判断 / 控件操作 / 图像处理 / 颜色处理 / 区域操作 / 位置操作 / 列表操作 / 字典操作）");
   const noText = TAXONOMY.filter((n) => !stringsEn.includes('name="' + CP + "wf_cat_" + n + '"') || !stringsZh.includes('name="' + CP + "wf_cat_" + n + '"'));
@@ -1789,7 +1789,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   // 只认 Action 条目的首行（"id", 分类, 标题 三个字段连写）；参数行
   // （"action", R.string.…, ParamKind.…）不能满足"两个 R.string"，所以不会被误当成动作。
   const actionCat = {};
-  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", R\.string\.(\w+), R\.string\.\w+,/gm)) {
+  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), R\.string\.\w+,/gm)) {
     actionCat[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
   }
   ok(Object.keys(actionCat).length >= 31, "动作目录每条都写了分类（当前 " + Object.keys(actionCat).length + " 条）");
@@ -1827,7 +1827,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
       const m = zhStrings.match(new RegExp('<string name="' + key + '">([\\s\\S]*?)</string>'));
       return m ? m[1] : key;
     };
-    const rows = [...catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", R\.string\.(\w+), R\.string\.(\w+), R\.string\.(\w+),/gm)]
+    const rows = [...catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), (?:Core)?R\.string\.(\w+), (?:Core)?R\.string\.(\w+),/gm)]
       .map((m) => ({ id: m[1], cat: m[2], title: m[3], desc: m[4] }));
     ok(rows.length >= 31, "能读出动作条目的分类/标题/说明三列（当前 " + rows.length + " 条）");
     const titleNotAction = rows.filter((r) => !/_wf_act_/.test(r.title)).map((r) => r.id + "→" + r.title);
@@ -1849,7 +1849,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
 
   // 计算册：JSON 归字典、列表算子归列表、与/或/非归条件判断。
   const consts = {};
-  for (const m of computeSrc.matchAll(/private val (G_[A-Z]+) = R\.string\.(\w+)/g)) {
+  for (const m of computeSrc.matchAll(/private val (G_[A-Z]+) = (?:Core)?R\.string\.(\w+)/g)) {
     consts[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
   }
   eq(consts.G_DICT, "wf_cat_dict", "字典类算子（JSON 取值/取键）用字典操作分类");
@@ -1870,7 +1870,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   //
   // 这两类暂时没有可落地的动作（没有取色/调色的端点，也没有区域相关的动作）。
   // 把这件事实钉死，是因为缺口的可见形态只是"左栏少一格"—— 悄悄多缺一类没人会发现。
-  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, R\.string\.\w+, R\.string\.(\w+),/g))]
+  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, R\.string\.\w+, (?:Core)?R\.string\.(\w+),/g))]
     .map((m) => (m[1].startsWith(CP) ? m[1].slice(CP.length) : m[1]));
   const usedConsts = new Set(Object.values(computeCat));
   const filled = new Set([
@@ -2102,7 +2102,7 @@ async function checkCli() {
   // 无权限必须能一眼看出来：整卡压暗 + 红条 + 说清缺什么。
   ok(/if \(granted\) base else base\.alpha\(0\.6f\)/.test(card),
     "无权限的卡整体压暗");
-  ok(/R\.string\.dsh_wf_lock\b/.test(card) && /R\.string\.dsh_wf_lock_need/.test(card),
+  ok(/(?:Core)?R\.string\.dsh_wf_lock\b/.test(card) && /(?:Core)?R\.string\.dsh_wf_lock_need/.test(card),
     "红条既说「没权限」也说「缺哪项」");
   ok(/requiredCaps: List<String> = emptyList\(\)/.test(card) && /granted: Boolean = true/.test(card),
     "新增的两个参数都有默认值（老调用点不受影响）");

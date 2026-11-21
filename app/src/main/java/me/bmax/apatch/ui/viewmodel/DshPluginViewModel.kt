@@ -11,13 +11,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.APApplication
-import me.bmax.apatch.R
 import me.bmax.apatch.apApp
 import me.bmax.apatch.util.appString
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshPlugin
 import me.bmax.apatch.dsh.DshPluginRepo
 import me.bmax.apatch.dsh.DshRuntime
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 这次插件操作的种类。
@@ -226,7 +226,7 @@ class DshPluginViewModel : ViewModel() {
                 // 抢 installLog / lastOutput）
                 runGeneration++
                 installing = false
-                lastOutput = apApp.appString(R.string.dsh_plugin_stopped_forced)
+                lastOutput = apApp.appString(CoreR.string.dsh_plugin_stopped_forced)
                 refresh()
             }
         }
@@ -500,7 +500,7 @@ class DshPluginViewModel : ViewModel() {
                     // 随后的合并刷新会以文件为准再校正一次（写盘与读盘之间用户看到的一直是旧状态，
                     // 真机反馈就是「开关很大概率不变、实际状态其实变了」）。
                     plugins = plugins.map { if (it.pkg == pkg) it.copy(disabled = disabled) else it }
-                    apApp.appString(R.string.dsh_plugin_toggle_restart_hint) +
+                    apApp.appString(CoreR.string.dsh_plugin_toggle_restart_hint) +
                         "\n" + DshPluginRepo.EXIT_MARKER + " 0"
                 } else {
                     DshPluginRepo.EXIT_MARKER + " 1"
@@ -581,10 +581,10 @@ class DshPluginViewModel : ViewModel() {
             // 目标为空时退回通用文案。
             val busyTarget = installTarget
             transientMessage = if (busyTarget.isEmpty()) {
-                apApp.appString(R.string.dsh_plugin_busy)
+                apApp.appString(CoreR.string.dsh_plugin_busy)
             } else {
                 apApp.appString(
-                    R.string.dsh_plugin_busy_on,
+                    CoreR.string.dsh_plugin_busy_on,
                     apApp.appString(actionLabelRes(installActionKind)),
                     busyTarget,
                 )
@@ -626,7 +626,7 @@ class DshPluginViewModel : ViewModel() {
                 // 不提示重启。若恰好在停止的同时正常结束，仍按结果算 —— 不能把一次成功的
                 // 安装说成被停掉。
                 if (installStopped && !succeeded(raw)) {
-                    val msg = apApp.appString(R.string.dsh_plugin_stopped_log)
+                    val msg = apApp.appString(CoreR.string.dsh_plugin_stopped_log)
                     append("[DSH-Folk] $msg")
                     lastOutput = msg
                     installFailed = false
@@ -645,9 +645,9 @@ class DshPluginViewModel : ViewModel() {
                         val victim = added.firstOrNull().orEmpty()
                         val rolled = if (victim.isEmpty()) false else DshPluginRepo.rollback(victim, append)
                         extra = if (rolled) {
-                            apApp.appString(R.string.dsh_plugin_rolled_back, victim, reason)
+                            apApp.appString(CoreR.string.dsh_plugin_rolled_back, victim, reason)
                         } else {
-                            apApp.appString(R.string.dsh_plugin_verify_failed, reason)
+                            apApp.appString(CoreR.string.dsh_plugin_verify_failed, reason)
                         }
                         append("[DSH-Folk] $extra")
                     }
@@ -695,12 +695,12 @@ class DshPluginViewModel : ViewModel() {
 
     /** 动作种类 → 名称资源（拼进「正在更新 X」这类提示）。 */
     private fun actionLabelRes(kind: PluginActionKind): Int = when (kind) {
-        PluginActionKind.Install -> R.string.dsh_plugin_action_install
-        PluginActionKind.Update -> R.string.dsh_plugin_action_update
-        PluginActionKind.Uninstall -> R.string.dsh_plugin_action_uninstall
-        PluginActionKind.Toggle -> R.string.dsh_plugin_action_toggle
-        PluginActionKind.Local -> R.string.dsh_plugin_action_local
-        PluginActionKind.Repair -> R.string.dsh_plugin_action_repair
+        PluginActionKind.Install -> CoreR.string.dsh_plugin_action_install
+        PluginActionKind.Update -> CoreR.string.dsh_plugin_action_update
+        PluginActionKind.Uninstall -> CoreR.string.dsh_plugin_action_uninstall
+        PluginActionKind.Toggle -> CoreR.string.dsh_plugin_action_toggle
+        PluginActionKind.Local -> CoreR.string.dsh_plugin_action_local
+        PluginActionKind.Repair -> CoreR.string.dsh_plugin_action_repair
     }
 
     /** 安装后验证开关（默认开）。 */

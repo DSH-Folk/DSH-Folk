@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import java.security.SecureRandom
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 救急 CLI 的常用命令。
@@ -67,19 +68,19 @@ private val RESCUE_COMMANDS = listOf(
 private data class ScopeOption(val scope: BackupScope, val label: Int, val summary: Int)
 
 private val SCOPE_OPTIONS = listOf(
-    ScopeOption(BackupScope.APP_ONLY, R.string.dsh_bk_scope_app_only, R.string.dsh_bk_scope_app_only_summary),
-    ScopeOption(BackupScope.DSH_ONLY, R.string.dsh_bk_scope_dsh_only, R.string.dsh_bk_scope_dsh_only_summary),
-    ScopeOption(BackupScope.DSH_VAULT, R.string.dsh_bk_scope_dsh_vault, R.string.dsh_bk_scope_dsh_vault_summary),
-    ScopeOption(BackupScope.BOTH, R.string.dsh_bk_scope_both, R.string.dsh_bk_scope_both_summary),
-    ScopeOption(BackupScope.BOTH_VAULT, R.string.dsh_bk_scope_vault, R.string.dsh_bk_scope_vault_summary),
+    ScopeOption(BackupScope.APP_ONLY, CoreR.string.dsh_bk_scope_app_only, CoreR.string.dsh_bk_scope_app_only_summary),
+    ScopeOption(BackupScope.DSH_ONLY, CoreR.string.dsh_bk_scope_dsh_only, CoreR.string.dsh_bk_scope_dsh_only_summary),
+    ScopeOption(BackupScope.DSH_VAULT, CoreR.string.dsh_bk_scope_dsh_vault, CoreR.string.dsh_bk_scope_dsh_vault_summary),
+    ScopeOption(BackupScope.BOTH, CoreR.string.dsh_bk_scope_both, CoreR.string.dsh_bk_scope_both_summary),
+    ScopeOption(BackupScope.BOTH_VAULT, CoreR.string.dsh_bk_scope_vault, CoreR.string.dsh_bk_scope_vault_summary),
 )
 
 /** 密码强度四档的文案资源（下标即档位）。 */
 private val PASSWORD_STRENGTH_LABELS = listOf(
-    R.string.dsh_bk_pw_weak,
-    R.string.dsh_bk_pw_fair,
-    R.string.dsh_bk_pw_good,
-    R.string.dsh_bk_pw_strong,
+    CoreR.string.dsh_bk_pw_weak,
+    CoreR.string.dsh_bk_pw_fair,
+    CoreR.string.dsh_bk_pw_good,
+    CoreR.string.dsh_bk_pw_strong,
 )
 
 /**
@@ -263,12 +264,12 @@ fun BackupSettingsContent(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = stringResource(R.string.dsh_backup_section),
+                                text = stringResource(CoreR.string.dsh_backup_section),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = stringResource(R.string.dsh_backup_summary),
+                                text = stringResource(CoreR.string.dsh_backup_summary),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -286,43 +287,43 @@ fun BackupSettingsContent(
                                 CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_plugin_checking),
+                                    text = stringResource(CoreR.string.dsh_backup_plugin_checking),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             dshConfigInstalled == false -> Column {
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_plugin_missing),
+                                    text = stringResource(CoreR.string.dsh_backup_plugin_missing),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 TextButton(onClick = onGoInstallPlugin) {
-                                    Text(stringResource(R.string.dsh_backup_plugin_install))
+                                    Text(stringResource(CoreR.string.dsh_backup_plugin_install))
                                 }
                             }
                             dshConfigDisabled -> Column {
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_plugin_disabled),
+                                    text = stringResource(CoreR.string.dsh_backup_plugin_disabled),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 TextButton(onClick = onEnableDshConfigPlugin) {
-                                    Text(stringResource(R.string.dsh_backup_plugin_enable))
+                                    Text(stringResource(CoreR.string.dsh_backup_plugin_enable))
                                 }
                             }
                             !dshRunning -> Column {
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_dsh_stopped),
+                                    text = stringResource(CoreR.string.dsh_backup_dsh_stopped),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 TextButton(onClick = onStartDsh) {
-                                    Text(stringResource(R.string.dsh_bk_cloud_start_dsh))
+                                    Text(stringResource(CoreR.string.dsh_bk_cloud_start_dsh))
                                 }
                             }
                             pluginReady == true -> Text(
-                                text = stringResource(R.string.dsh_backup_plugin_ready, pluginDetail),
+                                text = stringResource(CoreR.string.dsh_backup_plugin_ready, pluginDetail),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -332,7 +333,7 @@ fun BackupSettingsContent(
                                 CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_plugin_checking),
+                                    text = stringResource(CoreR.string.dsh_backup_plugin_checking),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -341,12 +342,12 @@ fun BackupSettingsContent(
                                 // 装着、启用着、DSH 在跑，探活却失败：给插件自己说的原因（未授权、
                                 // 非 JSON…）+ 重新检测，而不是指人去重装一个装好的插件。
                                 Text(
-                                    text = stringResource(R.string.dsh_backup_plugin_not_ready, pluginDetail),
+                                    text = stringResource(CoreR.string.dsh_backup_plugin_not_ready, pluginDetail),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                                 TextButton(onClick = onRecheckPlugin) {
-                                    Text(stringResource(R.string.dsh_backup_plugin_retry))
+                                    Text(stringResource(CoreR.string.dsh_backup_plugin_retry))
                                 }
                             }
                         }
@@ -367,13 +368,13 @@ fun BackupSettingsContent(
                                 onClick = { showExportDialog = true },
                                 enabled = canRun,
                             ) {
-                                Text(stringResource(R.string.dsh_backup_export))
+                                Text(stringResource(CoreR.string.dsh_backup_export))
                             }
                             OutlinedButton(onClick = onDshImport, enabled = canRun) {
-                                Text(stringResource(R.string.dsh_backup_import))
+                                Text(stringResource(CoreR.string.dsh_backup_import))
                             }
                             TextButton(onClick = onDshOpenDir) {
-                                Text(stringResource(R.string.dsh_backup_open_dir))
+                                Text(stringResource(CoreR.string.dsh_backup_open_dir))
                             }
                             if (dshBusy) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -408,13 +409,13 @@ fun BackupSettingsContent(
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     Column {
                         Text(
-                            text = stringResource(R.string.dsh_bk_snapshot_title),
+                            text = stringResource(CoreR.string.dsh_bk_snapshot_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = stringResource(R.string.dsh_bk_snapshot_desc),
+                            text = stringResource(CoreR.string.dsh_bk_snapshot_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -428,7 +429,7 @@ fun BackupSettingsContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         OutlinedButton(onClick = onSnapshotList, enabled = canRun) {
-                            Text(stringResource(R.string.dsh_bk_snapshot_list))
+                            Text(stringResource(CoreR.string.dsh_bk_snapshot_list))
                         }
                         if (snapshotBusy) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -455,16 +456,16 @@ fun BackupSettingsContent(
                                         )
                                         Text(
                                             text = formatSnapshotTime(snap.createdAtMs)
-                                                ?: stringResource(R.string.dsh_bk_snapshot_time_unknown),
+                                                ?: stringResource(CoreR.string.dsh_bk_snapshot_time_unknown),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                     TextButton(onClick = { onSnapshotRestore(snap) }, enabled = canRun) {
-                                        Text(stringResource(R.string.dsh_bk_snapshot_restore_now))
+                                        Text(stringResource(CoreR.string.dsh_bk_snapshot_restore_now))
                                     }
                                     TextButton(onClick = { onSnapshotDelete(snap) }, enabled = canRun) {
-                                        Text(stringResource(R.string.dsh_bk_snapshot_delete))
+                                        Text(stringResource(CoreR.string.dsh_bk_snapshot_delete))
                                     }
                                 }
                             }
@@ -472,7 +473,7 @@ fun BackupSettingsContent(
                     } else if (!snapshotBusy && snapshotMessage.isBlank()) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = stringResource(R.string.dsh_bk_snapshot_empty),
+                            text = stringResource(CoreR.string.dsh_bk_snapshot_empty),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -494,13 +495,13 @@ fun BackupSettingsContent(
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     Column {
                         Text(
-                            text = stringResource(R.string.dsh_bk_backup_section),
+                            text = stringResource(CoreR.string.dsh_bk_backup_section),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = stringResource(R.string.dsh_bk_backup_desc),
+                            text = stringResource(CoreR.string.dsh_bk_backup_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -513,7 +514,7 @@ fun BackupSettingsContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         OutlinedButton(onClick = onDshListRemote, enabled = canRun) {
-                            Text(stringResource(R.string.dsh_bk_backup_refresh))
+                            Text(stringResource(CoreR.string.dsh_bk_backup_refresh))
                         }
                         if (dshBackupBusy) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -549,10 +550,10 @@ fun BackupSettingsContent(
                                         )
                                     }
                                     TextButton(onClick = { onDshBackupRestore(backup) }, enabled = canRun) {
-                                        Text(stringResource(R.string.dsh_bk_backup_restore))
+                                        Text(stringResource(CoreR.string.dsh_bk_backup_restore))
                                     }
                                     TextButton(onClick = { onDshBackupDelete(backup) }, enabled = canRun) {
-                                        Text(stringResource(R.string.dsh_bk_backup_delete))
+                                        Text(stringResource(CoreR.string.dsh_bk_backup_delete))
                                     }
                                 }
                             }
@@ -560,7 +561,7 @@ fun BackupSettingsContent(
                     } else if (!dshBackupBusy && dshBackupMessage.isBlank()) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = stringResource(R.string.dsh_backup_remote_empty),
+                            text = stringResource(CoreR.string.dsh_backup_remote_empty),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -593,7 +594,7 @@ fun BackupSettingsContent(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = stringResource(R.string.dsh_backup_rescue_section),
+                            text = stringResource(CoreR.string.dsh_backup_rescue_section),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
@@ -601,8 +602,8 @@ fun BackupSettingsContent(
                         TextButton(onClick = { expanded = !expanded }) {
                             Text(
                                 stringResource(
-                                    if (expanded) R.string.dsh_backup_rescue_collapse
-                                    else R.string.dsh_backup_rescue_expand
+                                    if (expanded) CoreR.string.dsh_backup_rescue_collapse
+                                    else CoreR.string.dsh_backup_rescue_expand
                                 )
                             )
                         }
@@ -611,7 +612,7 @@ fun BackupSettingsContent(
                     if (expanded) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = stringResource(R.string.dsh_backup_rescue_desc),
+                            text = stringResource(CoreR.string.dsh_backup_rescue_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -621,15 +622,15 @@ fun BackupSettingsContent(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             OutlinedButton(onClick = onInstallRescueCli, enabled = !dshBusy) {
-                                Text(stringResource(R.string.dsh_backup_rescue_install_cli))
+                                Text(stringResource(CoreR.string.dsh_backup_rescue_install_cli))
                             }
                             TextButton(onClick = onOpenTerminal) {
-                                Text(stringResource(R.string.dsh_backup_rescue_open_terminal))
+                                Text(stringResource(CoreR.string.dsh_backup_rescue_open_terminal))
                             }
                         }
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = stringResource(R.string.dsh_backup_rescue_cmds_title),
+                            text = stringResource(CoreR.string.dsh_backup_rescue_cmds_title),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -668,12 +669,12 @@ fun BackupSettingsContent(
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.dsh_bk_cloud_title),
+                                text = stringResource(CoreR.string.dsh_bk_cloud_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = stringResource(R.string.dsh_bk_cloud_desc),
+                                text = stringResource(CoreR.string.dsh_bk_cloud_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -687,20 +688,20 @@ fun BackupSettingsContent(
                     if (cloud != null && cloud.reachable) {
                         // 正常态：状态行 + 配置/触发按钮。
                         val statusLine = if (!cloud.configured || cloud.url.isBlank()) {
-                            stringResource(R.string.dsh_bk_cloud_unconfigured)
+                            stringResource(CoreR.string.dsh_bk_cloud_unconfigured)
                         } else {
                             val tierText = if (cloud.tierFellBack) {
-                                stringResource(R.string.dsh_bk_cloud_tier_fellback, cloud.tier, cloud.effectiveTier)
+                                stringResource(CoreR.string.dsh_bk_cloud_tier_fellback, cloud.tier, cloud.effectiveTier)
                             } else {
                                 cloud.tier
                             }
-                            stringResource(R.string.dsh_bk_cloud_status_line, cloud.url, tierText)
+                            stringResource(CoreR.string.dsh_bk_cloud_status_line, cloud.url, tierText)
                         }
                         Text(statusLine, style = MaterialTheme.typography.bodySmall)
                         if (cloud.lastSyncedHash.isNotBlank()) {
                             Text(
                                 text = stringResource(
-                                    R.string.dsh_bk_cloud_last_sync,
+                                    CoreR.string.dsh_bk_cloud_last_sync,
                                     cloud.lastSyncedHash.take(12),
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
@@ -711,7 +712,7 @@ fun BackupSettingsContent(
                         if (!cloud.configManagerAvailable) {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = stringResource(R.string.dsh_bk_cloud_needs_manager),
+                                text = stringResource(CoreR.string.dsh_bk_cloud_needs_manager),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -724,13 +725,13 @@ fun BackupSettingsContent(
                                 Text(stringResource(R.string.settings_configure_webdav))
                             }
                             OutlinedButton(onClick = onCloudSync, enabled = canRun) {
-                                Text(stringResource(R.string.dsh_bk_cloud_sync_now))
+                                Text(stringResource(CoreR.string.dsh_bk_cloud_sync_now))
                             }
                             OutlinedButton(onClick = onCloudRestore, enabled = canRun) {
-                                Text(stringResource(R.string.dsh_bk_cloud_pull))
+                                Text(stringResource(CoreR.string.dsh_bk_cloud_pull))
                             }
                             OutlinedButton(onClick = onCloudRefresh, enabled = !cloudBusy) {
-                                Text(stringResource(R.string.dsh_bk_cloud_refresh))
+                                Text(stringResource(CoreR.string.dsh_bk_cloud_refresh))
                             }
                         }
                     } else {
@@ -740,35 +741,35 @@ fun BackupSettingsContent(
                         val action: (@Composable () -> Unit)?
                         when {
                             cloudInstalled == null -> {
-                                reason = stringResource(R.string.dsh_backup_plugin_checking)
+                                reason = stringResource(CoreR.string.dsh_backup_plugin_checking)
                                 action = null
                             }
                             cloudInstalled == false -> {
-                                reason = stringResource(R.string.dsh_bk_cloud_not_installed)
+                                reason = stringResource(CoreR.string.dsh_bk_cloud_not_installed)
                                 action = {
                                     Button(onClick = onGoInstallCloudPlugin, enabled = !cloudBusy) {
-                                        Text(stringResource(R.string.dsh_bk_cloud_install))
+                                        Text(stringResource(CoreR.string.dsh_bk_cloud_install))
                                     }
                                 }
                             }
                             cloudDisabled -> {
-                                reason = stringResource(R.string.dsh_bk_cloud_disabled)
+                                reason = stringResource(CoreR.string.dsh_bk_cloud_disabled)
                                 action = {
                                     Button(onClick = onEnableCloudPlugin, enabled = !cloudBusy) {
-                                        Text(stringResource(R.string.dsh_bk_cloud_enable))
+                                        Text(stringResource(CoreR.string.dsh_bk_cloud_enable))
                                     }
                                 }
                             }
                             !dshRunning -> {
-                                reason = stringResource(R.string.dsh_bk_cloud_dsh_stopped)
+                                reason = stringResource(CoreR.string.dsh_bk_cloud_dsh_stopped)
                                 action = {
                                     Button(onClick = onStartDsh, enabled = !cloudBusy) {
-                                        Text(stringResource(R.string.dsh_bk_cloud_start_dsh))
+                                        Text(stringResource(CoreR.string.dsh_bk_cloud_start_dsh))
                                     }
                                 }
                             }
                             else -> {
-                                reason = stringResource(R.string.dsh_bk_cloud_unreachable)
+                                reason = stringResource(CoreR.string.dsh_bk_cloud_unreachable)
                                 action = null
                             }
                         }
@@ -781,7 +782,7 @@ fun BackupSettingsContent(
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             action?.invoke()
                             OutlinedButton(onClick = onCloudRefresh, enabled = !cloudBusy) {
-                                Text(stringResource(R.string.dsh_bk_cloud_refresh))
+                                Text(stringResource(CoreR.string.dsh_bk_cloud_refresh))
                             }
                         }
                     }
@@ -872,7 +873,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
     fun save() {
         val st = status
         if (st == null || !st.reachable) {
-            note = context.getString(R.string.dsh_bk_cloud_plugin_offline)
+            note = context.getString(CoreR.string.dsh_bk_cloud_plugin_offline)
             return
         }
         saving = true
@@ -898,9 +899,9 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
             }
             saving = false
             note = when {
-                !r.reachable -> context.getString(R.string.dsh_bk_cloud_plugin_offline)
-                r.ok -> context.getString(R.string.dsh_bk_cloud_saved)
-                else -> r.error.ifEmpty { context.getString(R.string.dsh_bk_cloud_save_failed, "") }
+                !r.reachable -> context.getString(CoreR.string.dsh_bk_cloud_plugin_offline)
+                r.ok -> context.getString(CoreR.string.dsh_bk_cloud_saved)
+                else -> r.error.ifEmpty { context.getString(CoreR.string.dsh_bk_cloud_save_failed, "") }
             }
             if (r.reachable && r.ok) {
                 showDialog.value = false
@@ -935,7 +936,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 Text(
-                    text = stringResource(R.string.dsh_bk_cloud_config_hint),
+                    text = stringResource(CoreR.string.dsh_bk_cloud_config_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -943,7 +944,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
 
                 if (loaded && !reachable) {
                     Text(
-                        text = stringResource(R.string.dsh_bk_cloud_plugin_offline),
+                        text = stringResource(CoreR.string.dsh_bk_cloud_plugin_offline),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -977,8 +978,8 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                     placeholder = {
                         Text(
                             stringResource(
-                                if (status?.passwordConfigured == true) R.string.dsh_bk_cloud_pw_keep
-                                else R.string.dsh_bk_cloud_pw_unset,
+                                if (status?.passwordConfigured == true) CoreR.string.dsh_bk_cloud_pw_keep
+                                else CoreR.string.dsh_bk_cloud_pw_unset,
                             ),
                         )
                     },
@@ -990,7 +991,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                             Icon(
                                 imageVector = if (showWebDavPassword) Icons.Filled.VisibilityOff else Icons.Outlined.Visibility,
                                 contentDescription = stringResource(
-                                    if (showWebDavPassword) R.string.dsh_pw_hide else R.string.dsh_pw_show,
+                                    if (showWebDavPassword) CoreR.string.dsh_pw_hide else CoreR.string.dsh_pw_show,
                                 ),
                             )
                         }
@@ -1011,13 +1012,13 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                 OutlinedTextField(
                     value = encryptPassword,
                     onValueChange = { encryptPassword = it },
-                    label = { Text(stringResource(R.string.dsh_bk_cloud_enc_pw_label)) },
+                    label = { Text(stringResource(CoreR.string.dsh_bk_cloud_enc_pw_label)) },
                     enabled = formEnabled,
                     placeholder = {
                         Text(
                             stringResource(
-                                if (status?.encryptPasswordConfigured == true) R.string.dsh_bk_cloud_pw_keep
-                                else R.string.dsh_bk_cloud_pw_unset,
+                                if (status?.encryptPasswordConfigured == true) CoreR.string.dsh_bk_cloud_pw_keep
+                                else CoreR.string.dsh_bk_cloud_pw_unset,
                             ),
                         )
                     },
@@ -1029,7 +1030,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                             Icon(
                                 imageVector = if (showEncryptPassword) Icons.Filled.VisibilityOff else Icons.Outlined.Visibility,
                                 contentDescription = stringResource(
-                                    if (showEncryptPassword) R.string.dsh_pw_hide else R.string.dsh_pw_show,
+                                    if (showEncryptPassword) CoreR.string.dsh_pw_hide else CoreR.string.dsh_pw_show,
                                 ),
                             )
                         }
@@ -1038,7 +1039,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                 // 加密已开启但从未设过加密口令：明说，否则自动备份会因缺口令而报错（不再静默出明文包）。
                 if (status?.encrypt == true && status?.encryptPasswordConfigured != true) {
                     Text(
-                        text = stringResource(R.string.dsh_bk_cloud_enc_pw_needed),
+                        text = stringResource(CoreR.string.dsh_bk_cloud_enc_pw_needed),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -1078,7 +1079,7 @@ fun WebDavConfigDialog(showDialog: MutableState<Boolean>, onSaved: () -> Unit = 
                                 }
                                 isTesting = false
                                 when {
-                                    !r.reachable -> showToast(context, context.getString(R.string.dsh_bk_cloud_plugin_offline))
+                                    !r.reachable -> showToast(context, context.getString(CoreR.string.dsh_bk_cloud_plugin_offline))
                                     r.ok -> showToast(context, context.getString(R.string.webdav_test_success))
                                     else -> showToast(context, context.getString(R.string.webdav_test_failed, r.error))
                                 }
@@ -1171,10 +1172,10 @@ fun BackupLogDialog(showDialog: MutableState<Boolean>, onDismiss: () -> Unit) {
                         clipboard.setText(AnnotatedString(logs))
                         copied = true
                         android.widget.Toast
-                            .makeText(context, R.string.dsh_bk_log_copied, android.widget.Toast.LENGTH_SHORT)
+                            .makeText(context, CoreR.string.dsh_bk_log_copied, android.widget.Toast.LENGTH_SHORT)
                             .show()
                     }) {
-                        Text(stringResource(R.string.dsh_bk_log_copy))
+                        Text(stringResource(CoreR.string.dsh_bk_log_copy))
                     }
                     Button(onClick = onDismiss) {
                         Text(stringResource(R.string.close))
@@ -1252,7 +1253,7 @@ fun BackupExportOptionsDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_bk_export_dialog_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_bk_export_dialog_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -1261,7 +1262,7 @@ fun BackupExportOptionsDialog(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_backup_export_summary),
+                    text = stringResource(CoreR.string.dsh_backup_export_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1279,7 +1280,7 @@ fun BackupExportOptionsDialog(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.dsh_bk_scope_title),
+                            text = stringResource(CoreR.string.dsh_bk_scope_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -1311,7 +1312,7 @@ fun BackupExportOptionsDialog(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.dsh_bk_sessions_title),
+                                text = stringResource(CoreR.string.dsh_bk_sessions_title),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -1319,18 +1320,18 @@ fun BackupExportOptionsDialog(
                             Text(
                                 text = when {
                                     currentSessionLimit <= 0 ->
-                                        stringResource(R.string.dsh_bk_sessions_pick_none)
+                                        stringResource(CoreR.string.dsh_bk_sessions_pick_none)
                                     sessionMax > 0 && currentSessionLimit >= sessionMax ->
-                                        stringResource(R.string.dsh_bk_sessions_pick_all)
+                                        stringResource(CoreR.string.dsh_bk_sessions_pick_all)
                                     else ->
-                                        stringResource(R.string.dsh_bk_sessions_pick_recent, currentSessionLimit)
+                                        stringResource(CoreR.string.dsh_bk_sessions_pick_recent, currentSessionLimit)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             localSessionCount?.let { count ->
                                 Text(
-                                    text = stringResource(R.string.dsh_bk_sessions_total, count),
+                                    text = stringResource(CoreR.string.dsh_bk_sessions_total, count),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1344,7 +1345,7 @@ fun BackupExportOptionsDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.dsh_bk_export_theme_title),
+                                text = stringResource(CoreR.string.dsh_bk_export_theme_title),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -1354,12 +1355,12 @@ fun BackupExportOptionsDialog(
                             }
                             Text(
                                 text = when {
-                                    !themeMeasured -> stringResource(R.string.dsh_bk_export_theme_measuring)
-                                    sizeText == null -> stringResource(R.string.dsh_bk_export_theme_sub_unknown)
+                                    !themeMeasured -> stringResource(CoreR.string.dsh_bk_export_theme_measuring)
+                                    sizeText == null -> stringResource(CoreR.string.dsh_bk_export_theme_sub_unknown)
                                     themeBytes!! > DshConfigBackup.THEME_SIZE_LIMIT_BYTES ->
-                                        stringResource(R.string.dsh_bk_export_theme_sub_over, sizeText)
+                                        stringResource(CoreR.string.dsh_bk_export_theme_sub_over, sizeText)
                                     else ->
-                                        stringResource(R.string.dsh_bk_export_theme_sub, sizeText)
+                                        stringResource(CoreR.string.dsh_bk_export_theme_sub, sizeText)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1378,7 +1379,7 @@ fun BackupExportOptionsDialog(
                     OutlinedTextField(
                         value = password,
                         onValueChange = onPasswordChange,
-                        label = { Text(stringResource(R.string.dsh_bk_pw_title)) },
+                        label = { Text(stringResource(CoreR.string.dsh_bk_pw_title)) },
                         singleLine = true,
                         enabled = !dshBusy,
                         visualTransformation = if (showExportPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -1387,7 +1388,7 @@ fun BackupExportOptionsDialog(
                                 Icon(
                                     imageVector = if (showExportPassword) Icons.Filled.VisibilityOff else Icons.Outlined.Visibility,
                                     contentDescription = stringResource(
-                                        if (showExportPassword) R.string.dsh_pw_hide else R.string.dsh_pw_show,
+                                        if (showExportPassword) CoreR.string.dsh_pw_hide else CoreR.string.dsh_pw_show,
                                     ),
                                 )
                             }
@@ -1399,7 +1400,7 @@ fun BackupExportOptionsDialog(
                         onClick = { onPasswordChange(randomPassword()) },
                         enabled = !dshBusy,
                     ) {
-                        Text(stringResource(R.string.dsh_bk_pw_random))
+                        Text(stringResource(CoreR.string.dsh_bk_pw_random))
                     }
                 }
                 val strength = passwordStrength(password)
@@ -1408,10 +1409,10 @@ fun BackupExportOptionsDialog(
                         password.isEmpty()
                 Text(
                     text = when {
-                        vaultNeedsPassword -> stringResource(R.string.dsh_bk_pw_required)
-                        strength < 0 -> stringResource(R.string.dsh_bk_pw_hint)
+                        vaultNeedsPassword -> stringResource(CoreR.string.dsh_bk_pw_required)
+                        strength < 0 -> stringResource(CoreR.string.dsh_bk_pw_hint)
                         else -> stringResource(
-                            R.string.dsh_bk_pw_strength,
+                            CoreR.string.dsh_bk_pw_strength,
                             stringResource(PASSWORD_STRENGTH_LABELS[strength]),
                         )
                     },
@@ -1426,7 +1427,7 @@ fun BackupExportOptionsDialog(
                 enabled = exportPlan.valid,
                 onClick = { onConfirm(exportPlan) },
             ) {
-                Text(stringResource(R.string.dsh_bk_export_dialog_confirm))
+                Text(stringResource(CoreR.string.dsh_bk_export_dialog_confirm))
             }
         },
         dismissButton = {
@@ -1441,7 +1442,7 @@ fun BackupExportOptionsDialog(
         val preview = SCOPE_OPTIONS[scopePreview.coerceIn(0, SCOPE_OPTIONS.lastIndex)]
         AlertDialog(
             onDismissRequest = { showScopeDialog = false },
-            title = { Text(stringResource(R.string.dsh_bk_scope_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_scope_title)) },
             text = {
                 Column {
                     Text(
@@ -1489,14 +1490,14 @@ fun BackupExportOptionsDialog(
     if (showVaultWarnDialog) {
         AlertDialog(
             onDismissRequest = { showVaultWarnDialog = false },
-            title = { Text(stringResource(R.string.dsh_bk_scope_vault_warn_title)) },
-            text = { Text(stringResource(R.string.dsh_bk_scope_vault_warn_message)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_scope_vault_warn_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_bk_scope_vault_warn_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showVaultWarnDialog = false
                     onScopeIndexChange(scopePreview.coerceIn(0, SCOPE_OPTIONS.lastIndex))
                 }) {
-                    Text(stringResource(R.string.dsh_bk_scope_vault_warn_ok))
+                    Text(stringResource(CoreR.string.dsh_bk_scope_vault_warn_ok))
                 }
             },
             dismissButton = {
@@ -1512,11 +1513,11 @@ fun BackupExportOptionsDialog(
         val parsed = sessionPreview.toIntOrNull()?.coerceIn(0, sessionMax) ?: 0
         AlertDialog(
             onDismissRequest = { showSessionsDialog = false },
-            title = { Text(stringResource(R.string.dsh_bk_sessions_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_sessions_title)) },
             text = {
                 Column {
                     Text(
-                        text = stringResource(R.string.dsh_bk_sessions_total, sessionMax),
+                        text = stringResource(CoreR.string.dsh_bk_sessions_total, sessionMax),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -1532,10 +1533,10 @@ fun BackupExportOptionsDialog(
                         supportingText = {
                             Text(
                                 text = when {
-                                    parsed <= 0 -> stringResource(R.string.dsh_bk_sessions_pick_none)
+                                    parsed <= 0 -> stringResource(CoreR.string.dsh_bk_sessions_pick_none)
                                     sessionMax > 0 && parsed >= sessionMax ->
-                                        stringResource(R.string.dsh_bk_sessions_pick_all)
-                                    else -> stringResource(R.string.dsh_bk_sessions_pick_recent, parsed)
+                                        stringResource(CoreR.string.dsh_bk_sessions_pick_all)
+                                    else -> stringResource(CoreR.string.dsh_bk_sessions_pick_recent, parsed)
                                 },
                             )
                         },

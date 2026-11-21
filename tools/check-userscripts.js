@@ -492,7 +492,7 @@ ok(/browserMode && !loopback\) \{[\s\S]{0,400}Userscripts\.injections\(this, url
     "管理页遍历注册表列内置（不写死 5 行；可以按「隐藏内置」开关条件取值）");
   ok(/DshWebCompat\.setMode\(\s*context,/.test(screen) && /DshWebCompat\.setEnterNewline\(context, on\)/.test(screen),
     "内置那两条开关落到既有 pref（与设置页同一处状态）");
-  ok(/R\.string\.dsh_userscripts_builtin_always_on/.test(screen), "没有开关的显示「常开」");
+  ok(/(?:Core)?R\.string\.dsh_userscripts_builtin_always_on/.test(screen), "没有开关的显示「常开」");
   ok(/stringResource\(entry\.titleRes\)/.test(screen) && /stringResource\(entry\.summaryRes\)/.test(screen),
     "标题/摘要走字符串资源（内置条目的文案中英都有）");
 }
@@ -526,10 +526,10 @@ ok(/internal fun UserscriptsContent\(/.test(screen) && /UserscriptsContent\(/.te
 ok(/private const val GROUP_PLUGINS = "plugins"/.test(pluginHome) &&
   /private const val GROUP_SCRIPTS = "scripts"/.test(pluginHome) &&
   /private const val GROUP_EXTENSIONS = "extensions"/.test(pluginHome) &&
-  /private val PLUGIN_PAGES = listOf\([\s\S]{0,400}?PluginPage\(GROUP_EXTENSIONS, R\.string\.dsh_plugins_extensions\)/.test(pluginHome) &&
+  /private val PLUGIN_PAGES = listOf\([\s\S]{0,400}?PluginPage\(GROUP_EXTENSIONS, (?:Core)?R\.string\.dsh_plugins_extensions\)/.test(pluginHome) &&
   /WallpaperAwareDropdownMenu\(/.test(pluginHome) &&
   /WallpaperAwareDropdownMenuItem\(/.test(pluginHome) &&
-  /Icon\(\s*\n?\s*Icons\.Filled\.Segment,\s*\n?\s*contentDescription = stringResource\(R\.string\.dsh_plugins_switch\)/.test(pluginHome) &&
+  /Icon\(\s*\n?\s*Icons\.Filled\.Segment,\s*\n?\s*contentDescription = stringResource\((?:Core)?R\.string\.dsh_plugins_switch\)/.test(pluginHome) &&
   // 断言「代码里不再有 FilterChip(」而不是「没 import FilterChip」：反向验证时发现，
   // 只查 import 的话，把 chip 行加回来但没加 import（编译期才会报）这条会漏掉。
   !/FilterChip\(/.test(pluginHome) &&
@@ -565,7 +565,7 @@ ok(/getBoolean\(KEY_USERSCRIPTS_HIDE_BUILTINS, true\)/.test(env),
   "「隐藏内置」的默认值是 true（默认隐藏，想用的人按那只眼睛放出来）");
 // 用户：「插件页（插件组）：缺少链接安装按钮，把插件商店的从GitHub链接安装移除」。
 const store = read("app/src/main/java/me/bmax/apatch/ui/screen/DshPluginStoreScreen.kt");
-ok(/labelRes = R\.string\.dsh_plugin_install_link/.test(pluginHome) &&
+ok(/labelRes = (?:Core)?R\.string\.dsh_plugin_install_link/.test(pluginHome) &&
   /showLinkInstall = true/.test(pluginHome) &&
   /DshPluginRepo\.normalizeInstallSpec\(linkInput\)/.test(pluginHome),
   "插件页的 ＋ 里有「从链接安装」（弹窗整段从插件商店搬了过来）");
@@ -583,7 +583,7 @@ const addMenu = read("app/src/main/java/me/bmax/apatch/ui/component/AddMenuFab.k
 ok(/internal fun AddMenuFab\(entries: List<AddMenuEntry>\)/.test(addMenu) &&
   /internal class AddMenuEntry\(/.test(addMenu) &&
   /Icons\.Filled\.Add/.test(addMenu) && /Icons\.Filled\.Close/.test(addMenu) &&
-  /R\.string\.cancel/.test(addMenu) && /R\.string\.dsh_add_menu/.test(addMenu) &&
+  /R\.string\.cancel/.test(addMenu) && /(?:Core)?R\.string\.dsh_add_menu/.test(addMenu) &&
   /ADD_MINI_SIZE/.test(addMenu) && /ADD_RADIUS/.test(addMenu),
   "＋ 环绕菜单只有一份实现：展开绕主按钮铺开、自身变 ✕（读屏名一起换成「取消」）");
 // 顶栏不再有商店入口（两组都没有）：商店与安装都在右下角那个 ＋ 里 —— 顶栏再留一份就是同一件事
@@ -596,8 +596,8 @@ const pluginTopBar = (() => {
 ok(pluginTopBar.length > 0 && !/Storefront/.test(pluginTopBar) && !/DshPluginStoreScreenDestination/.test(pluginTopBar),
   "插件首页顶栏已无商店入口（两组的商店都收进右下角 ＋）");
 ok(/AddMenuFab\(/.test(pluginHome) &&
-  /Icons\.Outlined\.FolderOpen,\s*\n\s*labelRes = R\.string\.dsh_local_install/.test(pluginHome) &&
-  /Icons\.Outlined\.Storefront,\s*\n\s*labelRes = R\.string\.dsh_plugin_store/.test(pluginHome) &&
+  /Icons\.Outlined\.FolderOpen,\s*\n\s*labelRes = (?:Core)?R\.string\.dsh_local_install/.test(pluginHome) &&
+  /Icons\.Outlined\.Storefront,\s*\n\s*labelRes = (?:Core)?R\.string\.dsh_plugin_store/.test(pluginHome) &&
   /DshPluginStoreScreenDestination/.test(pluginHome),
   "插件组的 ＋ 里有本地 .tgz 与插件商店两个入口");
 // 用户脚本页与插件首页脚本组仍共用同一个包装（三个动作：链接 / 文件 / 商店）
@@ -653,8 +653,8 @@ ok(/LazyColumn\(/.test(screen) &&
 const builtinAt = screen.indexOf("private fun BuiltinRow(");
 const builtinEnd = builtinAt > 0 ? screen.indexOf("\n@Composable", builtinAt + 10) : -1;
 const builtinRow = builtinAt > 0 && builtinEnd > builtinAt ? screen.slice(builtinAt, builtinEnd) : "";
-ok(builtinRow.length > 0 && /R\.string\.dsh_plugin_builtin_label/.test(builtinRow) &&
-  /R\.string\.dsh_host_plugin_version/.test(builtinRow) && !/autoTag/.test(screen),
+ok(builtinRow.length > 0 && /(?:Core)?R\.string\.dsh_plugin_builtin_label/.test(builtinRow) &&
+  /(?:Core)?R\.string\.dsh_host_plugin_version/.test(builtinRow) && !/autoTag/.test(screen),
   "不可卸载的内置脚本用插件页那套「内置」标签 + 「DSH-Folk 内置 · 不可卸载」措辞");
 // 用户报「脚本页缺少更新和移除按钮」+ 要一个脚本详情页。三件事的实质：
 // 更新必须知道来源（Script 原来没有来源字段，id 含正文 hash，重新 install 会留下两份），
@@ -677,8 +677,8 @@ ok(/Icons\.Outlined\.Refresh\b/.test(screen) && /onUpdate/.test(screen) &&
 const detailCode = detail.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 ok(/internal fun ScriptDetailSheet\(/.test(detailCode) && /ModalBottomSheet\(/.test(detailCode) &&
   !/@Destination/.test(detailCode) &&
-  /R\.string\.dsh_userscripts_update/.test(detailCode) &&
-  /R\.string\.dsh_userscripts_remove|R\.string\.dsh_userscripts_delete/.test(detailCode),
+  /(?:Core)?R\.string\.dsh_userscripts_update/.test(detailCode) &&
+  /(?:Core)?R\.string\.dsh_userscripts_remove|(?:Core)?R\.string\.dsh_userscripts_delete/.test(detailCode),
   "详情是底部弹层（internal fun ScriptDetailSheet + ModalBottomSheet，不再是二级目的地），层内有更新与移除两个动作");
 ok(/heightIn\(max = 320\.dp\)/.test(detail) && /verticalScroll/.test(detail),
   "正文预览限高的同时给了滚动出路（限高不给路会被 check-text-clipping 抓）");
@@ -731,7 +731,7 @@ ok(/Userscripts\.prepare\(context, it\)/.test(screen) &&
   ok(/pending\.existing\?\.let \{ if \(it\.id != newId\) remove\(ctx, it\.id\) \}/.test(usLib) &&
     /val wasOn = pending\.existing\?\.let \{ it\.id in enabledIds\(ctx\) \} \?: true/.test(usLib),
     "commit 会删掉同名旧文件并把开关状态搬过去（否则同一个脚本换版本会留两份、注入两遍）");
-  ok(/Userscripts\.Change\.DOWNGRADE -> R\.string\.dsh_userscripts_confirm_downgrade/.test(pendingHost) &&
+  ok(/Userscripts\.Change\.DOWNGRADE -> (?:Core)?R\.string\.dsh_userscripts_confirm_downgrade/.test(pendingHost) &&
     /pending\.change == Userscripts\.Change\.DOWNGRADE\) \{/.test(pendingHost) &&
     /dsh_userscripts_confirm_downgrade_warn/.test(pendingHost) &&
     /dsh_userscripts_confirm_diff/.test(pendingHost) &&
@@ -770,7 +770,7 @@ ok(!/dsh_userscripts_paste/.test(screen) && !/dsh_userscripts_pick/.test(screen)
     /android:resizeableActivity="true"/.test(block),
     "WebUI 的 Activity 声明了画中画（supportsPictureInPicture + resizeableActivity）");
   ok(/Icons\.Outlined\.PictureInPictureAlt/.test(activity) &&
-    /contentDescription = stringResource\(R\.string\.dsh_pip_button\)/.test(activity),
+    /contentDescription = stringResource\((?:Core)?R\.string\.dsh_pip_button\)/.test(activity),
     "悬浮菜单里有画中画按钮（带无障碍名）");
   ok(/private fun enterPip\(\): Boolean/.test(activity) &&
     /return runCatching \{ enterPictureInPictureMode\(pipParams\(autoEnter = true\)\) \}\.getOrDefault\(false\)/.test(activity) &&
@@ -858,7 +858,7 @@ ok(!/dsh_userscripts_paste/.test(screen) && !/dsh_userscripts_pick/.test(screen)
   const funcSettings = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   const funcScreen = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettingsScreen.kt");
   const registry = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt");
-  ok(/R\.string\.dsh_webui_pip_auto\b/.test(funcSettings) && /checked = webuiPipAuto/.test(funcSettings) &&
+  ok(/(?:Core)?R\.string\.dsh_webui_pip_auto\b/.test(funcSettings) && /checked = webuiPipAuto/.test(funcSettings) &&
     /putBoolean\(DshEnv\.KEY_WEBUI_PIP_AUTO, on\)/.test(funcScreen) &&
     /SettingEntry\("function_webui_pip_auto"/.test(registry),
     "开关在设置里可改（写 pref）且能被设置搜索搜到（注册表条目）");

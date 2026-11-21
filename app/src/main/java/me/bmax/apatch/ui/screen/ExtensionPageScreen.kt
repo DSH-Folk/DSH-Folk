@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 承载**扩展注册的整页**的通用路由。
@@ -65,7 +65,7 @@ fun ExtensionPageScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = page?.title ?: stringResource(R.string.dsh_ext_page_missing_title),
+                        text = page?.title ?: stringResource(CoreR.string.dsh_ext_page_missing_title),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -85,7 +85,7 @@ fun ExtensionPageScreen(
                 page.content(Modifier.fillMaxSize())
             } else {
                 Text(
-                    text = stringResource(R.string.dsh_ext_page_missing_body, pageId),
+                    text = stringResource(CoreR.string.dsh_ext_page_missing_body, pageId),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(24.dp),

@@ -194,7 +194,7 @@ let refBad = 0;
 let refCount = 0;
 for (const { f, s } of kotlin) {
   // android.R.string.* 不是本项目的资源
-  for (const m of s.matchAll(/(?<!android\.)\bR\.string\.(dsh_[a-z0-9_]+)/g)) {
+  for (const m of s.matchAll(/(?<!android\.)\b(?:Core)?R\.string\.(dsh_[a-z0-9_]+)/g)) {
     refCount++;
     if (!en.map.has(m[1])) {
       console.log(`✗ ${path.relative(ROOT, f)}: R.string.${m[1]} 未定义`);
@@ -210,7 +210,7 @@ else console.log("✓ 代码引用的串都存在");
 const registry = kotlin.find(({ f }) => f.endsWith("SettingsRegistry.kt"));
 if (registry) {
   let regBad = 0;
-  for (const m of registry.s.matchAll(/\bR\.string\.(dsh_[a-z0-9_]+)/g)) {
+  for (const m of registry.s.matchAll(/\b(?:Core)?R\.string\.(dsh_[a-z0-9_]+)/g)) {
     const v = en.map.get(m[1]);
     if (v && placeholders(v)) {
       console.log(`✗ SettingsRegistry 引用了带占位符的 ${m[1]}（resolveAll 用无参 getString）`);

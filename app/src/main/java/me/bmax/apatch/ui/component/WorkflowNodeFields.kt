@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowActionCatalog
 import me.bmax.apatch.dsh.WorkflowCompute
 import me.bmax.apatch.dsh.WorkflowActionType
@@ -22,6 +21,7 @@ import me.bmax.apatch.dsh.WorkflowNode
 import me.bmax.apatch.dsh.WorkflowNodeType
 import me.bmax.apatch.dsh.WorkflowOnError
 import me.bmax.apatch.dsh.WorkflowSchema
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 节点参数的**字段表**：一张「这个类型有哪些键、各自长什么样」的声明。
@@ -81,12 +81,12 @@ internal object WorkflowNodeFields {
      */
     fun fieldsFor(node: WorkflowNode): List<Field> = buildList {
         // 公共字段：所有类型都有。名字与描述是给人看的（批准弹窗、列表、日志都用它）。
-        add(text("name", R.string.dsh_wf_field_name))
-        add(text("description", R.string.dsh_wf_field_description))
+        add(text("name", CoreR.string.dsh_wf_field_name))
+        add(text("description", CoreR.string.dsh_wf_field_description))
         when (node.type) {
             WorkflowNodeType.TRIGGER -> {
-                add(bool("requireDsh", R.string.dsh_wf_field_require_dsh))
-                add(bool("autostartDsh", R.string.dsh_wf_field_autostart_dsh))
+                add(bool("requireDsh", CoreR.string.dsh_wf_field_require_dsh))
+                add(bool("autostartDsh", CoreR.string.dsh_wf_field_autostart_dsh))
             }
             WorkflowNodeType.EXECUTE -> when (node.actionType) {
                 // 原生动作：**参数字段完全来自动作目录**，界面不认识任何具体键名。
@@ -95,7 +95,7 @@ internal object WorkflowNodeFields {
                 WorkflowActionType.NATIVE -> {
                     val spec = WorkflowActionCatalog.byId(node.config("bridge"))
                     if (spec == null) {
-                        add(text("bridge", R.string.dsh_wf_field_bridge))
+                        add(text("bridge", CoreR.string.dsh_wf_field_bridge))
                     } else {
                         for (p in spec.params) {
                             add(
@@ -119,7 +119,7 @@ internal object WorkflowNodeFields {
                 WorkflowActionType.COMPUTE -> {
                     val spec = WorkflowCompute.byId(node.config("bridge"))
                     if (spec == null) {
-                        add(text("bridge", R.string.dsh_wf_field_bridge))
+                        add(text("bridge", CoreR.string.dsh_wf_field_bridge))
                     } else {
                         for (c in spec.params) {
                             add(
@@ -137,49 +137,49 @@ internal object WorkflowNodeFields {
                     }
                 }
                 WorkflowActionType.NOTIFY -> {
-                    add(text("title", R.string.dsh_wf_field_notify_title))
-                    add(multiline("text", R.string.dsh_wf_field_notify_text))
+                    add(text("title", CoreR.string.dsh_wf_field_notify_title))
+                    add(multiline("text", CoreR.string.dsh_wf_field_notify_text))
                 }
-                else -> add(multiline("cmd", R.string.dsh_wf_field_cmd))
+                else -> add(multiline("cmd", CoreR.string.dsh_wf_field_cmd))
             }
             WorkflowNodeType.CONDITION -> {
-                add(text("source", R.string.dsh_wf_field_cond_source))
+                add(text("source", CoreR.string.dsh_wf_field_cond_source))
                 add(
                     choice(
-                        "op", R.string.dsh_wf_field_cond_op,
+                        "op", CoreR.string.dsh_wf_field_cond_op,
                         "contains", "equals", "matches", "exists", "empty",
-                    ).copy(hintRes = R.string.dsh_wf_hint_cond_op),
+                    ).copy(hintRes = CoreR.string.dsh_wf_hint_cond_op),
                 )
                 add(
-                    text("value", R.string.dsh_wf_field_cond_value)
+                    text("value", CoreR.string.dsh_wf_field_cond_value)
                         .copy(visible = { it.config("op") != "exists" && it.config("op") != "empty" }),
                 )
             }
             WorkflowNodeType.LOGIC -> {
                 add(
-                    choice("op", R.string.dsh_wf_field_logic_op, "and", "or", "not")
-                        .copy(hintRes = R.string.dsh_wf_hint_logic_sources),
+                    choice("op", CoreR.string.dsh_wf_field_logic_op, "and", "or", "not")
+                        .copy(hintRes = CoreR.string.dsh_wf_hint_logic_sources),
                 )
-                add(multiline("sources", R.string.dsh_wf_field_logic_sources))
+                add(multiline("sources", CoreR.string.dsh_wf_field_logic_sources))
             }
             WorkflowNodeType.EXTRACT -> {
-                add(text("source", R.string.dsh_wf_field_extract_source))
-                add(choice("mode", R.string.dsh_wf_field_extract_mode, "text", "json", "regex"))
-                add(text("path", R.string.dsh_wf_field_extract_path).copy(visible = { it.config("mode") == "json" }))
+                add(text("source", CoreR.string.dsh_wf_field_extract_source))
+                add(choice("mode", CoreR.string.dsh_wf_field_extract_mode, "text", "json", "regex"))
+                add(text("path", CoreR.string.dsh_wf_field_extract_path).copy(visible = { it.config("mode") == "json" }))
                 add(
-                    text("pattern", R.string.dsh_wf_field_extract_pattern)
+                    text("pattern", CoreR.string.dsh_wf_field_extract_pattern)
                         .copy(visible = { it.config("mode") == "regex" }),
                 )
-                add(text("var", R.string.dsh_wf_field_extract_var))
+                add(text("var", CoreR.string.dsh_wf_field_extract_var))
             }
             WorkflowNodeType.WAIT -> {
-                add(number("ms", R.string.dsh_wf_field_wait_ms))
-                add(choice("untilDsh", R.string.dsh_wf_field_wait_until, "running", "stopped"))
+                add(number("ms", CoreR.string.dsh_wf_field_wait_ms))
+                add(choice("untilDsh", CoreR.string.dsh_wf_field_wait_until, "running", "stopped"))
             }
         }
         // 失败策略与超时：所有类型通用（校验器也对这些字段一体校验）。
-        add(choice("onError", R.string.dsh_wf_field_on_error, *WorkflowOnError.entries.map { it.id }.toTypedArray()))
-        add(number("timeoutMs", R.string.dsh_wf_field_timeout))
+        add(choice("onError", CoreR.string.dsh_wf_field_on_error, *WorkflowOnError.entries.map { it.id }.toTypedArray()))
+        add(number("timeoutMs", CoreR.string.dsh_wf_field_timeout))
     }
 
     /**

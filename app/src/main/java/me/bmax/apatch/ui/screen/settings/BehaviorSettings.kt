@@ -38,6 +38,7 @@ import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.component.ExtensionSettingItems
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
+import me.bmax.apatch.res.R as CoreR
 
 @Composable
 fun BehaviorSettingsContent(
@@ -161,7 +162,7 @@ fun BehaviorSettingsContent(
             Column(modifier = Modifier.padding(start = 16.dp)) {
                 CheckboxItem(
                     icon = null,
-                    title = stringResource(id = R.string.dsh_badge_plugin),
+                    title = stringResource(id = CoreR.string.dsh_badge_plugin),
                     summary = null,
                     checked = enablePluginBadge,
                     onCheckedChange = {

@@ -90,6 +90,7 @@ import me.bmax.apatch.util.Changelog
 import me.bmax.apatch.util.MusicManager
 import me.bmax.apatch.util.reboot
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.res.R as CoreR
 
 @Destination<RootGraph>(start = true)
 @Composable
@@ -184,22 +185,22 @@ fun HomeScreen(navigator: DestinationsNavigator) {
         // 判据不依赖"这版更新说明还没看过" —— 早看过 changelog 的人照样该收到这条。
         AlertDialog(
             onDismissRequest = { dismissPolicyNotice() },
-            title = { Text(stringResource(R.string.dsh_priv_notice_title)) },
-            text = { Text(stringResource(R.string.dsh_priv_notice_message)) },
+            title = { Text(stringResource(CoreR.string.dsh_priv_notice_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_priv_notice_message)) },
             confirmButton = {
                 TextButton(onClick = { dismissPolicyNotice() }) {
-                    Text(stringResource(R.string.dsh_priv_notice_ok))
+                    Text(stringResource(CoreR.string.dsh_priv_notice_ok))
                 }
             },
         )
     } else if (showBirthday) {
         AlertDialog(
             onDismissRequest = { dismissBirthday() },
-            title = { Text(stringResource(R.string.dsh_birthday_title)) },
-            text = { Text(stringResource(R.string.dsh_birthday_text)) },
+            title = { Text(stringResource(CoreR.string.dsh_birthday_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_birthday_text)) },
             confirmButton = {
                 TextButton(onClick = { dismissBirthday() }) {
-                    Text(stringResource(R.string.dsh_birthday_ok))
+                    Text(stringResource(CoreR.string.dsh_birthday_ok))
                 }
             },
         )

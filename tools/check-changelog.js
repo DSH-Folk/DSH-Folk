@@ -382,7 +382,7 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   // 的文案「自动恢复」。用户照着卡片上的字去搜「无障碍」，什么也搜不到 ——
   // 索引里的字和界面上的字不是同一批。
   const regRaw = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/SettingsRegistry.kt");
-  const a11yEntry = regRaw.match(/SettingEntry\("function_a11y_recovery",\s*R\.string\.(\w+),\s*R\.string\.(\w+)/);
+  const a11yEntry = regRaw.match(/SettingEntry\("function_a11y_recovery",\s*(?:Core)?R\.string\.(\w+),\s*(?:Core)?R\.string\.(\w+)/);
   ok(a11yEntry !== null, "无障碍恢复在搜索索引里（否则搜「无障碍」找不到）");
   if (a11yEntry) {
     ok(a11yEntry[1] === "dsh_a11y_fix_title",

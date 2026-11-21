@@ -7,7 +7,6 @@ import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.util.appString
 import me.bmax.apatch.util.PermissionUtils
@@ -25,6 +24,7 @@ import java.net.Socket
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.concurrent.Semaphore
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 宿主侧回环桥：一个只绑 127.0.0.1 的最小 HTTP 服务。
@@ -151,7 +151,7 @@ object DshFsBridge {
             // 过载时立刻回 503 并关连接 —— 让调用方知道「现在忙」，而不是等到 OOM。
             if (!connSlots.tryAcquire()) {
                 runCatching {
-                    respondJson(socket, 503, errorJson(str(R.string.dsh_fs_err_busy), "bridge_busy"))
+                    respondJson(socket, 503, errorJson(str(CoreR.string.dsh_fs_err_busy), "bridge_busy"))
                 }
                 runCatching { socket.close() }
                 continue
@@ -185,12 +185,12 @@ object DshFsBridge {
                 val remote = s.inetAddress
                 if (remote == null || !remote.isLoopbackAddress) {
                     responded = true
-                    respondJson(s, 403, errorJson(str(R.string.dsh_fs_err_loopback_only), "loopback_only"))
+                    respondJson(s, 403, errorJson(str(CoreR.string.dsh_fs_err_loopback_only), "loopback_only"))
                     return@runCatching
                 }
                 if (!tokenMatches(headers[HEADER_TOKEN.lowercase()])) {
                     responded = true
-                    respondJson(s, 403, errorJson(str(R.string.dsh_fs_err_bad_token), "bad_token"))
+                    respondJson(s, 403, errorJson(str(CoreR.string.dsh_fs_err_bad_token), "bad_token"))
                     return@runCatching
                 }
 
@@ -206,7 +206,7 @@ object DshFsBridge {
                 if (limited && DshBridgeGuard.ENFORCE) {
                     responded = true
                     DshBridgeGuard.audit(appCtx, endpoint, 429, 0L, true)
-                    respondJson(s, 429, errorJson(str(R.string.dsh_fs_err_rate_limited), "rate_limited"))
+                    respondJson(s, 429, errorJson(str(CoreR.string.dsh_fs_err_rate_limited), "rate_limited"))
                     return@runCatching
                 }
 
@@ -255,7 +255,7 @@ object DshFsBridge {
                     method == "POST" && path == "/move" -> handleMove(params["src"], params["dst"])
                     method == "POST" && path == "/copy" -> handleCopy(params)
                     method == "DELETE" && path == "/delete" -> handleDelete(params)
-                    else -> 404 to errorJson(str(R.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
+                    else -> 404 to errorJson(str(CoreR.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
                 }
                 // null = 处理函数自己写完了响应体（read 的二进制流）
                 responded = true
@@ -270,7 +270,7 @@ object DshFsBridge {
                     // 明确回 no_access，让容器里的 agent 一眼分清「被遮蔽」与「路径拼错(bad_path)」。
                     if (e.rel.isNotEmpty()) Log.w(TAG, "文件桥策略拒绝: " + e.rel)
                     runCatching {
-                        respondJson(s, 403, errorJson(str(R.string.dsh_fs_err_no_access), "no_access"))
+                        respondJson(s, 403, errorJson(str(CoreR.string.dsh_fs_err_no_access), "no_access"))
                     }
                     return@onFailure
                 }
@@ -285,7 +285,7 @@ object DshFsBridge {
                     val body = JSONObject()
                         .put("ok", false)
                         .put("reason", "internal")
-                        .put("error", str(R.string.dsh_fs_err_internal, e.message ?: ""))
+                        .put("error", str(CoreR.string.dsh_fs_err_internal, e.message ?: ""))
                         .put("exception", e.javaClass.simpleName)
                         .put("trace", trace)
                         .toString()
@@ -300,7 +300,7 @@ object DshFsBridge {
         path: String,
         params: Map<String, String>,
     ): Pair<Int, String>? {
-        val ctx = appCtx ?: return 500 to errorJson(str(R.string.dsh_fs_err_native_uninit), "native_uninit")
+        val ctx = appCtx ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_native_uninit), "native_uninit")
         return DshNativeBridge.handle(ctx, method, path, params)
     }
 
@@ -327,7 +327,7 @@ object DshFsBridge {
         input: InputStream,
         headers: Map<String, String>,
     ): Pair<Int, String>? {
-        val ctx = appCtx ?: return 500 to errorJson(str(R.string.dsh_fs_err_native_uninit), "native_uninit")
+        val ctx = appCtx ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_native_uninit), "native_uninit")
         return when {
             method == "GET" && path == "/cloud/appdata/status" ->
                 200 to JSONObject().put("available", true).toString()
@@ -337,7 +337,7 @@ object DshFsBridge {
                 DshCloudAppData.export(ctx, readJsonBody(input, headers))
             method == "POST" && path == "/cloud/appdata/restore" ->
                 DshCloudAppData.restore(ctx, readJsonBody(input, headers))
-            else -> 404 to errorJson(str(R.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
+            else -> 404 to errorJson(str(CoreR.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
         }
     }
 
@@ -364,7 +364,7 @@ object DshFsBridge {
         input: InputStream,
         headers: Map<String, String>,
     ): Pair<Int, String>? {
-        val ctx = appCtx ?: return 500 to errorJson(str(R.string.dsh_fs_err_native_uninit), "native_uninit")
+        val ctx = appCtx ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_native_uninit), "native_uninit")
         return WorkflowBridge.handle(ctx, method, path, params) {
             readJsonBody(input, headers, 256L * 1024).toString()
         }
@@ -382,8 +382,8 @@ object DshFsBridge {
     /** 返回 null 表示响应已直接写出（如 read 的二进制体）。 */
     private fun handleList(params: Map<String, String>): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(params["path"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (!target.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_not_found), "not_found")
+        val target = resolve(params["path"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (!target.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_not_found), "not_found")
         val limit = clampInt(params["limit"], DEFAULT_LIST_LIMIT, 1, MAX_LIST_LIMIT)
         val recursive = boolParam(params["recursive"])
 
@@ -424,8 +424,8 @@ object DshFsBridge {
 
     private fun handleStat(rel: String?): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(rel) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (!target.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_not_found), "not_found")
+        val target = resolve(rel) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (!target.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_not_found), "not_found")
         return 200 to JSONObject().put("ok", true)
             .put("entry", entryJson(target, relativeOf(target))).toString()
     }
@@ -441,31 +441,31 @@ object DshFsBridge {
      */
     private fun handleRead(params: Map<String, String>, out: OutputStream): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(params["path"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (!target.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_not_found), "not_found")
-        if (target.isDirectory) return 400 to errorJson(str(R.string.dsh_fs_err_is_dir), "is_dir")
+        val target = resolve(params["path"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (!target.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_not_found), "not_found")
+        if (target.isDirectory) return 400 to errorJson(str(CoreR.string.dsh_fs_err_is_dir), "is_dir")
 
         val size = target.length()
         val offset = params["offset"]?.let {
-            it.toLongOrNull() ?: return 400 to errorJson(str(R.string.dsh_fs_err_not_int, "offset"), "not_int")
+            it.toLongOrNull() ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_int, "offset"), "not_int")
         } ?: 0L
-        if (offset < 0) return 400 to errorJson(str(R.string.dsh_fs_err_negative, "offset"), "negative")
-        if (offset > size) return 400 to errorJson(str(R.string.dsh_fs_err_offset_past_end, size), "offset_past_end")
+        if (offset < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_negative, "offset"), "negative")
+        if (offset > size) return 400 to errorJson(str(CoreR.string.dsh_fs_err_offset_past_end, size), "offset_past_end")
         val requested = params["length"]?.let {
-            it.toLongOrNull() ?: return 400 to errorJson(str(R.string.dsh_fs_err_not_int, "length"), "not_int")
+            it.toLongOrNull() ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_int, "length"), "not_int")
         }
-        if (requested != null && requested < 0) return 400 to errorJson(str(R.string.dsh_fs_err_negative, "length"), "negative")
+        if (requested != null && requested < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_negative, "length"), "negative")
         val count = if (requested == null) size - offset else minOf(requested, size - offset)
         if (count > MAX_READ_BYTES) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_read_too_big, count), "read_too_big")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_read_too_big, count), "read_too_big")
         }
 
         val raf = runCatching { RandomAccessFile(target, "r") }.getOrElse { e ->
-            return 500 to errorJson(str(R.string.dsh_fs_err_open_failed, e.message ?: ""), "open_failed")
+            return 500 to errorJson(str(CoreR.string.dsh_fs_err_open_failed, e.message ?: ""), "open_failed")
         }
         raf.use { f ->
             runCatching { f.seek(offset) }.getOrElse { e ->
-                return 500 to errorJson(str(R.string.dsh_fs_err_seek_failed, e.message ?: ""), "seek_failed")
+                return 500 to errorJson(str(CoreR.string.dsh_fs_err_seek_failed, e.message ?: ""), "seek_failed")
             }
             // 头一旦写出就没法再改成 JSON 错误了，所以放在 seek 之后
             runCatching {
@@ -500,12 +500,12 @@ object DshFsBridge {
     ): Pair<Int, String>? {
         storageGate()?.let { return it }
         val rel = params["path"]
-        val target = resolve(rel) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (target.isDirectory) return 400 to errorJson(str(R.string.dsh_fs_err_is_dir), "is_dir")
-        val parent = target.parentFile ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
+        val target = resolve(rel) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (target.isDirectory) return 400 to errorJson(str(CoreR.string.dsh_fs_err_is_dir), "is_dir")
+        val parent = target.parentFile ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
         val len = headers["content-length"]?.toLongOrNull()
-            ?: return 400 to errorJson(str(R.string.dsh_fs_err_missing_length), "missing_length")
-        if (len < 0) return 400 to errorJson(str(R.string.dsh_fs_err_bad_length), "bad_length")
+            ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_missing_length), "missing_length")
+        if (len < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_length), "bad_length")
         val append = boolParam(params["append"])
 
         var written = -1L
@@ -530,9 +530,9 @@ object DshFsBridge {
             Log.w(TAG, "write 失败: ${e.message}")
             false
         }
-        if (!ok) return 500 to errorJson(str(R.string.dsh_fs_err_write_failed), "write_failed")
+        if (!ok) return 500 to errorJson(str(CoreR.string.dsh_fs_err_write_failed), "write_failed")
         if (written != len) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_short_body, len, written), "short_body")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_short_body, len, written), "short_body")
         }
         return 200 to JSONObject().put("ok", true).put("path", rel)
             .put("append", append).put("bytes", written).toString()
@@ -540,10 +540,10 @@ object DshFsBridge {
 
     private fun handleMkdir(rel: String?): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(rel) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (target.isFile) return 400 to errorJson(str(R.string.dsh_fs_err_file_exists), "file_exists")
+        val target = resolve(rel) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (target.isFile) return 400 to errorJson(str(CoreR.string.dsh_fs_err_file_exists), "file_exists")
         val ok = target.isDirectory || target.mkdirs()
-        return if (ok) 200 to okJson() else 500 to errorJson(str(R.string.dsh_fs_err_mkdir_failed), "mkdir_failed")
+        return if (ok) 200 to okJson() else 500 to errorJson(str(CoreR.string.dsh_fs_err_mkdir_failed), "mkdir_failed")
     }
 
     /**
@@ -554,10 +554,10 @@ object DshFsBridge {
      */
     private fun handleMove(src: String?, dst: String?): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val s = resolve(src) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_arg, "src"), "bad_arg")
-        val d = resolve(dst) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_arg, "dst"), "bad_arg")
-        if (!s.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_src_missing), "src_missing")
-        if (isParentOf(s, d)) return 400 to errorJson(str(R.string.dsh_fs_err_dst_inside_src), "dst_inside_src")
+        val s = resolve(src) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_arg, "src"), "bad_arg")
+        val d = resolve(dst) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_arg, "dst"), "bad_arg")
+        if (!s.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_src_missing), "src_missing")
+        if (isParentOf(s, d)) return 400 to errorJson(str(CoreR.string.dsh_fs_err_dst_inside_src), "dst_inside_src")
         d.parentFile?.mkdirs()
         if (s.renameTo(d)) {
             return 200 to JSONObject().put("ok", true).put("mode", "rename").toString()
@@ -569,38 +569,38 @@ object DshFsBridge {
         return if (removed) {
             200 to JSONObject().put("ok", true).put("mode", "copy+delete").toString()
         } else {
-            500 to errorJson(str(R.string.dsh_fs_err_move_partial), "move_partial")
+            500 to errorJson(str(CoreR.string.dsh_fs_err_move_partial), "move_partial")
         }
     }
 
     private fun handleCopy(params: Map<String, String>): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val s = resolve(params["src"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_arg, "src"), "bad_arg")
-        val d = resolve(params["dst"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_arg, "dst"), "bad_arg")
-        if (!s.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_src_missing), "src_missing")
-        if (isParentOf(s, d)) return 400 to errorJson(str(R.string.dsh_fs_err_dst_inside_src_recursive), "dst_inside_src_recursive")
+        val s = resolve(params["src"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_arg, "src"), "bad_arg")
+        val d = resolve(params["dst"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_arg, "dst"), "bad_arg")
+        if (!s.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_src_missing), "src_missing")
+        if (isParentOf(s, d)) return 400 to errorJson(str(CoreR.string.dsh_fs_err_dst_inside_src_recursive), "dst_inside_src_recursive")
         val overwrite = boolParam(params["overwrite"])
-        if (!overwrite && d.exists()) return 400 to errorJson(str(R.string.dsh_fs_err_dst_exists), "dst_exists")
+        if (!overwrite && d.exists()) return 400 to errorJson(str(CoreR.string.dsh_fs_err_dst_exists), "dst_exists")
         return copyRecursive(s, d, overwrite)
     }
 
     private fun handleDelete(params: Map<String, String>): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(params["path"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
+        val target = resolve(params["path"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
         // 不允许删根：那是「清空用户整个共享存储」，绝不该是一条 HTTP 请求能做到的事
-        if (relativeOf(target).isEmpty()) return 400 to errorJson(str(R.string.dsh_fs_err_no_delete_root), "no_delete_root")
+        if (relativeOf(target).isEmpty()) return 400 to errorJson(str(CoreR.string.dsh_fs_err_no_delete_root), "no_delete_root")
         if (!target.exists()) return 200 to okJson()
         val recursive = boolParam(params["recursive"])
 
         if (target.isDirectory && !recursive && (target.listFiles()?.isNotEmpty() == true)) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_dir_not_empty), "dir_not_empty")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_dir_not_empty), "dir_not_empty")
         }
         if (target.isDirectory && recursive) {
             val n = countRecursive(target)
-            if (n < 0) return 400 to errorJson(str(R.string.dsh_fs_err_too_many_delete, MAX_RECURSIVE_ENTRIES), "too_many_delete")
+            if (n < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_too_many_delete, MAX_RECURSIVE_ENTRIES), "too_many_delete")
         }
         val ok = deleteRecursive(target)
-        return if (ok) 200 to okJson() else 500 to errorJson(str(R.string.dsh_fs_err_delete_failed), "delete_failed")
+        return if (ok) 200 to okJson() else 500 to errorJson(str(CoreR.string.dsh_fs_err_delete_failed), "delete_failed")
     }
 
     /**
@@ -611,11 +611,11 @@ object DshFsBridge {
      */
     private fun handleFind(params: Map<String, String>): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val base = resolve(params["path"]) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
-        if (!base.exists()) return 404 to errorJson(str(R.string.dsh_fs_err_not_found), "not_found")
-        if (!base.isDirectory) return 400 to errorJson(str(R.string.dsh_fs_err_not_dir), "not_dir")
-        val glob = params["glob"] ?: return 400 to errorJson(str(R.string.dsh_fs_err_missing_glob), "missing_glob")
-        val re = globToRegex(glob) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_glob), "bad_glob")
+        val base = resolve(params["path"]) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
+        if (!base.exists()) return 404 to errorJson(str(CoreR.string.dsh_fs_err_not_found), "not_found")
+        if (!base.isDirectory) return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_dir), "not_dir")
+        val glob = params["glob"] ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_missing_glob), "missing_glob")
+        val re = globToRegex(glob) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_glob), "bad_glob")
         val limit = clampInt(params["limit"], DEFAULT_FIND_LIMIT, 1, MAX_FIND_LIMIT)
         val depth = clampInt(params["maxDepth"], DEFAULT_MAX_DEPTH, 1, MAX_MAX_DEPTH)
 
@@ -631,10 +631,10 @@ object DshFsBridge {
 
     private fun handleSpace(rel: String?): Pair<Int, String>? {
         storageGate()?.let { return it }
-        val target = resolve(rel) ?: return 400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
+        val target = resolve(rel) ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
         val dir = if (target.isDirectory) target else target.parentFile ?: root
         val st = runCatching { StatFs(dir.absolutePath) }.getOrElse { e ->
-            return 500 to errorJson(str(R.string.dsh_fs_err_statfs, e.message ?: ""), "statfs")
+            return 500 to errorJson(str(CoreR.string.dsh_fs_err_statfs, e.message ?: ""), "statfs")
         }
         val block = st.blockSizeLong
         return 200 to JSONObject()
@@ -699,9 +699,9 @@ object DshFsBridge {
     }
 
     private fun copyRecursive(src: File, dst: File, overwrite: Boolean): Pair<Int, String> {
-        if (!within(src) || !within(dst)) return 400 to errorJson(str(R.string.dsh_fs_err_escape), "escape")
+        if (!within(src) || !within(dst)) return 400 to errorJson(str(CoreR.string.dsh_fs_err_escape), "escape")
         if (src.isDirectory && countRecursive(src) < 0) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_too_many_copy, MAX_RECURSIVE_ENTRIES), "too_many_copy")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_too_many_copy, MAX_RECURSIVE_ENTRIES), "too_many_copy")
         }
         var files = 0
         runCatching {
@@ -709,23 +709,23 @@ object DshFsBridge {
                 // 这些 message 会被下面的 onFailure 拼进 dsh_fs_err_copy_failed 交给用户，
                 // 所以它们也得本地化，不能留中文字面量
                 if (!within(s) || !within(d)) {
-                    throw java.io.IOException(str(R.string.dsh_fs_err_escape_named, s.name))
+                    throw java.io.IOException(str(CoreR.string.dsh_fs_err_escape_named, s.name))
                 }
                 // 逐层复核黑白名单：入口合法不代表子项合法（见 policyAllows 的注释）
                 if (!policyAllows(s) || !policyAllows(d)) throw DeniedPathException(relativeOf(s))
                 if (s.isDirectory && !isSymlink(s)) {
                     if (!d.isDirectory && !d.mkdirs()) {
-                        throw java.io.IOException(str(R.string.dsh_fs_err_mkdir_named, d.name))
+                        throw java.io.IOException(str(CoreR.string.dsh_fs_err_mkdir_named, d.name))
                     }
                     s.listFiles()?.forEach { child -> rec(child, File(d, child.name)) }
                 } else {
                     if (d.exists()) {
                         if (!overwrite) {
-                            throw java.io.IOException(str(R.string.dsh_fs_err_exists_named, d.name))
+                            throw java.io.IOException(str(CoreR.string.dsh_fs_err_exists_named, d.name))
                         }
                         if (!d.delete()) {
                             throw java.io.IOException(
-                                str(R.string.dsh_fs_err_overwrite_named, d.name),
+                                str(CoreR.string.dsh_fs_err_overwrite_named, d.name),
                             )
                         }
                     }
@@ -740,7 +740,7 @@ object DshFsBridge {
             if (e is DeniedPathException) throw e
             Log.w(TAG, "copy 失败: ${e.message}")
             // 已复制的部分保留：删掉它需要再一次递归删除，风险比留下半份更大
-            return 500 to errorJson(str(R.string.dsh_fs_err_copy_failed, e.message ?: "", files), "copy_failed")
+            return 500 to errorJson(str(CoreR.string.dsh_fs_err_copy_failed, e.message ?: "", files), "copy_failed")
         }
         return 200 to JSONObject().put("ok", true).put("files", files).toString()
     }
@@ -764,7 +764,7 @@ object DshFsBridge {
     }
 
     private fun storageDenied(): Pair<Int, String> =
-        403 to errorJson(str(R.string.dsh_fs_err_no_storage), "no_storage")
+        403 to errorJson(str(CoreR.string.dsh_fs_err_no_storage), "no_storage")
 
     /**
      * 命中黑名单/白名单外时抛出：策略拒绝，外层回 403 `no_access`（区别于 bad_path）。
@@ -783,7 +783,7 @@ object DshFsBridge {
     private fun storageGate(): Pair<Int, String>? {
         val ctx = appCtx
         if (ctx != null && !DshFileAccess.mountEnabled(ctx)) {
-            return 403 to errorJson(str(R.string.dsh_fs_err_storage_off), "storage_off")
+            return 403 to errorJson(str(CoreR.string.dsh_fs_err_storage_off), "storage_off")
         }
         if (!checkStorageAccess()) return storageDenied()
         return null

@@ -293,7 +293,7 @@ ok(/onConsoleMessage[\s\S]{0,2000}?DshRuntime\.appendLog\(\"\[page\] \" \+ line\
 console.log("── 发送前的披露 ──");
 {
   const ui = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/GeneralSettings.kt");
-  ok(/stringResource\(R\.string\.dsh_log_window_includes\)/.test(ui),
+  ok(/stringResource\((?:Core)?R\.string\.dsh_log_window_includes\)/.test(ui),
     "发送日志对话框引用披露文案（说了却没人看到 = 没说）");
   for (const loc of ["app/src/main/res/values/strings_dsh_placeholder", "app/src/main/res/values/dsh_strings.xml", "app/src/main/res/values-zh-rCN/dsh_strings.xml"]) {
     if (!fs.existsSync(loc)) continue;

@@ -66,6 +66,7 @@ import me.bmax.apatch.ui.viewmodel.DshPluginViewModel
 import me.bmax.apatch.dsh.DshCloudBackup
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
+import me.bmax.apatch.res.R as CoreR
 
 /** 备份依赖的那个插件（应用侧查「装没装」时用，不需要 DSH 在跑）。 */
 private const val DSH_CONFIG_MANAGER_PKG = "dsh-config-manager"
@@ -177,9 +178,9 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
         // 插件的 error 字段带出来（未授权、DSH 没起来、响应不是 JSON 都分得开），
         // 拿不到才退到「插件缺失」这句话。
         pluginDetail = when {
-            st == null -> context.getString(R.string.dsh_backup_plugin_timeout)
+            st == null -> context.getString(CoreR.string.dsh_backup_plugin_timeout)
             st.ready -> st.pluginVersion.ifEmpty { "—" }
-            else -> st.error.ifEmpty { context.getString(R.string.dsh_backup_needs_running) }
+            else -> st.error.ifEmpty { context.getString(CoreR.string.dsh_backup_needs_running) }
         }
         // 顺带读一次云备份插件状态（dsh-folk-cloud）：云备份区块靠它决定「显不显示、能不能点」。
         cloudStatus = withContext(Dispatchers.IO) { runCatching { DshCloudBackup.status() }.getOrNull() }
@@ -195,12 +196,12 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
     // DSH 是否在跑，实时观察：用户点「启动 DSH」后卡片能自己翻篇，不用手动重进页面。
     val dshRunning = DshRuntime.state.collectAsState().value.phase == DshPhase.RUNNING
 
-    val notRunning = stringResource(R.string.dsh_backup_needs_running)
-    val pluginMissing = stringResource(R.string.dsh_backup_plugin_missing)
-    val exporting = stringResource(R.string.dsh_backup_exporting)
-    val openDirFailed = stringResource(R.string.dsh_backup_open_dir_failed)
-    val remoteEmpty = stringResource(R.string.dsh_backup_remote_empty)
-    val snapshotTarget = stringResource(R.string.dsh_bk_snapshot_title)
+    val notRunning = stringResource(CoreR.string.dsh_backup_needs_running)
+    val pluginMissing = stringResource(CoreR.string.dsh_backup_plugin_missing)
+    val exporting = stringResource(CoreR.string.dsh_backup_exporting)
+    val openDirFailed = stringResource(CoreR.string.dsh_backup_open_dir_failed)
+    val remoteEmpty = stringResource(CoreR.string.dsh_backup_remote_empty)
+    val snapshotTarget = stringResource(CoreR.string.dsh_bk_snapshot_title)
     val clipboard = LocalClipboardManager.current
 
     Scaffold(
@@ -237,7 +238,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                     onDshExport = { plan ->
                         if (!plan.valid) {
                             // 含 vault 却没密码：界面已禁用按钮，这里再挡一道
-                            dshMessage = context.getString(R.string.dsh_bk_vault_needs_password)
+                            dshMessage = context.getString(CoreR.string.dsh_bk_vault_needs_password)
                             return@BackupSettingsContent
                         }
                         dshBusy = true
@@ -335,8 +336,8 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                                 cloudBusy = false
                                 cloudStatus = st
                                 cloudMessage = if (r.reachable) r.message.ifEmpty {
-                                    if (r.ok) context.getString(R.string.dsh_bk_cloud_sync_ok) else r.error
-                                } else context.getString(R.string.dsh_bk_cloud_plugin_offline)
+                                    if (r.ok) context.getString(CoreR.string.dsh_bk_cloud_sync_ok) else r.error
+                                } else context.getString(CoreR.string.dsh_bk_cloud_plugin_offline)
                             }
                         }
                     },
@@ -350,8 +351,8 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                                 cloudBusy = false
                                 cloudStatus = st
                                 cloudMessage = if (r.reachable) r.message.ifEmpty {
-                                    if (r.ok) context.getString(R.string.dsh_bk_cloud_restore_ok) else r.error
-                                } else context.getString(R.string.dsh_bk_cloud_plugin_offline)
+                                    if (r.ok) context.getString(CoreR.string.dsh_bk_cloud_restore_ok) else r.error
+                                } else context.getString(CoreR.string.dsh_bk_cloud_plugin_offline)
                             }
                         }
                     },
@@ -401,7 +402,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                                 if (!p.ok) {
                                     pendingSnapshot = null
                                     snapshotMessage = context.getString(
-                                        R.string.dsh_bk_snapshot_preview_failed,
+                                        CoreR.string.dsh_bk_snapshot_preview_failed,
                                         p.message,
                                     )
                                 } else {
@@ -442,8 +443,8 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
     pendingRemoteRestore?.let { backup ->
         AlertDialog(
             onDismissRequest = { pendingRemoteRestore = null },
-            title = { Text(stringResource(R.string.dsh_bk_remote_restore_confirm_title)) },
-            text = { Text(stringResource(R.string.dsh_bk_remote_restore_confirm_body, backup.name)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_remote_restore_confirm_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_bk_remote_restore_confirm_body, backup.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingRemoteRestore = null
@@ -455,7 +456,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                         withContext(Dispatchers.Main) {
                             dshBackupBusy = false
                             if (fetched == null) {
-                                dshBackupMessage = context.getString(R.string.dsh_bk_remote_fetch_failed)
+                                dshBackupMessage = context.getString(CoreR.string.dsh_bk_remote_fetch_failed)
                             } else {
                                 dshBackupMessage = ""
                                 // 后面完全复用同一条路：进恢复向导页，包直接交给它
@@ -471,7 +472,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                         }
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_bk_backup_restore))
+                    Text(stringResource(CoreR.string.dsh_bk_backup_restore))
                 }
             },
             dismissButton = {
@@ -486,8 +487,8 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
     pendingRemoteDelete?.let { backup ->
         AlertDialog(
             onDismissRequest = { pendingRemoteDelete = null },
-            title = { Text(stringResource(R.string.dsh_bk_remote_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.dsh_bk_remote_delete_confirm_body, backup.name)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_remote_delete_confirm_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_bk_remote_delete_confirm_body, backup.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingRemoteDelete = null
@@ -500,7 +501,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                         withContext(Dispatchers.Main) {
                             dshRemote = list
                             dshBackupMessage = if (err.isEmpty()) {
-                                context.getString(R.string.dsh_backup_remote_deleted, backup.name)
+                                context.getString(CoreR.string.dsh_backup_remote_deleted, backup.name)
                             } else {
                                 err
                             }
@@ -508,7 +509,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                         }
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_bk_backup_delete))
+                    Text(stringResource(CoreR.string.dsh_bk_backup_delete))
                 }
             },
             dismissButton = {
@@ -523,8 +524,8 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
     pendingSnapshotDelete?.let { snap ->
         AlertDialog(
             onDismissRequest = { pendingSnapshotDelete = null },
-            title = { Text(stringResource(R.string.dsh_bk_snapshot_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.dsh_bk_snapshot_delete_confirm_body, snap.id)) },
+            title = { Text(stringResource(CoreR.string.dsh_bk_snapshot_delete_confirm_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_bk_snapshot_delete_confirm_body, snap.id)) },
             confirmButton = {
                 TextButton(onClick = {
                     pendingSnapshotDelete = null
@@ -544,7 +545,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                         }
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_bk_snapshot_delete))
+                    Text(stringResource(CoreR.string.dsh_bk_snapshot_delete))
                 }
             },
             dismissButton = {
@@ -560,12 +561,12 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
         if (pendingActions >= 0) {
             AlertDialog(
                 onDismissRequest = { pendingSnapshot = null },
-                title = { Text(stringResource(R.string.dsh_bk_snapshot_confirm_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_bk_snapshot_confirm_title)) },
                 text = {
                     Column {
                         Text(
                             stringResource(
-                                R.string.dsh_bk_snapshot_confirm_body,
+                                CoreR.string.dsh_bk_snapshot_confirm_body,
                                 snap.id,
                                 pendingActions,
                             ),
@@ -581,11 +582,11 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        text = stringResource(R.string.dsh_bk_snapshot_appdata_option),
+                                        text = stringResource(CoreR.string.dsh_bk_snapshot_appdata_option),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     Text(
-                                        text = stringResource(R.string.dsh_bk_snapshot_appdata_option_note),
+                                        text = stringResource(CoreR.string.dsh_bk_snapshot_appdata_option_note),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -593,7 +594,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                             }
                         } else {
                             Text(
-                                text = stringResource(R.string.dsh_bk_snapshot_appdata_absent),
+                                text = stringResource(CoreR.string.dsh_bk_snapshot_appdata_absent),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -627,11 +628,11 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                                 snapshotBusy = false
                                 val appDataNote = when (appDataOutcome) {
                                     DshAppDataSnapshot.Outcome.RESTORED ->
-                                        context.getString(R.string.dsh_bk_snapshot_appdata_restored)
+                                        context.getString(CoreR.string.dsh_bk_snapshot_appdata_restored)
                                     DshAppDataSnapshot.Outcome.FAILED ->
-                                        context.getString(R.string.dsh_bk_snapshot_appdata_failed)
+                                        context.getString(CoreR.string.dsh_bk_snapshot_appdata_failed)
                                     DshAppDataSnapshot.Outcome.MISSING ->
-                                        context.getString(R.string.dsh_bk_snapshot_appdata_absent)
+                                        context.getString(CoreR.string.dsh_bk_snapshot_appdata_absent)
                                     null -> ""
                                 }
                                 snapshotMessage = (if (r.detail.isBlank()) r.message else "${r.message}\n${r.detail}") +
@@ -645,7 +646,7 @@ fun BackupSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
                             }
                         }
                     }) {
-                        Text(stringResource(R.string.dsh_bk_snapshot_restore_now))
+                        Text(stringResource(CoreR.string.dsh_bk_snapshot_restore_now))
                     }
                 },
                 dismissButton = {

@@ -30,7 +30,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 应用内网页浏览入口（只做浏览，不是又一个浏览器）。
@@ -102,7 +102,7 @@ fun DshWebViewScreen(navigator: DestinationsNavigator, url: String) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(stringResource(R.string.dsh_webview_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_webview_title)) },
             navigationIcon = {
                 IconButton(onClick = { navigator.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
@@ -113,7 +113,7 @@ fun DshWebViewScreen(navigator: DestinationsNavigator, url: String) {
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (failed) {
                 Text(
-                    text = stringResource(R.string.dsh_webview_failed),
+                    text = stringResource(CoreR.string.dsh_webview_failed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp),
@@ -121,7 +121,7 @@ fun DshWebViewScreen(navigator: DestinationsNavigator, url: String) {
             }
             if (notice) {
                 Text(
-                    text = stringResource(R.string.dsh_webview_cannot_handle),
+                    text = stringResource(CoreR.string.dsh_webview_cannot_handle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

@@ -374,8 +374,8 @@ if (decSpan) {
   ok(/cipher\.doFinal\(tail \+ tag\)/.test(body), 'doFinal(tail + tag)');
   ok(/remaining -= n\.toLong\(\)/.test(body), '按剩余长度流式读取，不整包进内存');
 }
-ok(/failTrace\(ctx, ctx\.appString\(R\.string\.dsh_bk_crypto_broken, bad\)\)/.test(backupKt) &&
-  /failTrace\(ctx, ctx\.appString\(R\.string\.dsh_bk_crypto_broken, streamBad\)\)/.test(backupKt),
+ok(/failTrace\(ctx, ctx\.appString\((?:Core)?R\.string\.dsh_bk_crypto_broken, bad\)\)/.test(backupKt) &&
+  /failTrace\(ctx, ctx\.appString\((?:Core)?R\.string\.dsh_bk_crypto_broken, streamBad\)\)/.test(backupKt),
   '自检不过也要记账 —— 这次就是这条分支没记账，日志正好断在那里、原因看不到');
 ok(/selftest-stream=" \+ \(streamBad \?: "ok"\)/.test(backupKt), '流式自检结果本身也进日志');
 

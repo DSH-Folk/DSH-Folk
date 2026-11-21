@@ -31,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.Userscripts
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 脚本详情底部弹层。
@@ -90,8 +90,8 @@ internal fun ScriptDetailSheet(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(
-                        if (script.enabled) R.string.dsh_userscripts_toggle_off
-                        else R.string.dsh_userscripts_toggle_on
+                        if (script.enabled) CoreR.string.dsh_userscripts_toggle_off
+                        else CoreR.string.dsh_userscripts_toggle_on
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -101,8 +101,8 @@ internal fun ScriptDetailSheet(
 
             Text(
                 text = stringResource(
-                    R.string.dsh_userscripts_detail_source,
-                    script.source ?: stringResource(R.string.dsh_userscripts_detail_source_unknown),
+                    CoreR.string.dsh_userscripts_detail_source,
+                    script.source ?: stringResource(CoreR.string.dsh_userscripts_detail_source_unknown),
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -123,7 +123,7 @@ internal fun ScriptDetailSheet(
 
             Spacer(Modifier.height(2.dp))
             Text(
-                text = stringResource(R.string.dsh_userscripts_detail_code),
+                text = stringResource(CoreR.string.dsh_userscripts_detail_code),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -138,7 +138,7 @@ internal fun ScriptDetailSheet(
                 Text(
                     // 还在读（IO 上）时给一句占位；读不到才是空白 —— 两种状态不是一回事
                     text = if (codeLoading) {
-                        stringResource(R.string.dsh_userscripts_code_loading)
+                        stringResource(CoreR.string.dsh_userscripts_code_loading)
                     } else {
                         code.orEmpty()
                     },
@@ -153,12 +153,12 @@ internal fun ScriptDetailSheet(
                 Button(onClick = { onDismiss(); onUpdate() }) {
                     Icon(Icons.Outlined.Refresh, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.dsh_userscripts_update))
+                    Text(stringResource(CoreR.string.dsh_userscripts_update))
                 }
                 OutlinedButton(onClick = { onDismiss(); onRemove() }) {
                     Icon(Icons.Outlined.Delete, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.dsh_userscripts_delete))
+                    Text(stringResource(CoreR.string.dsh_userscripts_delete))
                 }
             }
         }

@@ -61,6 +61,7 @@ import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.DshSafSources
 import me.bmax.apatch.util.ui.showToast
 import java.io.File
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「文件访问范围」子页：管理容器可访问手机目录的黑白名单。
@@ -140,7 +141,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             // （白名单空本来就是"全放行"；黑名单加根会把整棵树都禁掉）
             "allow", "deny" ->
                 if (rel.isEmpty()) {
-                    showToast(context, context.getString(R.string.dsh_fs_picker_need_subdir))
+                    showToast(context, context.getString(CoreR.string.dsh_fs_picker_need_subdir))
                 } else {
                     addTo(which, rel)
                 }
@@ -170,14 +171,14 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
         pickerFor = null
         if (uri == null) {
             pickerFailure = PickerFailure(
-                context.getString(R.string.dsh_fs_picker_no_local_path),
+                context.getString(CoreR.string.dsh_fs_picker_no_local_path),
                 DshFileAccess.pickerDiagnostics(context, null),
             )
             return
         }
         val name = DshSafSources.register(context, uri)
         pickerFailure = PickerFailure(
-            context.getString(R.string.dsh_fs_picker_saf_registered, name),
+            context.getString(CoreR.string.dsh_fs_picker_saf_registered, name),
             DshFileAccess.pickerDiagnostics(context, uri),
         )
     }
@@ -207,7 +208,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
      *    黑白名单也照常生效。
      * 3. **用不了就不挂**：真实路径**推出来了**但用不了（不存在 / 不是目录 / 读不到：别的应用
      *    的私有数据、没拿到「所有文件访问」）时，给
-     *    [R.string.dsh_fs_picker_unreadable_host_dir] 的提示，不静默挂一个空目录。四种情形
+     *    [CoreR.string.dsh_fs_picker_unreadable_host_dir] 的提示，不静默挂一个空目录。四种情形
      *    因此各说各的：**压根推不出**真实路径 →「这个提供器不给出真实路径」；**推出来但用不了**
      *    →「本应用用不了」；**推出来、也存在，但与 SAF 那棵树对不上**（[PickerHostDir.Unverified]）
      *    →「推出可能是 X，但确认不了」并把路径显示出来；系统存储提供器（externalstorage）的
@@ -240,7 +241,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             if (DshFileAccess.hostDirReadable(DshFileAccess.wsHostDir(rel))) {
                 handlePicked(rel)
             } else {
-                failPicker(uri, context.getString(R.string.dsh_fs_picker_unreadable_host_dir))
+                failPicker(uri, context.getString(CoreR.string.dsh_fs_picker_unreadable_host_dir))
             }
             return@rememberLauncherForActivityResult
         }
@@ -270,7 +271,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             // —— 这几条它自己就有更精确的说法（"卷或目录已经不在了"），优先于下面那句笼统的
             // "本应用用不了"。
             DshFileAccess.isExternalStorageTree(uri) && resolved !is PickerHostDir.Mountable -> {
-                failPicker(uri, context.getString(R.string.dsh_fs_picker_volume_missing))
+                failPicker(uri, context.getString(CoreR.string.dsh_fs_picker_volume_missing))
             }
             // 真实路径推出来了但用不了（别的应用的私有数据 / 没权限 / 已经不在了）：挂不上。
             // 但我们对那棵树有持久化 SAF 授权（上面刚 take 过）——登记成 SAF 来源，容器里的
@@ -289,7 +290,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             hostPath != null && pickerFor == "ws" -> handlePicked(hostPath)
             // 黑白名单存的只有"相对 /sdcard"的条目，别的宿主路径不是那棵树；指路，不含糊
             hostPath != null -> {
-                failPicker(uri, context.getString(R.string.dsh_fs_picker_list_needs_sdcard))
+                failPicker(uri, context.getString(CoreR.string.dsh_fs_picker_list_needs_sdcard))
             }
             // 真·虚拟提供器（云盘 / 相册 SPA / 不透明 id）：id 里压根推不出真实路径，挂不了 ——
             // 但它们本身是 SAF 可遍历的（MT 管理器正是这么读的），登记成来源让 dsh-saf 代办。
@@ -301,7 +302,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(stringResource(R.string.dsh_fs_access_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_fs_access_title)) },
             navigationIcon = {
                 IconButton(onClick = { navigator.popBackStack() }) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
@@ -317,7 +318,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                 .padding(16.dp),
         ) {
             Text(
-                text = stringResource(R.string.dsh_fs_access_intro),
+                text = stringResource(CoreR.string.dsh_fs_access_intro),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -327,13 +328,13 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
                         Text(
-                            text = stringResource(R.string.dsh_fs_restart_needed),
+                            text = stringResource(CoreR.string.dsh_fs_restart_needed),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
                         Spacer(Modifier.height(6.dp))
                         OutlinedButton(onClick = { persist(); DshRuntime.restart() }) {
-                            Text(stringResource(R.string.dsh_fs_restart_now))
+                            Text(stringResource(CoreR.string.dsh_fs_restart_now))
                         }
                     }
                 }
@@ -342,9 +343,9 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             // ── 白名单 ──
             Spacer(Modifier.height(16.dp))
             DirListSection(
-                header = stringResource(R.string.dsh_fs_allow_header),
+                header = stringResource(CoreR.string.dsh_fs_allow_header),
                 entries = allow,
-                emptyHint = stringResource(R.string.dsh_fs_empty_allow),
+                emptyHint = stringResource(CoreR.string.dsh_fs_empty_allow),
                 onAdd = { pickerFor = "allow" },
                 onRemove = { allow.remove(it); persist() },
             )
@@ -352,15 +353,15 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             // ── 黑名单 ──
             Spacer(Modifier.height(16.dp))
             DirListSection(
-                header = stringResource(R.string.dsh_fs_deny_header),
+                header = stringResource(CoreR.string.dsh_fs_deny_header),
                 entries = deny,
-                emptyHint = stringResource(R.string.dsh_fs_empty_deny),
+                emptyHint = stringResource(CoreR.string.dsh_fs_empty_deny),
                 onAdd = { pickerFor = "deny" },
                 onRemove = { deny.remove(it); persist() },
                 extra = {
                     TextButton(onClick = {
                         deny.clear(); deny.addAll(DshFileAccess.DEFAULT_DENY); persist()
-                    }) { Text(stringResource(R.string.dsh_fs_reset_deny_default)) }
+                    }) { Text(stringResource(CoreR.string.dsh_fs_reset_deny_default)) }
                 },
             )
 
@@ -368,12 +369,12 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             Spacer(Modifier.height(16.dp))
             Column(Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(R.string.dsh_ws_mount_header),
+                    stringResource(CoreR.string.dsh_ws_mount_header),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    stringResource(R.string.dsh_ws_mount_desc),
+                    stringResource(CoreR.string.dsh_ws_mount_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -382,8 +383,8 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
             // 而不是再给一个开关 —— 两个开关管同一件事，就一定会出现自相矛盾的状态。
             Text(
                 stringResource(
-                    if (storageMount) R.string.dsh_ws_mount_follows_on
-                    else R.string.dsh_ws_mount_follows_off
+                    if (storageMount) CoreR.string.dsh_ws_mount_follows_on
+                    else CoreR.string.dsh_ws_mount_follows_off
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (storageMount) MaterialTheme.colorScheme.primary
@@ -394,7 +395,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                 Spacer(Modifier.height(8.dp))
                 if (wsMounts.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.dsh_ws_mount_empty),
+                        text = stringResource(CoreR.string.dsh_ws_mount_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -409,13 +410,13 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     // 主卷显示成 /sdcard/…；第二卷（SD/U 盘）显示它真实的宿主路径
-                                    text = stringResource(R.string.dsh_ws_mount_source) + "  " +
+                                    text = stringResource(CoreR.string.dsh_ws_mount_source) + "  " +
                                         DshFileAccess.wsSourceLabel(m.src),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontFamily = FontFamily.Monospace,
                                 )
                                 Text(
-                                    text = stringResource(R.string.dsh_ws_mount_destination) +
+                                    text = stringResource(CoreR.string.dsh_ws_mount_destination) +
                                         "  /root/workspace/" + m.dest,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontFamily = FontFamily.Monospace,
@@ -423,7 +424,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                                 )
                             }
                             IconButton(onClick = { wsMounts.remove(m); persist() }) {
-                                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.dsh_fs_remove))
+                                Icon(Icons.Outlined.Delete, contentDescription = stringResource(CoreR.string.dsh_fs_remove))
                             }
                         }
                     }
@@ -441,7 +442,7 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = stringResource(R.string.dsh_ws_mount_warn_title),
+                            text = stringResource(CoreR.string.dsh_ws_mount_warn_title),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.weight(1f),
@@ -449,17 +450,17 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
                         TextButton(onClick = {
                             DshFileAccess.resetStorageLinkProbe()
                             storageLinkOk = DshFileAccess.storageLinkSupported(context)
-                        }) { Text(stringResource(R.string.dsh_ws_mount_recheck)) }
+                        }) { Text(stringResource(CoreR.string.dsh_ws_mount_recheck)) }
                     }
                     Text(
-                        text = stringResource(R.string.dsh_ws_mount_note),
+                        text = stringResource(CoreR.string.dsh_ws_mount_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
                 TextButton(onClick = { pickerFor = "ws" }) {
-                    Text(stringResource(R.string.dsh_ws_mount_add))
+                    Text(stringResource(CoreR.string.dsh_ws_mount_add))
                 }
             }
         }
@@ -518,13 +519,13 @@ private data class PickerFailure(val message: String, val diagnostics: String)
 private fun PickerFailureDialog(failure: PickerFailure, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_fs_picker_diag_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_fs_picker_diag_title)) },
         text = {
             Column(Modifier.fillMaxWidth()) {
                 Text(failure.message, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = stringResource(R.string.dsh_fs_picker_diag_hint),
+                    text = stringResource(CoreR.string.dsh_fs_picker_diag_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -581,13 +582,13 @@ private fun DirListSection(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = { onRemove(e) }) {
-                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.dsh_fs_remove))
+                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(CoreR.string.dsh_fs_remove))
                 }
             }
         }
     }
     Row {
-        TextButton(onClick = onAdd) { Text(stringResource(R.string.dsh_fs_add_dir)) }
+        TextButton(onClick = onAdd) { Text(stringResource(CoreR.string.dsh_fs_add_dir)) }
         extra?.invoke()
     }
 }
@@ -602,7 +603,7 @@ private fun WsDestDialog(
     var dest by remember { mutableStateOf("sdcard") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_ws_mount_dest_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_ws_mount_dest_title)) },
         text = {
             Column(Modifier.fillMaxWidth()) {
                 Text(
@@ -618,13 +619,13 @@ private fun WsDestDialog(
                     value = dest,
                     onValueChange = { dest = it },
                     singleLine = true,
-                    label = { Text(stringResource(R.string.dsh_ws_mount_dest_label)) },
+                    label = { Text(stringResource(CoreR.string.dsh_ws_mount_dest_label)) },
                     prefix = { Text("/root/workspace/") },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ws_mount_dest_hint),
+                    text = stringResource(CoreR.string.dsh_ws_mount_dest_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -634,7 +635,7 @@ private fun WsDestDialog(
             TextButton(
                 enabled = dest.isNotBlank(),
                 onClick = { onConfirm(dest) },
-            ) { Text(stringResource(R.string.dsh_fs_picker_choose)) }
+            ) { Text(stringResource(CoreR.string.dsh_fs_picker_choose)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
@@ -668,7 +669,7 @@ private fun DirPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_fs_picker_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_fs_picker_title)) },
         text = {
             Column(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                 Text(
@@ -680,7 +681,7 @@ private fun DirPickerDialog(
                 Spacer(Modifier.height(8.dp))
                 if (!hasPerm) {
                     Text(
-                        text = stringResource(R.string.dsh_fs_picker_need_perm),
+                        text = stringResource(CoreR.string.dsh_fs_picker_need_perm),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -689,7 +690,7 @@ private fun DirPickerDialog(
                         if (!atRoot) {
                             item {
                                 Text(
-                                    text = stringResource(R.string.dsh_fs_picker_up),
+                                    text = stringResource(CoreR.string.dsh_fs_picker_up),
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -717,14 +718,14 @@ private fun DirPickerDialog(
                 // 工作区映射允许选根（整棵 /sdcard，src=""）；黑白名单仍要求进到子目录再选
                 enabled = hasPerm && (allowRoot || !atRoot),
                 onClick = { onPick(relOf(current)) },
-            ) { Text(stringResource(R.string.dsh_fs_picker_choose)) }
+            ) { Text(stringResource(CoreR.string.dsh_fs_picker_choose)) }
         },
         dismissButton = {
             // 左下角：换系统文件选择器。页内这个浏览器只能翻 /sdcard（而且要有「所有文件访问」），
             // 系统选择器不限定提供器 —— 系统文件、MT 管理器、别的 SAF 提供器都能选。
             Row {
                 TextButton(onClick = onPickSystem) {
-                    Text(stringResource(R.string.dsh_fs_picker_system))
+                    Text(stringResource(CoreR.string.dsh_fs_picker_system))
                 }
                 TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
             }

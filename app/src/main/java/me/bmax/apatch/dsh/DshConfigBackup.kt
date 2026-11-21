@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.BuildConfig
-import me.bmax.apatch.R
 import me.bmax.apatch.ui.theme.ThemeIO
 import me.bmax.apatch.ui.theme.ThemeManager
 import me.bmax.apatch.util.BackupLogManager
@@ -24,6 +23,7 @@ import me.bmax.apatch.util.appString
 import me.bmax.apatch.util.getSafeDownloadsDir
 import org.json.JSONArray
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * DSH 配置备份 / 迁移。
@@ -125,9 +125,9 @@ object DshConfigBackup {
      */
     suspend fun status(ctx: Context): Status = withContext(Dispatchers.IO) {
         val r = request("GET", "/status", null, timeoutMs = STATUS_TIMEOUT_MS)
-        if (r == null) return@withContext Status(false, error = ctx.appString(R.string.dsh_bk_not_running))
+        if (r == null) return@withContext Status(false, error = ctx.appString(CoreR.string.dsh_bk_not_running))
         val o = runCatching { JSONObject(r) }.getOrNull()
-            ?: return@withContext Status(false, error = ctx.appString(R.string.dsh_bk_bad_json))
+            ?: return@withContext Status(false, error = ctx.appString(CoreR.string.dsh_bk_bad_json))
         // 插件/DSH 自己给的 error 必须带出来：以前只读 ready，于是「未授权」「DSH 没起来」
         // 这类原因全被界面兜成「插件缺失」，用户被指去重装一个明明装好的插件。
         val err = o.optString("error")
@@ -170,17 +170,17 @@ object DshConfigBackup {
             if (password.isNotEmpty()) put("password", password)
         }
         val raw = request("POST", "/export", body.toString())
-            ?: return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_export_req_failed))
+            ?: return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_export_req_failed))
         val o = runCatching { JSONObject(raw) }.getOrNull()
             ?: return@withContext ExportResult(
             false,
-            message = ctx.appString(R.string.dsh_bk_export_bad_json, raw.take(200)),
+            message = ctx.appString(CoreR.string.dsh_bk_export_bad_json, raw.take(200)),
         )
         val err = o.optString("error")
         if (err.isNotEmpty()) return@withContext ExportResult(false, message = err)
         val zipPath = o.optString("zipPath")
         if (zipPath.isEmpty()) {
-            return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_export_no_path))
+            return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_export_no_path))
         }
         val name = zipPath.substringAfterLast('/').ifBlank { "dsh-config-backup.zip" }
 
@@ -192,7 +192,7 @@ object DshConfigBackup {
         val bytes = download(zipPath, tmp)
         if (bytes <= 0) {
             tmp.delete()
-            return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_download_failed))
+            return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_download_failed))
         }
         // 复制进公共目录；返回给用户看的位置。失败退回应用专属目录（仍可导出，只是不好找）
         val (location, publicOk) = copyToPublic(ctx, tmp, name)
@@ -207,8 +207,8 @@ object DshConfigBackup {
         val containsSecrets = security?.optBoolean("containsSecrets", false) ?: false
         val warnings = report?.optJSONArray("warnings")
         val warnText = buildString {
-            if (!publicOk) append("\n! ").append(ctx.appString(R.string.dsh_bk_copy_failed))
-            if (containsSecrets) append("\n! ").append(ctx.appString(R.string.dsh_bk_contains_secrets))
+            if (!publicOk) append("\n! ").append(ctx.appString(CoreR.string.dsh_bk_copy_failed))
+            if (containsSecrets) append("\n! ").append(ctx.appString(CoreR.string.dsh_bk_contains_secrets))
             if (warnings != null) {
                 for (i in 0 until warnings.length()) {
                     val w = warnings.optString(i)
@@ -223,11 +223,11 @@ object DshConfigBackup {
             file = tmp,
             sizeBytes = bytes,
             message = buildString {
-                append(ctx.appString(R.string.dsh_bk_exported, name))
+                append(ctx.appString(CoreR.string.dsh_bk_exported, name))
                 if (sections > 0) {
-                    append("（").append(ctx.appString(R.string.dsh_bk_exported_sections, sections)).append("）")
+                    append("（").append(ctx.appString(CoreR.string.dsh_bk_exported_sections, sections)).append("）")
                 }
-                if (encrypted) append("，").append(ctx.appString(R.string.dsh_bk_exported_encrypted))
+                if (encrypted) append("，").append(ctx.appString(CoreR.string.dsh_bk_exported_encrypted))
                 append(warnText)
             },
             sections = sections,
@@ -261,12 +261,12 @@ object DshConfigBackup {
         onLine: suspend (String) -> Unit = {},
     ): ExportResult = withContext(Dispatchers.IO) {
         if (!plan.valid) {
-            return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_vault_needs_password))
+            return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_vault_needs_password))
         }
         if (plan.password.isNotEmpty()) {
             val bad = DshBackupCrypto.selfTest()
             if (bad != null) {
-                return@withContext failTrace(ctx, ctx.appString(R.string.dsh_bk_crypto_broken, bad))
+                return@withContext failTrace(ctx, ctx.appString(CoreR.string.dsh_bk_crypto_broken, bad))
             }
         }
         val stage = File(ctx.getExternalFilesDir(null) ?: ctx.cacheDir, "config-backup").apply { mkdirs() }
@@ -286,41 +286,41 @@ object DshConfigBackup {
         //    最后统一施加；sessions 也不向它要（会话由我们按数量挑，见 DshBackupArchive）。
         var fromPlugin: File? = null
         if (plan.includesDsh) {
-            onLine(ctx.appString(R.string.dsh_bk_step_exporting))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_exporting))
             val body = JSONObject().apply {
                 put("includeSecrets", false)
                 put("only", JSONArray(DshBackupArchive.pluginSections()))
             }
             trace(ctx, "plugin-request only=" + DshBackupArchive.pluginSections().size)
             val raw = request("POST", "/export", body.toString())
-                ?: return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_export_req_failed))
+                ?: return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_export_req_failed))
             val o = runCatching { JSONObject(raw) }.getOrNull()
                 ?: return@withContext ExportResult(
                     false,
-                    message = ctx.appString(R.string.dsh_bk_export_bad_json, raw.take(200)),
+                    message = ctx.appString(CoreR.string.dsh_bk_export_bad_json, raw.take(200)),
                 )
             val err = o.optString("error")
             if (err.isNotEmpty()) return@withContext ExportResult(false, message = err)
             val zipPath = o.optString("zipPath")
             if (zipPath.isEmpty()) {
-                return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_export_no_path))
+                return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_export_no_path))
             }
             trace(ctx, "plugin-file path=" + zipPath)
             val got = download(zipPath, pluginPlain)
             trace(ctx, "plugin-downloaded bytes=" + got + " ok=" + isUsableZip(pluginPlain))
             if (got <= 0) {
-                return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_download_failed))
+                return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_download_failed))
             }
             // 下载成功不等于内容可用：插件可能返回了一个 0 字节或半截的文件。
             // 这种包一路补下来会变成「看起来成功、实际解不开」的东西，必须在源头拦住。
             if (!isUsableZip(pluginPlain)) {
-                return@withContext failTrace(ctx, ctx.appString(R.string.dsh_bk_plugin_zip_bad, got))
+                return@withContext failTrace(ctx, ctx.appString(CoreR.string.dsh_bk_plugin_zip_bad, got))
             }
             fromPlugin = pluginPlain
         }
 
         // 2) 本地补包
-        onLine(ctx.appString(R.string.dsh_bk_step_merging))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_merging))
         val appData = if (plan.includesAppData) DshAppData.collect(ctx) else null
         val audit = if (plan.includesAppData) DshAppData.auditFiles(ctx) else emptyList()
         // 外观（背景图/视频背景/字体/音乐/音效）不在 prefs 里 —— prefs 只存文件名与
@@ -365,7 +365,7 @@ object DshConfigBackup {
                 sourceDshVersion = dshVersionOrUnknown(ctx),
             )
         } catch (e: Exception) {
-            return@withContext ExportResult(false, message = ctx.appString(R.string.dsh_bk_merge_failed, describe(e)))
+            return@withContext ExportResult(false, message = ctx.appString(CoreR.string.dsh_bk_merge_failed, describe(e)))
         }
         // 补包可能「什么都没写」还不报错（例如输入是空文件 + 提前返回的写法）。
         // 49 字节的空容器就是这么来的：加密一个空文件，头 + 空密文的 tag 正好 49 字节。
@@ -376,7 +376,7 @@ object DshConfigBackup {
                 " auditFiles=" + stats.auditFiles + " secrets=" + stats.secrets,
         )
         if (!isUsableZip(merged)) {
-            return@withContext failTrace(ctx, ctx.appString(R.string.dsh_bk_merge_empty, merged.length()))
+            return@withContext failTrace(ctx, ctx.appString(CoreR.string.dsh_bk_merge_empty, merged.length()))
         }
 
         // 3) 整包加密（有密码时）
@@ -390,7 +390,7 @@ object DshConfigBackup {
             val streamBad = DshBackupCrypto.selfTestFiles(stage)
             trace(ctx, "selftest-stream=" + (streamBad ?: "ok"))
             if (streamBad != null) {
-                return@withContext failTrace(ctx, ctx.appString(R.string.dsh_bk_crypto_broken, streamBad))
+                return@withContext failTrace(ctx, ctx.appString(CoreR.string.dsh_bk_crypto_broken, streamBad))
             }
             try {
                 // 小包走**内存版**：selfTest() 每次导出前都会验它，是这条路里唯一
@@ -405,7 +405,7 @@ object DshConfigBackup {
                         return@withContext failTrace(
                             ctx,
                             ctx.appString(
-                                R.string.dsh_bk_verify_failed,
+                                CoreR.string.dsh_bk_verify_failed,
                                 "读取明文",
                                 merged.length().toString() + " 字节",
                                 plainBytes.size.toString() + " 字节",
@@ -421,7 +421,7 @@ object DshConfigBackup {
                 }
             } catch (e: Exception) {
                 finalFile.delete()
-                return@withContext failTrace(ctx, ctx.appString(R.string.dsh_bk_encrypt_failed, describe(e)))
+                return@withContext failTrace(ctx, ctx.appString(CoreR.string.dsh_bk_encrypt_failed, describe(e)))
             }
             // 加密不校验等于没做：直接拿刚写出的文件解一遍，解不回来就删掉并如实报错。
             // 大小校验：v1 单段容器是「头 + 明文」；v2 分块容器每块多 4B 长度 + 16B tag，
@@ -445,22 +445,22 @@ object DshConfigBackup {
         // 4) 落公共 Download/DSH-Folk（写不进才退回应用专属目录）
         val (location, publicOk) = copyToPublic(ctx, finalFile, name)
         val outSummary = buildString {
-            append(ctx.appString(R.string.dsh_bk_exported, name))
-            append("，").append(ctx.appString(R.string.dsh_bk_out_size, humanSize(finalFile.length())))
+            append(ctx.appString(CoreR.string.dsh_bk_exported, name))
+            append("，").append(ctx.appString(CoreR.string.dsh_bk_out_size, humanSize(finalFile.length())))
             if (stats.sessions > 0) {
-                append("，").append(ctx.appString(R.string.dsh_bk_out_sessions, stats.sessions, stats.sessionFiles))
+                append("，").append(ctx.appString(CoreR.string.dsh_bk_out_sessions, stats.sessions, stats.sessionFiles))
             }
-            append("，").append(ctx.appString(R.string.dsh_bk_out_appdata))
+            append("，").append(ctx.appString(CoreR.string.dsh_bk_out_appdata))
             .append(if (stats.appData) "" else "×")
             // 外观是软件数据里最占体积的一块（背景视频能上百 MB），所以带上具体大小 ——
             // 「包里装了什么」这句话里，用户最需要知道的就是它。
             if (stats.theme) {
-                append("，").append(ctx.appString(R.string.dsh_bk_out_theme, humanSize(stats.themeBytes)))
+                append("，").append(ctx.appString(CoreR.string.dsh_bk_out_theme, humanSize(stats.themeBytes)))
             }
             append("，").append(
-                if (stats.secrets) ctx.appString(R.string.dsh_bk_out_vault) else ctx.appString(R.string.dsh_bk_out_novault)
+                if (stats.secrets) ctx.appString(CoreR.string.dsh_bk_out_vault) else ctx.appString(CoreR.string.dsh_bk_out_novault)
             )
-            if (!publicOk) append("\n! ").append(ctx.appString(R.string.dsh_bk_copy_failed))
+            if (!publicOk) append("\n! ").append(ctx.appString(CoreR.string.dsh_bk_copy_failed))
         }
         trace(ctx, "copy location=" + location + " public=" + publicOk + " bytes=" + finalFile.length())
         ExportResult(
@@ -488,11 +488,11 @@ object DshConfigBackup {
      * 主题包内的 theme.json，两边若各写一份，量出来的大小就永远差一点。
      */
     private fun themeMetadata(ctx: Context): ThemeManager.ThemeMetadata = ThemeManager.ThemeMetadata(
-        name = ctx.appString(R.string.dsh_bk_theme_name),
+        name = ctx.appString(CoreR.string.dsh_bk_theme_name),
         type = "phone",
         version = BuildConfig.VERSION_NAME,
         author = "DSH-Folk",
-        description = ctx.appString(R.string.dsh_bk_theme_desc),
+        description = ctx.appString(CoreR.string.dsh_bk_theme_desc),
     )
 
     /**
@@ -516,7 +516,7 @@ object DshConfigBackup {
         val out = File(stage, fileName)
         out.delete()
         return try {
-            onLine(ctx.appString(R.string.dsh_bk_step_theme_export))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_theme_export))
             // exportTheme 内部自己切到 IO，并先清空它自己的暂存目录再写。
             val ok = ThemeManager.exportTheme(ctx, Uri.fromFile(out), themeMetadata(ctx))
             val bytes = out.length()
@@ -564,9 +564,9 @@ object DshConfigBackup {
 
     /** 外观结局的一句话。三种都要说出来：用户问的是「我的背景和字体回来了吗」。 */
     private fun themeNote(ctx: Context, outcome: ThemeOutcome): String = when (outcome) {
-        ThemeOutcome.RESTORED -> ctx.appString(R.string.dsh_bk_theme_restored)
-        ThemeOutcome.ABSENT -> ctx.appString(R.string.dsh_bk_theme_absent)
-        ThemeOutcome.FAILED -> ctx.appString(R.string.dsh_bk_theme_failed)
+        ThemeOutcome.RESTORED -> ctx.appString(CoreR.string.dsh_bk_theme_restored)
+        ThemeOutcome.ABSENT -> ctx.appString(CoreR.string.dsh_bk_theme_absent)
+        ThemeOutcome.FAILED -> ctx.appString(CoreR.string.dsh_bk_theme_failed)
     }
 
     /**
@@ -577,9 +577,9 @@ object DshConfigBackup {
      */
     private fun StringBuilder.appendExcluded(ctx: Context, data: JSONObject, excluded: Int) {
         if (excluded <= 0) return
-        append("\n").append(ctx.appString(R.string.dsh_bk_excluded_note, excluded))
+        append("\n").append(ctx.appString(CoreR.string.dsh_bk_excluded_note, excluded))
         val priv = DshAppData.excludedPrivilegeCount(data)
-        if (priv > 0) append("；").append(ctx.appString(R.string.dsh_bk_excluded_privilege, priv))
+        if (priv > 0) append("；").append(ctx.appString(CoreR.string.dsh_bk_excluded_privilege, priv))
     }
 
     /** 读出包里的一个条目（不存在返回 null）。 */
@@ -627,21 +627,21 @@ object DshConfigBackup {
         // v2 分块容器有每块的长度前缀 + tag 开销，容器字节数不等于「头 + 明文」，跳过这条；
         // 真正的验证是下面「解回来的大小 + sha256」——那对两种格式都成立。
         if (!DshBackupCrypto.isChunkedContainer(blob) && blob.length() != expected) {
-            return ctx.appString(R.string.dsh_bk_verify_failed, "大小", "$expected", blob.length().toString())
+            return ctx.appString(CoreR.string.dsh_bk_verify_failed, "大小", "$expected", blob.length().toString())
         }
         val back = File(stage, "verify-back.zip")
         try {
             if (!DshBackupCrypto.decryptArchiveToFile(blob, back, password)) {
-                return ctx.appString(R.string.dsh_bk_verify_failed, "解密", "成功", "失败")
+                return ctx.appString(CoreR.string.dsh_bk_verify_failed, "解密", "成功", "失败")
             }
             if (back.length() != plain.length()) {
                 return ctx.appString(
-                    R.string.dsh_bk_verify_failed, "大小", plain.length().toString(), back.length().toString(),
+                    CoreR.string.dsh_bk_verify_failed, "大小", plain.length().toString(), back.length().toString(),
                 )
             }
             val a = sha256File(plain)
             val b = sha256File(back)
-            if (a != b) return ctx.appString(R.string.dsh_bk_verify_failed, "内容", a.take(12), b.take(12))
+            if (a != b) return ctx.appString(CoreR.string.dsh_bk_verify_failed, "内容", a.take(12), b.take(12))
             return null
         } finally {
             back.delete()
@@ -798,15 +798,15 @@ object DshConfigBackup {
     ): PreflightResult = withContext(Dispatchers.IO) {
         val plainZip: File = if (DshBackupCrypto.isArchiveBlobFile(zip)) {
             if (password.isEmpty()) {
-                return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_need_password))
+                return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_need_password))
             }
             DshBackupCrypto.selfTest()?.let {
-                return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_crypto_broken, it))
+                return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_crypto_broken, it))
             }
             val tmpDir = File(ctx.filesDir, "backup-tmp").apply { mkdirs() }
             val plain = File(tmpDir, "preflight-plain.zip")
             if (!DshBackupCrypto.decryptArchiveToFile(zip, plain, password)) {
-                return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_bad_password))
+                return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_bad_password))
             }
             plain
         } else {
@@ -838,21 +838,21 @@ object DshConfigBackup {
                 ),
             )
         }
-        onLine(ctx.appString(R.string.dsh_bk_step_uploading, plainZip.name))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_uploading, plainZip.name))
         // 大外观包拎出去再上传（见 [managerZipOf]）：dsh-config-manager 有 100MB 单条目上限
         val (managerZip, managerTmp) = managerZipOf(ctx, plainZip)
         val up = upload(managerZip)
         managerTmp?.delete()
-        if (up == null) return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_upload_failed))
+        if (up == null) return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_upload_failed))
         val upObj = runCatching { JSONObject(up) }.getOrNull()
-            ?: return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_upload_bad_json))
+            ?: return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_upload_bad_json))
         val zipPath = upObj.optString("zipPath")
         if (zipPath.isEmpty()) {
             return@withContext PreflightResult.Failed(
-                upObj.optString("error").ifEmpty { ctx.appString(R.string.dsh_bk_upload_no_path) },
+                upObj.optString("error").ifEmpty { ctx.appString(CoreR.string.dsh_bk_upload_no_path) },
             )
         }
-        onLine(ctx.appString(R.string.dsh_bk_step_analyzing))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_analyzing))
         // 带上解密密码：整包由我们解开后交给插件的是明文包，但包内 security/secrets.enc 仍用
         // 同一密码加密。0.1.64 起 /analyze 认 decryptPassword，据此把「只存在于 secrets.enc、
         // 未被 credentialsStatus 声明」的凭据 ref 也算进可恢复集（真机反馈：不带密码这些密钥
@@ -862,10 +862,10 @@ object DshConfigBackup {
             JSONObject().put("zipPath", zipPath)
                 .apply { if (password.isNotEmpty()) put("decryptPassword", password) }
                 .toString(),
-        ) ?: return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_analyze_failed))
+        ) ?: return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_analyze_failed))
         trace(ctx, "import-uploaded zipPath=" + zipPath)
         val analyzeObj = runCatching { JSONObject(analyze) }.getOrNull()
-            ?: return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_analyze_bad_json))
+            ?: return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_analyze_bad_json))
         val analyzeErr = analyzeObj.optString("error")
         if (analyzeErr.isNotEmpty()) return@withContext PreflightResult.Failed(analyzeErr)
         if (!analyzeObj.optBoolean("valid", true)) {
@@ -877,11 +877,11 @@ object DshConfigBackup {
                 }
             }
             return@withContext PreflightResult.Failed(
-                ctx.appString(R.string.dsh_bk_invalid_archive) + detail,
+                ctx.appString(CoreR.string.dsh_bk_invalid_archive) + detail,
             )
         }
         if (analyzeObj.optString("compatibility") == "unsupported") {
-            return@withContext PreflightResult.Failed(ctx.appString(R.string.dsh_bk_incompatible))
+            return@withContext PreflightResult.Failed(ctx.appString(CoreR.string.dsh_bk_incompatible))
         }
         // 试规划：默认策略下未决策的冲突项保持 kind == "Conflict"，数一下就知道要不要问。
         // pathMappings 传空：0.1.64 插件会用 manifest.sourceHome 自动生成「导出机 home → 本机
@@ -1551,16 +1551,16 @@ object DshConfigBackup {
     suspend fun deleteRemoteBackup(ctx: Context, backup: RemoteBackup): String = withContext(Dispatchers.IO) {
         val name = backup.name
         if (!name.endsWith(".zip") || name.contains('/') || name.contains('\\')) {
-            return@withContext ctx.appString(R.string.dsh_bk_remote_delete_bad_name, name)
+            return@withContext ctx.appString(CoreR.string.dsh_bk_remote_delete_bad_name, name)
         }
         val raw = request(
             "POST",
             "/backup-files/delete",
             JSONObject().put("name", name).toString(),
             timeoutMs = 60_000,
-        ) ?: return@withContext ctx.appString(R.string.dsh_bk_remote_delete_failed)
+        ) ?: return@withContext ctx.appString(CoreR.string.dsh_bk_remote_delete_failed)
         val o = runCatching { JSONObject(raw) }.getOrNull()
-            ?: return@withContext ctx.appString(R.string.dsh_bk_remote_delete_failed)
+            ?: return@withContext ctx.appString(CoreR.string.dsh_bk_remote_delete_failed)
         // 插件失败时给的是 {error}，原样显示比我翻译一遍有用
         val err = o.optString("error")
         if (err.isNotEmpty()) err else ""
@@ -1602,18 +1602,18 @@ object DshConfigBackup {
             timeoutMs = 60_000,
         ) ?: return@withContext RestoreResult(
             false,
-            ctx.appString(R.string.dsh_bk_snapshot_delete_failed),
+            ctx.appString(CoreR.string.dsh_bk_snapshot_delete_failed),
         )
         val o = runCatching { JSONObject(raw) }.getOrNull()
             ?: return@withContext RestoreResult(
                 false,
-                ctx.appString(R.string.dsh_bk_snapshot_delete_failed),
+                ctx.appString(CoreR.string.dsh_bk_snapshot_delete_failed),
             )
         val err = o.optString("error")
         if (err.isNotEmpty()) {
             RestoreResult(false, err)
         } else {
-            RestoreResult(true, ctx.appString(R.string.dsh_bk_snapshot_deleted, snapshotId))
+            RestoreResult(true, ctx.appString(CoreR.string.dsh_bk_snapshot_deleted, snapshotId))
         }
     }
 
@@ -1704,14 +1704,14 @@ object DshConfigBackup {
         val tmpDir = File(ctx.filesDir, "backup-tmp").apply { mkdirs() }
         val plainZip: File = preflight?.plainZip ?: if (DshBackupCrypto.isArchiveBlobFile(zip)) {
             if (password.isEmpty()) {
-                return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_need_password))
+                return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_need_password))
             }
             DshBackupCrypto.selfTest()?.let {
-                return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_crypto_broken, it))
+                return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_crypto_broken, it))
             }
             val plain = File(tmpDir, "import-plain.zip")
             if (!DshBackupCrypto.decryptArchiveToFile(zip, plain, password)) {
-                return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_bad_password))
+                return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_bad_password))
             }
             plain
         } else {
@@ -1726,9 +1726,9 @@ object DshConfigBackup {
                 // 这条分支不再往下走，临时明文要在这里就删掉：它可能是解密出来的包，
                 // 里面带着 security/secrets.enc 与 App 数据，留在 filesDir 里没有道理。
                 if (plainZip != zip) plainZip.delete()
-                return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_appdata_none))
+                return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_appdata_none))
             }
-            onLine(ctx.appString(R.string.dsh_bk_step_appdata))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_appdata))
             val applied = DshAppData.apply(ctx, data)
             trace(ctx, "import-appdata changed=" + applied.changed + " files=" + applied.files)
             // 外观必须在软件数据**之后**落地：两边都会写那几个外观参数（自定义主色、
@@ -1738,15 +1738,15 @@ object DshConfigBackup {
             val lines = DshAppData.mergeAudit(ctx, plainZip)
             if (plainZip != zip) plainZip.delete()
             val note = buildString {
-                append(ctx.appString(R.string.dsh_bk_appdata_restored, applied.changed))
-                if (lines > 0) append("，").append(ctx.appString(R.string.dsh_bk_audit_merged, lines))
+                append(ctx.appString(CoreR.string.dsh_bk_appdata_restored, applied.changed))
+                if (lines > 0) append("，").append(ctx.appString(CoreR.string.dsh_bk_audit_merged, lines))
                 append("，").append(themeNote(ctx, theme))
                 appendExcluded(ctx, data, applied.excluded)
-                append("\n").append(ctx.appString(R.string.dsh_bk_appdata_takes_effect))
+                append("\n").append(ctx.appString(CoreR.string.dsh_bk_appdata_takes_effect))
             }
             return@withContext ImportResult(
                 ok = true,
-                message = ctx.appString(R.string.dsh_bk_import_done, note),
+                message = ctx.appString(CoreR.string.dsh_bk_import_done, note),
                 theme = theme,
                 privilegeSkipped = DshAppData.excludedPrivilegeCount(data),
             )
@@ -1755,37 +1755,37 @@ object DshConfigBackup {
         var zipPath = preflight?.zipPath.orEmpty()
         var containerType = ""
         if (zipPath.isEmpty()) {
-            onLine(ctx.appString(R.string.dsh_bk_step_uploading, plainZip.name))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_uploading, plainZip.name))
             // 大外观包拎出去再上传（见 [managerZipOf]）：dsh-config-manager 有 100MB 单条目上限
             val (managerZip, managerTmp) = managerZipOf(ctx, plainZip)
             val up = upload(managerZip)
             managerTmp?.delete()
-            if (up == null) return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_upload_failed))
+            if (up == null) return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_upload_failed))
             val upObj = runCatching { JSONObject(up) }.getOrNull()
-                ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_upload_bad_json))
+                ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_upload_bad_json))
             zipPath = upObj.optString("zipPath")
             containerType = upObj.optString("containerType")
             if (zipPath.isEmpty()) {
-                return@withContext ImportResult(false, upObj.optString("error").ifEmpty { ctx.appString(R.string.dsh_bk_upload_no_path) })
+                return@withContext ImportResult(false, upObj.optString("error").ifEmpty { ctx.appString(CoreR.string.dsh_bk_upload_no_path) })
             }
         }
 
         // 走到这里还被告知是加密包，说明它的 magic 不是 DCA1（例如别人改过字节）——不猜，
         // 直接告诉用户解不开，而不是把一个半懂的文件递给插件。
         if (containerType == "encrypted") {
-            return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_unlock_failed))
+            return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_unlock_failed))
         }
 
-        onLine(ctx.appString(R.string.dsh_bk_step_analyzing))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_analyzing))
         // decryptPassword 同预检：让插件把 secrets.enc 里的凭据算进可恢复集（见预检处注释）。
         val analyze = request(
             "POST", "/analyze",
             JSONObject().put("zipPath", zipPath)
                 .apply { if (password.isNotEmpty()) put("decryptPassword", password) }
                 .toString(),
-        ) ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_analyze_failed))
+        ) ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_analyze_failed))
         val analyzeObj = runCatching { JSONObject(analyze) }.getOrNull()
-            ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_analyze_bad_json))
+            ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_analyze_bad_json))
         val analyzeErr = analyzeObj.optString("error")
         if (analyzeErr.isNotEmpty()) return@withContext ImportResult(false, analyzeErr)
         // ImportAnalysis.valid / compatibility 才是「这个包能不能导」的判断依据。
@@ -1799,10 +1799,10 @@ object DshConfigBackup {
                     if (e.isNotEmpty()) append("✗ ").append(e).append('\n')
                 }
             }
-            return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_invalid_archive), detail)
+            return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_invalid_archive), detail)
         }
         if (analyzeObj.optString("compatibility") == "unsupported") {
-            return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_incompatible))
+            return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_incompatible))
         }
 
         val decisions = JSONObject().apply {
@@ -1814,16 +1814,16 @@ object DshConfigBackup {
             put("resolutions", JSONObject().apply { for ((id, r) in resolutions) put(id, r) })
             put("pathMappings", JSONArray())
         }
-        onLine(ctx.appString(R.string.dsh_bk_step_planning, strategy))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_planning, strategy))
         val plan = request(
             "POST", "/plan",
             JSONObject().put("zipPath", zipPath)
                 .apply { if (password.isNotEmpty()) put("decryptPassword", password) }
                 .put("decisions", decisions)
                 .toString(),
-        ) ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_plan_failed))
+        ) ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_plan_failed))
         val planObj = runCatching { JSONObject(plan) }.getOrNull()
-            ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_plan_bad_json))
+            ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_plan_bad_json))
         val planErr = planObj.optString("error")
         if (planErr.isNotEmpty()) return@withContext ImportResult(false, planErr)
 
@@ -1909,7 +1909,7 @@ object DshConfigBackup {
             trace(ctx, "import-dirs-none source=" + dirsSource)
         }
         if (wantedDirs.isNotEmpty()) {
-            onLine(ctx.appString(R.string.dsh_bk_step_prepare_dirs, wantedDirs.size))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_prepare_dirs, wantedDirs.size))
             val fix = ensureWorkspaceDirs(ctx, wantedDirs)
             trace(
                 ctx,
@@ -1924,22 +1924,22 @@ object DshConfigBackup {
             for (p in fix.rejected) trace(ctx, "import-dir-rejected " + p)
             for (p in fix.failed) trace(ctx, "import-dir-failed " + p)
             if (fix.created.isNotEmpty()) {
-                notesForDirs = ctx.appString(R.string.dsh_bk_import_dirs_created, fix.created.size, fix.created.joinToString("、"))
+                notesForDirs = ctx.appString(CoreR.string.dsh_bk_import_dirs_created, fix.created.size, fix.created.joinToString("、"))
             } else if (fix.failed.isNotEmpty() || fix.rejected.isNotEmpty()) {
                 notesForDirs = ctx.appString(
-                    R.string.dsh_bk_import_dirs_failed,
+                    CoreR.string.dsh_bk_import_dirs_failed,
                     (fix.failed + fix.rejected).joinToString("；"),
                 )
             }
         }
-        onLine(ctx.appString(R.string.dsh_bk_step_executing))
+        onLine(ctx.appString(CoreR.string.dsh_bk_step_executing))
         val exec = request(
             "POST", "/execute",
             JSONObject().put("zipPath", zipPath).put("plan", planObj).put("opts", opts).toString(),
             timeoutMs = 900_000,
-        ) ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_exec_failed))
+        ) ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_exec_failed))
         val execObj = runCatching { JSONObject(exec) }.getOrNull()
-            ?: return@withContext ImportResult(false, ctx.appString(R.string.dsh_bk_exec_bad_json))
+            ?: return@withContext ImportResult(false, ctx.appString(CoreR.string.dsh_bk_exec_bad_json))
         val execErr = execObj.optString("error")
         if (execErr.isNotEmpty()) return@withContext ImportResult(false, execErr)
 
@@ -1960,14 +1960,14 @@ object DshConfigBackup {
             secretsInfo.decrypted && secretsInfo.keys.isNotEmpty() -> notes
                 .append(
                     ctx.appString(
-                        R.string.dsh_bk_secrets_in_archive,
+                        CoreR.string.dsh_bk_secrets_in_archive,
                         secretsInfo.keys.size,
                         secretsInfo.keys.joinToString("、"),
                     ),
                 )
                 .append("\n")
             secretsInfo.encrypted && secretsInfo.filePresent && !secretsInfo.containsSecrets -> notes
-                .append(ctx.appString(R.string.dsh_bk_secrets_placeholder))
+                .append(ctx.appString(CoreR.string.dsh_bk_secrets_placeholder))
                 .append("\n")
         }
         for (i in 0 until total) {
@@ -2026,8 +2026,8 @@ object DshConfigBackup {
         if (rollback != null) {
             notes.append("↩ ").append(
                 ctx.appString(
-                    if (rollback.optBoolean("full")) R.string.dsh_bk_rolled_back_full
-                    else R.string.dsh_bk_rolled_back_partial
+                    if (rollback.optBoolean("full")) CoreR.string.dsh_bk_rolled_back_full
+                    else CoreR.string.dsh_bk_rolled_back_partial
                 )
             )
             notes.append('\n')
@@ -2037,11 +2037,11 @@ object DshConfigBackup {
             for (i in 0 until (rbFailed?.length() ?: 0)) {
                 val f = rbFailed?.optJSONObject(i) ?: continue
                 notes.append("✗ ")
-                    .append(ctx.appString(R.string.dsh_bk_rollback_failed, f.optString("item")))
+                    .append(ctx.appString(CoreR.string.dsh_bk_rollback_failed, f.optString("item")))
                 f.optString("reason").takeIf { it.isNotEmpty() }?.let { notes.append("：").append(it) }
                 f.optString("manualHint").takeIf { it.isNotEmpty() }?.let { notes.append(" → ").append(it) }
                 notes.append('\n')
-                unresolved += ctx.appString(R.string.dsh_bk_rollback_failed, f.optString("item")) +
+                unresolved += ctx.appString(CoreR.string.dsh_bk_rollback_failed, f.optString("item")) +
                     f.optString("manualHint").takeIf { it.isNotEmpty() }?.let { " → $it" }.orEmpty()
             }
         }
@@ -2061,7 +2061,7 @@ object DshConfigBackup {
         var privilegeSkipped = 0
         val appData = if (rollback == null) DshAppData.readFromZip(plainZip) else null
         if (appData != null) {
-            onLine(ctx.appString(R.string.dsh_bk_step_appdata))
+            onLine(ctx.appString(CoreR.string.dsh_bk_step_appdata))
             val applied = DshAppData.apply(ctx, appData)
             privilegeSkipped = DshAppData.excludedPrivilegeCount(appData)
             // 外观在软件数据之后（见 [restoreThemeZip]）：两边都写那几个外观参数，
@@ -2069,14 +2069,14 @@ object DshConfigBackup {
             val theme = restoreThemeZip(ctx, plainZip, tmpDir)
             themeOutcome = theme
             val lines = DshAppData.mergeAudit(ctx, plainZip)
-            appNote = ctx.appString(R.string.dsh_bk_appdata_restored, applied.changed) +
-                if (lines > 0) "，" + ctx.appString(R.string.dsh_bk_audit_merged, lines) else ""
+            appNote = ctx.appString(CoreR.string.dsh_bk_appdata_restored, applied.changed) +
+                if (lines > 0) "，" + ctx.appString(CoreR.string.dsh_bk_audit_merged, lines) else ""
             appNote += "，" + themeNote(ctx, theme)
             appNote += buildString { appendExcluded(ctx, appData, applied.excluded) }
             // 设置是写进 SharedPreferences 的，界面里那些已经读进内存的状态不会自己刷新
-            appNote += "\n" + ctx.appString(R.string.dsh_bk_appdata_takes_effect)
+            appNote += "\n" + ctx.appString(CoreR.string.dsh_bk_appdata_takes_effect)
         } else if (rollback != null) {
-            appNote = ctx.appString(R.string.dsh_bk_appdata_skipped_rollback)
+            appNote = ctx.appString(CoreR.string.dsh_bk_appdata_skipped_rollback)
         }
 
         val head = buildString {
@@ -2086,19 +2086,19 @@ object DshConfigBackup {
             // 用带 %1$s 的完整格式串，把计数当参数塞进去。
             append(
                 ctx.appString(
-                    if (ok) R.string.dsh_bk_import_done else R.string.dsh_bk_import_incomplete,
-                    ctx.appString(R.string.dsh_bk_items, total),
+                    if (ok) CoreR.string.dsh_bk_import_done else CoreR.string.dsh_bk_import_incomplete,
+                    ctx.appString(CoreR.string.dsh_bk_items, total),
                 )
             )
-            if (failed > 0) append(ctx.appString(R.string.dsh_bk_items_failed, failed))
-            if (warned > 0) append(ctx.appString(R.string.dsh_bk_items_warned, warned))
-            if (skipped > 0) append(ctx.appString(R.string.dsh_bk_items_skipped, skipped))
+            if (failed > 0) append(ctx.appString(CoreR.string.dsh_bk_items_failed, failed))
+            if (warned > 0) append(ctx.appString(CoreR.string.dsh_bk_items_warned, warned))
+            if (skipped > 0) append(ctx.appString(CoreR.string.dsh_bk_items_skipped, skipped))
             if (tombstonedCount > 0) {
-                append(ctx.appString(R.string.dsh_bk_items_tombstoned, tombstonedCount))
+                append(ctx.appString(CoreR.string.dsh_bk_items_tombstoned, tombstonedCount))
             }
-            if (needsRestart) append(ctx.appString(R.string.dsh_bk_needs_restart))
+            if (needsRestart) append(ctx.appString(CoreR.string.dsh_bk_needs_restart))
             execObj.optString("snapshotId").takeIf { it.isNotEmpty() }
-                ?.let { append(ctx.appString(R.string.dsh_bk_snapshot, it)) }
+                ?.let { append(ctx.appString(CoreR.string.dsh_bk_snapshot, it)) }
         }
         val detail = buildString {
             append(notes)
@@ -2264,10 +2264,10 @@ object DshConfigBackup {
                 "POST", "/restore",
                 JSONObject().put("snapshotId", snapshotId).put("dryRun", false).toString(),
                 timeoutMs = 600_000,
-            ) ?: return@withContext RestoreResult(false, ctx.appString(R.string.dsh_bk_snapshot_failed))
+            ) ?: return@withContext RestoreResult(false, ctx.appString(CoreR.string.dsh_bk_snapshot_failed))
             val o = runCatching { JSONObject(raw) }.getOrNull()
                 ?: return@withContext RestoreResult(
-                    false, ctx.appString(R.string.dsh_bk_bad_json), raw.take(200),
+                    false, ctx.appString(CoreR.string.dsh_bk_bad_json), raw.take(200),
                 )
             val err = o.optString("error")
             if (err.isNotEmpty()) {
@@ -2275,7 +2275,7 @@ object DshConfigBackup {
                     err.contains("running", ignoreCase = true)
                 return@withContext RestoreResult(
                     false,
-                    if (busy) ctx.appString(R.string.dsh_bk_snapshot_busy) else err,
+                    if (busy) ctx.appString(CoreR.string.dsh_bk_snapshot_busy) else err,
                 )
             }
             val restored = o.optJSONArray("restored")?.length() ?: 0
@@ -2299,14 +2299,14 @@ object DshConfigBackup {
                 if (v.isNotEmpty()) notes.append("→ ").append(v).append('\n')
             }
             val head = buildString {
-                append(ctx.appString(R.string.dsh_bk_snapshot_done, restored, snapshotId))
+                append(ctx.appString(CoreR.string.dsh_bk_snapshot_done, restored, snapshotId))
                 if (removed.length() > 0) {
-                    append(ctx.appString(R.string.dsh_bk_snapshot_removed, removed.length()))
+                    append(ctx.appString(CoreR.string.dsh_bk_snapshot_removed, removed.length()))
                 }
                 if (failed.length() > 0) {
-                    append(ctx.appString(R.string.dsh_bk_items_failed, failed.length()))
+                    append(ctx.appString(CoreR.string.dsh_bk_items_failed, failed.length()))
                 }
-                if (skipped > 0) append(ctx.appString(R.string.dsh_bk_items_skipped, skipped))
+                if (skipped > 0) append(ctx.appString(CoreR.string.dsh_bk_items_skipped, skipped))
             }
             RestoreResult(failed.length() == 0, head, notes.toString())
         }

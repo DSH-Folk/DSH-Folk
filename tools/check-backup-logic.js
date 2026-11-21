@@ -111,7 +111,7 @@ ok(/val needsRestart: Boolean = false/.test(backup),
 // 底部动作行又有一个，出现两个重复重启按钮（用户反馈）。现在按钮只在底部动作行出现一次。
 ok((wizard.match(/dsh_plugin_restart_now/g) || []).length === 1,
   "结果页只有一个「立即重启」按钮（不再重复两个）");
-ok(!/action = stringResource\(R\.string\.dsh_plugin_restart_now\) to onRestart/.test(wizard),
+ok(!/action = stringResource\((?:Core)?R\.string\.dsh_plugin_restart_now\) to onRestart/.test(wizard),
   "「需重启」下一步清单组不再自带重启按钮（与其它下一步组一致，纯清单）");
 ok(/needsRestart = needsRestart,/.test(backup),
   "构造时把插件的 needsRestart 透出来");
@@ -243,7 +243,7 @@ if (snapRestoreSpan) {
   ok(/previewSnapshot\(snap\.id\)/.test(screen.slice(snapRestoreSpan[0], snapRestoreSpan[1])),
     "点「恢复」先走预览，不是直接执行");
 }
-ok(/R\.string\.dsh_bk_snapshot_confirm_body,\s*snap\.id,\s*pendingActions/.test(screen),
+ok(/(?:Core)?R\.string\.dsh_bk_snapshot_confirm_body,\s*snap\.id,\s*pendingActions/.test(screen),
   "确认框把快照 id 与动作数摆出来（含「会卸载快照里没有的插件」这句）");
 const confirmBody = read("app/src/main/res/values-zh-rCN/dsh_strings.xml")
   .match(/<string name="dsh_bk_snapshot_confirm_body">([\s\S]*?)<\/string>/);
@@ -593,7 +593,7 @@ ok(/private suspend fun exportThemeZip\(/.test(backup) &&
 ok(/private suspend fun restoreThemeZip\(/.test(backup) && /ThemeManager\.importTheme\(ctx, Uri\.fromFile\(tmp\)\)/.test(backup),
   "恢复走既有的主题导入通路（它会把 file:// URI 重写成新路径，并刷 UI）");
 ok(/enum class ThemeOutcome \{ RESTORED, ABSENT, FAILED \}/.test(backup) &&
-  /ThemeOutcome\.ABSENT -> ctx\.appString\(R\.string\.dsh_bk_theme_absent\)/.test(backup),
+  /ThemeOutcome\.ABSENT -> ctx\.appString\((?:Core)?R\.string\.dsh_bk_theme_absent\)/.test(backup),
   "三种结局（恢复/包里有但这次没走软件数据/失败）分开说，旧包不会被当成失败");
 // 顺序：软件数据在前、主题在后（两边都写外观参数，主题后落地才是最终生效的那份）
 const themeOrderApply = backup.indexOf("DshAppData.apply(ctx, data)");
@@ -736,7 +736,7 @@ ok(/target\.exists\(\) && target\.length\(\) == src\.length\(\)/.test(backup),
   "复制后校验存在且大小一致");
 ok(/if \(!copied\) return src\.absolutePath to false/.test(backup),
   "复制失败退回暂存文件真实路径");
-ok(/if \(!publicOk\) append\("\\n! "\)\.append\(ctx\.appString\(R\.string\.dsh_bk_copy_failed\)\)/.test(backup),
+ok(/if \(!publicOk\) append\("\\n! "\)\.append\(ctx\.appString\((?:Core)?R\.string\.dsh_bk_copy_failed\)\)/.test(backup),
   "并把这件事写进给用户看的结果里");
 ok(/val copied = runCatching \{ src\.copyTo\(target, overwrite = true\) \}\.isSuccess &&/.test(backup),
   "不再丢弃 copyTo 的结果（原来 runCatching 的返回值没人看）");

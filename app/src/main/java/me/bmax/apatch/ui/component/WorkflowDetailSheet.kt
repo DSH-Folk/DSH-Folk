@@ -36,9 +36,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowDefinition
 import me.bmax.apatch.dsh.effectiveCaps
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 流程详情弹窗：**点列表里的一行就弹这个**，不再在行内就地展开。
@@ -103,7 +103,7 @@ internal fun WorkflowDetailDialog(
                         descText = it
                         onMetaChange(nameText, it)
                     },
-                    label = { Text(stringResource(R.string.dsh_wf_detail_desc)) },
+                    label = { Text(stringResource(CoreR.string.dsh_wf_detail_desc)) },
                     textStyle = MaterialTheme.typography.bodySmall,
                     minLines = 2,
                     maxLines = 4,
@@ -111,7 +111,7 @@ internal fun WorkflowDetailDialog(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.dsh_wf_detail_nodes, def.nodes.size, def.edges.size) +
+                    text = stringResource(CoreR.string.dsh_wf_detail_nodes, def.nodes.size, def.edges.size) +
                         (lastStateText?.let { " · " + it } ?: ""),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -169,9 +169,9 @@ internal fun WorkflowDetailDialog(
                 val caps = def.effectiveCaps
                 Text(
                     text = if (caps.isEmpty()) {
-                        stringResource(R.string.dsh_wf_detail_nocaps)
+                        stringResource(CoreR.string.dsh_wf_detail_nocaps)
                     } else {
-                        stringResource(R.string.dsh_wf_detail_caps, caps.joinToString("、"))
+                        stringResource(CoreR.string.dsh_wf_detail_caps, caps.joinToString("、"))
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -185,12 +185,12 @@ internal fun WorkflowDetailDialog(
                 ) {
                     TextButton(onClick = onDelete) {
                         Text(
-                            stringResource(R.string.dsh_workflow_action_delete),
+                            stringResource(CoreR.string.dsh_workflow_action_delete),
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-                    TextButton(onClick = onEdit) { Text(stringResource(R.string.dsh_workflow_action_edit)) }
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_workflow_action_close)) }
+                    TextButton(onClick = onEdit) { Text(stringResource(CoreR.string.dsh_workflow_action_edit)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_workflow_action_close)) }
                 }
             }
         }

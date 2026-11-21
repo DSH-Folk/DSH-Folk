@@ -40,6 +40,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 原生能力桥：容器内的 agent 通过 `/native/` 下的全部端点 让**宿主 App 代它**做只有 Android 侧
@@ -688,17 +689,17 @@ object DshNativeBridge {
         }
         val workflowCall = workflowGrant != null
         if (!workflowCall && !enabled(ctx)) {
-            return 403 to err(str(ctx, R.string.dsh_native_err_disabled), "disabled")
+            return 403 to err(str(ctx, CoreR.string.dsh_native_err_disabled), "disabled")
         }
 
         val reason = text(params["reason"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_reason_required), "reason_required")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_reason_required), "reason_required")
         // 这次调用是否经过用户当场同意（免确认路径留 auto）。只用于审计 —— 事后要能回答
         // 「这条 root 命令是用户点过头的，还是宽松档直接跑的」。
         var privDecision = "auto"
         val cap = capOf(path)
             ?: return 404 to err(
-                str(ctx, R.string.dsh_native_err_unknown_endpoint, method, path),
+                str(ctx, CoreR.string.dsh_native_err_unknown_endpoint, method, path),
                 "unknown_endpoint",
             )
         // 档位不够时**不**直接 403，而是阻塞着问用户。用户同意就把这次调用就地执行掉并返回真实
@@ -734,7 +735,7 @@ object DshNativeBridge {
             // 弹窗只有在前台才看得见；不在前台就别把这条连接挂在这里等一个永远不会出现的弹窗
             if (!isForeground(ctx)) {
                 val result = 409 to err(
-                    str(ctx, R.string.dsh_native_err_elevate_foreground),
+                    str(ctx, CoreR.string.dsh_native_err_elevate_foreground),
                     "not_foreground",
                 )
                 audit(ctx, method, path, params, cap, reason, result)
@@ -759,7 +760,7 @@ object DshNativeBridge {
             )
             if (request == null) {
                 val result = 409 to err(
-                    str(ctx, R.string.dsh_native_err_elevate_busy),
+                    str(ctx, CoreR.string.dsh_native_err_elevate_busy),
                     "request_pending",
                 )
                 audit(ctx, method, path, params, cap, reason, result)
@@ -775,7 +776,7 @@ object DshNativeBridge {
                 DshElevationRequests.Decision.DENIED -> {
                     privDecision = "denied"
                     val result = 403 to err(
-                        str(ctx, R.string.dsh_native_err_denied, capName(ctx, cap)),
+                        str(ctx, CoreR.string.dsh_native_err_denied, capName(ctx, cap)),
                         "denied_by_user",
                     )
                     // 被拒这条也要记「当时是什么判据在问」：restrictMode 关着却问了，
@@ -787,7 +788,7 @@ object DshNativeBridge {
                 DshElevationRequests.Decision.EXPIRED -> {
                     privDecision = "expired"
                     val result = 403 to err(
-                        str(ctx, R.string.dsh_native_err_request_expired, capName(ctx, cap)),
+                        str(ctx, CoreR.string.dsh_native_err_request_expired, capName(ctx, cap)),
                         "request_expired",
                     )
                     audit(ctx, method, path, params, cap, reason, result, privAuditExtra(ctx, cap, privDecision))
@@ -804,20 +805,20 @@ object DshNativeBridge {
         // 而不是假装放行。
         if (!workflowCall && !capCallable(ctx, cap)) {
             val result = 403 to err(
-                str(ctx, R.string.dsh_native_err_cap_disabled, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_cap_disabled, capName(ctx, cap)),
                 "cap_disabled",
             )
             audit(ctx, method, path, params, cap, reason, result)
             return result
         }
         if (!workflowCall && path == "/native/notify/system" && effectiveAccess(ctx, cap) != Access.CONTROL) {
-            val result = 403 to err(str(ctx, R.string.dsh_native_err_control_disabled, capName(ctx, cap)), "control_disabled")
+            val result = 403 to err(str(ctx, CoreR.string.dsh_native_err_control_disabled, capName(ctx, cap)), "control_disabled")
             audit(ctx, method, path, params, cap, reason, result)
             return result
         }
         if (!workflowCall && isWriteRequest(method, path, params) && !canWrite(ctx, cap)) {
             val result = 403 to err(
-                str(ctx, R.string.dsh_native_err_write_disabled, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_write_disabled, capName(ctx, cap)),
                 "write_disabled",
             )
             audit(ctx, method, path, params, cap, reason, result)
@@ -825,7 +826,7 @@ object DshNativeBridge {
         }
         if (!workflowCall && !isWriteRequest(method, path, params) && !canRead(ctx, cap)) {
             val result = 403 to err(
-                str(ctx, R.string.dsh_native_err_read_disabled, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_read_disabled, capName(ctx, cap)),
                 "read_disabled",
             )
             audit(ctx, method, path, params, cap, reason, result)
@@ -836,7 +837,7 @@ object DshNativeBridge {
         val gap = osGap(ctx, cap, need ?: effectiveAccess(ctx, cap))
         if (gap != null && !awaitOsGap(ctx, cap, need ?: effectiveAccess(ctx, cap), gap)) {
             val result = 409 to err(
-                str(ctx, R.string.dsh_native_err_no_android_permission, gap.labels.joinToString(", ")),
+                str(ctx, CoreR.string.dsh_native_err_no_android_permission, gap.labels.joinToString(", ")),
                 "no_android_permission",
             )
             audit(ctx, method, path, params, cap, reason, result)
@@ -845,7 +846,7 @@ object DshNativeBridge {
         val (ok, why) = availability(ctx, cap)
         if (!ok) {
             val result = 409 to err(
-                str(ctx, R.string.dsh_native_err_cap_unavailable, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_cap_unavailable, capName(ctx, cap)),
                 why,
             )
             audit(ctx, method, path, params, cap, reason, result)
@@ -962,7 +963,7 @@ object DshNativeBridge {
             // 端点处理器抛异常（未 runCatching 的那几个）：回一个带原因的 500，并且**照常审计**，
             // 否则这条调用在记录里凭空消失。
             Log.w(TAG, "native endpoint threw $method $path: ${e.message}")
-            500 to err(str(ctx, R.string.dsh_native_err_internal, e.message ?: ""), "internal")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_internal, e.message ?: ""), "internal")
         }
         // 扩展拦截点（调用后）：结果已经拿到，允许扩展**改写响应**。
         //
@@ -1001,17 +1002,17 @@ object DshNativeBridge {
      */
     private fun shellExec(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val command = text(params["cmd"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_shell_no_command), "no_command")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_shell_no_command), "no_command")
         val asRoot = params["su"] == "1"
         val timeout = params["timeout"]?.toLongOrNull() ?: PrivilegedShell.DEFAULT_TIMEOUT_MS
         val risk = PrivilegedShell.riskOf(command)
         // 这里**不**自己写审计：[handle] 拿到返回值之后统一记一条，自己再记一条会变成
         // 同一次调用出现两行（而且下面那些早期返回也都被记过两遍）
         PrivilegedShell.denyReason(ctx, risk, asRoot)?.let { deny ->
-            return 403 to err(str(ctx, R.string.dsh_native_err_priv_denied, privReasonText(ctx, deny)), deny)
+            return 403 to err(str(ctx, CoreR.string.dsh_native_err_priv_denied, privReasonText(ctx, deny)), deny)
         }
         if (!PrivilegedShell.tryEnter()) {
-            return 429 to err(str(ctx, R.string.dsh_native_err_priv_busy), "busy")
+            return 429 to err(str(ctx, CoreR.string.dsh_native_err_priv_busy), "busy")
         }
         val outcome = try {
             PrivilegedShell.exec(ctx, command, asRoot, timeout)
@@ -1036,7 +1037,7 @@ object DshNativeBridge {
             200 to body.toString()
         } else {
             val status = if (outcome.timedOut) 504 else 409
-            body.put("error", str(ctx, R.string.dsh_native_err_shell_failed, privReasonText(ctx, outcome.note)))
+            body.put("error", str(ctx, CoreR.string.dsh_native_err_shell_failed, privReasonText(ctx, outcome.note)))
             status to body.toString()
         }
     }
@@ -1087,25 +1088,25 @@ object DshNativeBridge {
                     val x = params["x"]?.toFloatOrNull()
                     val y = params["y"]?.toFloatOrNull()
                     if (x == null || y == null) {
-                        return 400 to err(str(ctx, R.string.dsh_native_err_a11y_bad_args), "bad_args")
+                        return 400 to err(str(ctx, CoreR.string.dsh_native_err_a11y_bad_args), "bad_args")
                     }
                     DshA11y.tap(x, y, params["ms"]?.toLongOrNull() ?: 60L)
                 }
                 "click" -> {
                     val target = text(params["target"])
-                        ?: return 400 to err(str(ctx, R.string.dsh_native_err_a11y_bad_args), "bad_args")
+                        ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_a11y_bad_args), "bad_args")
                     DshA11y.click(target, text(params["class"]), params["index"]?.toIntOrNull() ?: 0)
                 }
                 "swipe" -> {
                     val nums = listOf("x1", "y1", "x2", "y2").map { params[it]?.toFloatOrNull() }
                     if (nums.any { it == null }) {
-                        return 400 to err(str(ctx, R.string.dsh_native_err_a11y_bad_args), "bad_args")
+                        return 400 to err(str(ctx, CoreR.string.dsh_native_err_a11y_bad_args), "bad_args")
                     }
                     DshA11y.swipe(nums[0]!!, nums[1]!!, nums[2]!!, nums[3]!!, params["ms"]?.toLongOrNull() ?: 300L)
                 }
                 "text" -> {
                     val value = params["text"]
-                        ?: return 400 to err(str(ctx, R.string.dsh_native_err_a11y_bad_args), "bad_args")
+                        ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_a11y_bad_args), "bad_args")
                     DshA11y.setText(
                         value,
                         text(params["target"]),
@@ -1115,7 +1116,7 @@ object DshNativeBridge {
                 }
                 "global" -> {
                     val act = text(params["action"])
-                        ?: return 400 to err(str(ctx, R.string.dsh_native_err_a11y_bad_args), "bad_args")
+                        ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_a11y_bad_args), "bad_args")
                     DshA11y.global(act)
                 }
                 "screenshot" -> DshA11y.screenshot(ctx)
@@ -1139,20 +1140,20 @@ object DshNativeBridge {
     private fun privReasonText(ctx: Context, reason: String): String = str(
         ctx,
         when (reason) {
-            "no_channel" -> R.string.dsh_native_priv_reason_no_channel
-            "root_unavailable" -> R.string.dsh_native_priv_reason_root_unavailable
-            "adb_root_disabled" -> R.string.dsh_native_priv_reason_adb_root
-            "adb_write_disabled" -> R.string.dsh_native_priv_reason_adb_write
-            "runtime_missing" -> R.string.dsh_native_priv_reason_runtime
-            "root_lost" -> R.string.dsh_native_priv_reason_root_lost
-            "channel_lost" -> R.string.dsh_native_priv_reason_channel_lost
-            "timeout" -> R.string.dsh_native_priv_reason_timeout
+            "no_channel" -> CoreR.string.dsh_native_priv_reason_no_channel
+            "root_unavailable" -> CoreR.string.dsh_native_priv_reason_root_unavailable
+            "adb_root_disabled" -> CoreR.string.dsh_native_priv_reason_adb_root
+            "adb_write_disabled" -> CoreR.string.dsh_native_priv_reason_adb_write
+            "runtime_missing" -> CoreR.string.dsh_native_priv_reason_runtime
+            "root_lost" -> CoreR.string.dsh_native_priv_reason_root_lost
+            "channel_lost" -> CoreR.string.dsh_native_priv_reason_channel_lost
+            "timeout" -> CoreR.string.dsh_native_priv_reason_timeout
             // 「选了通道但还没就绪」三种：文案必须说清下一步做什么，
             // 否则用户看到的是一句像是故障的提示
-            PrivilegedShell.REASON_ROOT_UNVERIFIED -> R.string.dsh_native_priv_reason_root_unverified
-            PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED -> R.string.dsh_native_priv_reason_shizuku_unauthorized
-            PrivilegedShell.REASON_ADB_UNPAIRED -> R.string.dsh_native_priv_reason_adb_unpaired
-            else -> R.string.dsh_native_priv_reason_unknown
+            PrivilegedShell.REASON_ROOT_UNVERIFIED -> CoreR.string.dsh_native_priv_reason_root_unverified
+            PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED -> CoreR.string.dsh_native_priv_reason_shizuku_unauthorized
+            PrivilegedShell.REASON_ADB_UNPAIRED -> CoreR.string.dsh_native_priv_reason_adb_unpaired
+            else -> CoreR.string.dsh_native_priv_reason_unknown
         },
     )
 
@@ -1165,33 +1166,33 @@ object DshNativeBridge {
     private fun capName(ctx: Context, cap: Cap): String = str(
         ctx,
         when (cap) {
-            Cap.NOTIFY -> R.string.dsh_native_cap_notify
-            Cap.FULL_SCREEN_NOTIFY -> R.string.dsh_native_cap_full_screen_notify
-            Cap.TOAST -> R.string.dsh_native_cap_toast
-            Cap.VIBRATE -> R.string.dsh_native_cap_vibrate
-            Cap.TORCH -> R.string.dsh_native_cap_torch
-            Cap.CLIPBOARD -> R.string.dsh_native_cap_clipboard
-            Cap.INTENT -> R.string.dsh_native_cap_intent
-            Cap.DEVICE -> R.string.dsh_native_cap_device
-            Cap.MEDIA -> R.string.dsh_native_cap_media
-            Cap.MIC -> R.string.dsh_native_cap_mic
-            Cap.CAMERA -> R.string.dsh_native_cap_camera
-            Cap.TTS -> R.string.dsh_native_cap_tts
-            Cap.CALENDAR -> R.string.dsh_native_cap_calendar
-            Cap.CONTACTS -> R.string.dsh_native_cap_contacts
-            Cap.LOCATION -> R.string.dsh_native_cap_location
-            Cap.PHONE -> R.string.dsh_native_cap_phone
-            Cap.SENSORS -> R.string.dsh_native_cap_sensors
-            Cap.NETWORK -> R.string.dsh_native_cap_network
-            Cap.VOLUME -> R.string.dsh_native_cap_volume
-            Cap.SETTINGS -> R.string.dsh_native_cap_settings
-            Cap.INSTALL -> R.string.dsh_native_cap_install
-            Cap.USAGE -> R.string.dsh_native_cap_usage
-            Cap.SAF -> R.string.dsh_native_cap_saf
-            Cap.SMS -> R.string.dsh_native_cap_sms
-            Cap.SHELL -> R.string.dsh_native_cap_shell
-            Cap.A11Y -> R.string.dsh_native_cap_a11y
-            Cap.DISPLAY -> R.string.dsh_native_cap_display
+            Cap.NOTIFY -> CoreR.string.dsh_native_cap_notify
+            Cap.FULL_SCREEN_NOTIFY -> CoreR.string.dsh_native_cap_full_screen_notify
+            Cap.TOAST -> CoreR.string.dsh_native_cap_toast
+            Cap.VIBRATE -> CoreR.string.dsh_native_cap_vibrate
+            Cap.TORCH -> CoreR.string.dsh_native_cap_torch
+            Cap.CLIPBOARD -> CoreR.string.dsh_native_cap_clipboard
+            Cap.INTENT -> CoreR.string.dsh_native_cap_intent
+            Cap.DEVICE -> CoreR.string.dsh_native_cap_device
+            Cap.MEDIA -> CoreR.string.dsh_native_cap_media
+            Cap.MIC -> CoreR.string.dsh_native_cap_mic
+            Cap.CAMERA -> CoreR.string.dsh_native_cap_camera
+            Cap.TTS -> CoreR.string.dsh_native_cap_tts
+            Cap.CALENDAR -> CoreR.string.dsh_native_cap_calendar
+            Cap.CONTACTS -> CoreR.string.dsh_native_cap_contacts
+            Cap.LOCATION -> CoreR.string.dsh_native_cap_location
+            Cap.PHONE -> CoreR.string.dsh_native_cap_phone
+            Cap.SENSORS -> CoreR.string.dsh_native_cap_sensors
+            Cap.NETWORK -> CoreR.string.dsh_native_cap_network
+            Cap.VOLUME -> CoreR.string.dsh_native_cap_volume
+            Cap.SETTINGS -> CoreR.string.dsh_native_cap_settings
+            Cap.INSTALL -> CoreR.string.dsh_native_cap_install
+            Cap.USAGE -> CoreR.string.dsh_native_cap_usage
+            Cap.SAF -> CoreR.string.dsh_native_cap_saf
+            Cap.SMS -> CoreR.string.dsh_native_cap_sms
+            Cap.SHELL -> CoreR.string.dsh_native_cap_shell
+            Cap.A11Y -> CoreR.string.dsh_native_cap_a11y
+            Cap.DISPLAY -> CoreR.string.dsh_native_cap_display
         },
     )
 
@@ -1301,17 +1302,17 @@ object DshNativeBridge {
      * 用的是持久档位，但走同一个入口保证口径一致。
      */
     fun safGate(ctx: Context, method: String, path: String): Pair<Int, String>? {
-        if (!enabled(ctx)) return 403 to err(str(ctx, R.string.dsh_native_err_disabled), "disabled")
+        if (!enabled(ctx)) return 403 to err(str(ctx, CoreR.string.dsh_native_err_disabled), "disabled")
         val cap = Cap.SAF
         if (!capEnabled(ctx, cap)) {
-            return 403 to err(str(ctx, R.string.dsh_native_err_cap_disabled, capName(ctx, cap)), "cap_disabled")
+            return 403 to err(str(ctx, CoreR.string.dsh_native_err_cap_disabled, capName(ctx, cap)), "cap_disabled")
         }
         return if (safWriteRequest(path)) {
             if (canWrite(ctx, cap)) null
-            else 403 to err(str(ctx, R.string.dsh_native_err_write_disabled, capName(ctx, cap)), "write_disabled")
+            else 403 to err(str(ctx, CoreR.string.dsh_native_err_write_disabled, capName(ctx, cap)), "write_disabled")
         } else {
             if (canRead(ctx, cap)) null
-            else 403 to err(str(ctx, R.string.dsh_native_err_read_disabled, capName(ctx, cap)), "read_disabled")
+            else 403 to err(str(ctx, CoreR.string.dsh_native_err_read_disabled, capName(ctx, cap)), "read_disabled")
         }
     }
 
@@ -1505,42 +1506,42 @@ object DshNativeBridge {
     private fun specialLabel(ctx: Context, special: Special): String = str(
         ctx,
         when (special) {
-            Special.WRITE_SETTINGS -> R.string.dsh_native_perm_label_write_settings
-            Special.NOTIFICATION_POLICY -> R.string.dsh_native_perm_label_dnd
-            Special.REQUEST_INSTALL -> R.string.dsh_native_perm_label_install
-            Special.FULL_SCREEN_INTENT -> R.string.dsh_native_perm_label_full_screen
-            Special.NOTIFICATION_ACCESS -> R.string.dsh_native_perm_label_notification_access
-            Special.USAGE_STATS -> R.string.dsh_native_perm_label_usage
-            Special.A11Y_SERVICE -> R.string.dsh_native_perm_label_a11y
+            Special.WRITE_SETTINGS -> CoreR.string.dsh_native_perm_label_write_settings
+            Special.NOTIFICATION_POLICY -> CoreR.string.dsh_native_perm_label_dnd
+            Special.REQUEST_INSTALL -> CoreR.string.dsh_native_perm_label_install
+            Special.FULL_SCREEN_INTENT -> CoreR.string.dsh_native_perm_label_full_screen
+            Special.NOTIFICATION_ACCESS -> CoreR.string.dsh_native_perm_label_notification_access
+            Special.USAGE_STATS -> CoreR.string.dsh_native_perm_label_usage
+            Special.A11Y_SERVICE -> CoreR.string.dsh_native_perm_label_a11y
         },
     )
 
     /** 运行时权限的短名；不认识的就用权限名的最后一段，别把整串包名塞给用户。 */
     private fun permissionLabel(ctx: Context, permission: String): String {
         val known = when (permission) {
-            android.Manifest.permission.POST_NOTIFICATIONS -> R.string.dsh_native_perm_label_notifications
-            android.Manifest.permission.CAMERA -> R.string.dsh_native_perm_label_camera
-            android.Manifest.permission.RECORD_AUDIO -> R.string.dsh_native_perm_label_microphone
+            android.Manifest.permission.POST_NOTIFICATIONS -> CoreR.string.dsh_native_perm_label_notifications
+            android.Manifest.permission.CAMERA -> CoreR.string.dsh_native_perm_label_camera
+            android.Manifest.permission.RECORD_AUDIO -> CoreR.string.dsh_native_perm_label_microphone
             android.Manifest.permission.READ_CONTACTS,
             android.Manifest.permission.WRITE_CONTACTS,
-            -> R.string.dsh_native_perm_label_contacts
+            -> CoreR.string.dsh_native_perm_label_contacts
             android.Manifest.permission.READ_CALENDAR,
             android.Manifest.permission.WRITE_CALENDAR,
-            -> R.string.dsh_native_perm_label_calendar
+            -> CoreR.string.dsh_native_perm_label_calendar
             android.Manifest.permission.ACCESS_FINE_LOCATION,
             android.Manifest.permission.ACCESS_COARSE_LOCATION,
-            -> R.string.dsh_native_perm_label_location
-            android.Manifest.permission.READ_PHONE_STATE -> R.string.dsh_native_perm_label_phone
-            android.Manifest.permission.BODY_SENSORS -> R.string.dsh_native_perm_label_sensors
+            -> CoreR.string.dsh_native_perm_label_location
+            android.Manifest.permission.READ_PHONE_STATE -> CoreR.string.dsh_native_perm_label_phone
+            android.Manifest.permission.BODY_SENSORS -> CoreR.string.dsh_native_perm_label_sensors
             android.Manifest.permission.READ_SMS,
             android.Manifest.permission.SEND_SMS,
             android.Manifest.permission.RECEIVE_SMS,
-            -> R.string.dsh_native_perm_label_sms
+            -> CoreR.string.dsh_native_perm_label_sms
             android.Manifest.permission.READ_MEDIA_IMAGES,
             android.Manifest.permission.READ_MEDIA_VIDEO,
             android.Manifest.permission.READ_MEDIA_AUDIO,
             android.Manifest.permission.READ_EXTERNAL_STORAGE,
-            -> R.string.dsh_native_perm_label_media
+            -> CoreR.string.dsh_native_perm_label_media
             else -> null
         }
         return known?.let { str(ctx, it) } ?: permission.substringAfterLast('.')
@@ -1551,16 +1552,16 @@ object DshNativeBridge {
         text(raw)?.trim()?.take(MAX_COMMAND_CHARS)?.takeIf { it.isNotBlank() }
 
     private fun requestElevation(ctx: Context, params: Map<String, String>): Pair<Int, String> {
-        if (!enabled(ctx)) return 403 to err(str(ctx, R.string.dsh_native_err_disabled), "disabled")
+        if (!enabled(ctx)) return 403 to err(str(ctx, CoreR.string.dsh_native_err_disabled), "disabled")
         if (!isForeground(ctx)) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_elevate_foreground), "not_foreground")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_elevate_foreground), "not_foreground")
         }
         val cap = Cap.entries.firstOrNull { it.id == params["cap"] }
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_bad_cap), "bad_cap")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_cap), "bad_cap")
         val requested = Access.entries.firstOrNull { it.id == params["access"] }
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_bad_access), "bad_access")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_access), "bad_access")
         if (requested !in accessOptions(cap) || requested == Access.OFF) {
-            return 400 to err(str(ctx, R.string.dsh_native_err_bad_access), "bad_access")
+            return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_access), "bad_access")
         }
         val current = access(ctx, cap)
         if (levelCovers(current, requested)) {
@@ -1584,13 +1585,13 @@ object DshNativeBridge {
                 .toString()
         }
         val reason = text(params["reason"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_reason_required), "reason_required")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_reason_required), "reason_required")
         // agent 可以附上「获准后要跑的那条命令」，弹窗原文照显给用户看。命令过长就截断而不是
         // 报错：看到一截命令，用户的判断力也远好过看到一个 400 后什么也没有。
         val command = bounded(params["command"])
         val invocation = bounded(params["invocation"])
         val request = DshElevationRequests.submit(cap, requested, reason, command, invocation)
-            ?: return 409 to err(str(ctx, R.string.dsh_native_err_elevate_busy), "request_pending")
+            ?: return 409 to err(str(ctx, CoreR.string.dsh_native_err_elevate_busy), "request_pending")
         // 事实文件跟着变：提示词知道「已经有一份申请在等用户」，agent 就不会再提一份
         runCatching { DshHostPrompt.writeFacts(ctx.applicationContext) }
         // 阻塞等用户答复。以前这里立刻回 202，让 agent 自己过一会儿再查 pending —— 那等于把
@@ -1620,12 +1621,12 @@ object DshNativeBridge {
                 .toString()
 
             DshElevationRequests.Decision.DENIED -> 403 to err(
-                str(ctx, R.string.dsh_native_err_denied, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_denied, capName(ctx, cap)),
                 "denied_by_user",
             )
 
             DshElevationRequests.Decision.EXPIRED -> 403 to err(
-                str(ctx, R.string.dsh_native_err_request_expired, capName(ctx, cap)),
+                str(ctx, CoreR.string.dsh_native_err_request_expired, capName(ctx, cap)),
                 "request_expired",
             )
         }
@@ -1716,10 +1717,10 @@ object DshNativeBridge {
     private fun channelLabel(ctx: Context, channel: PermissionManager.Channel): String = str(
         ctx,
         when (channel) {
-            PermissionManager.Channel.ROOT -> R.string.dsh_perm_root
-            PermissionManager.Channel.SHIZUKU -> R.string.dsh_perm_shizuku
-            PermissionManager.Channel.ADB -> R.string.dsh_perm_adb
-            PermissionManager.Channel.NONE -> R.string.dsh_perm_none
+            PermissionManager.Channel.ROOT -> CoreR.string.dsh_perm_root
+            PermissionManager.Channel.SHIZUKU -> CoreR.string.dsh_perm_shizuku
+            PermissionManager.Channel.ADB -> CoreR.string.dsh_perm_adb
+            PermissionManager.Channel.NONE -> CoreR.string.dsh_perm_none
         },
     )
 
@@ -1843,18 +1844,18 @@ object DshNativeBridge {
 
     private fun cancelSystemNotification(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!DshNotificationListener.connected()) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_notification_access), "no_notification_access")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_notification_access), "no_notification_access")
         }
         val key = text(params["key"])
         val ok = if (key == null && params["all"] == "1") DshNotificationListener.cancelAll()
         else key?.let(DshNotificationListener::cancel) ?: false
         return if (ok) 200 to JSONObject().put("ok", true).toString()
-        else 400 to err(str(ctx, R.string.dsh_native_err_notification_cancel), "cancel_failed")
+        else 400 to err(str(ctx, CoreR.string.dsh_native_err_notification_cancel), "cancel_failed")
     }
 
     private fun fullScreenNotify(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val title = text(params["title"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "title"), "missing_title")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "title"), "missing_title")
         val body = text(params["body"]) ?: ""
         val open = PendingIntent.getActivity(
             ctx,
@@ -1863,10 +1864,10 @@ object DshNativeBridge {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val nm = ctx.getSystemService(NotificationManager::class.java)
-            ?: return 500 to err(str(ctx, R.string.dsh_native_err_no_service, "NotificationManager"), "no_service")
+            ?: return 500 to err(str(ctx, CoreR.string.dsh_native_err_no_service, "NotificationManager"), "no_service")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
-                NotificationChannel(FULL_SCREEN_CHANNEL_ID, str(ctx, R.string.dsh_native_cap_full_screen_notify), NotificationManager.IMPORTANCE_HIGH),
+                NotificationChannel(FULL_SCREEN_CHANNEL_ID, str(ctx, CoreR.string.dsh_native_cap_full_screen_notify), NotificationManager.IMPORTANCE_HIGH),
             )
         }
         val notification = NotificationCompat.Builder(ctx, FULL_SCREEN_CHANNEL_ID)
@@ -1886,7 +1887,7 @@ object DshNativeBridge {
 
     private fun notificationList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!DshNotificationListener.connected()) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_notification_access), "no_notification_access")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_notification_access), "no_notification_access")
         }
         val limit = (params["limit"]?.toIntOrNull() ?: 50).coerceIn(1, 200)
         return 200 to JSONObject()
@@ -1897,12 +1898,12 @@ object DshNativeBridge {
 
     private fun smsSend(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasSmsSendPermission(ctx)) {
-            return 403 to err(str(ctx, R.string.dsh_native_err_sms_send_denied), "no_sms_send_permission")
+            return 403 to err(str(ctx, CoreR.string.dsh_native_err_sms_send_denied), "no_sms_send_permission")
         }
         val to = text(params["to"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "to"), "missing_to")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "to"), "missing_to")
         val body = text(params["body"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "body"), "missing_body")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "body"), "missing_body")
         return runCatching {
             val manager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 ctx.getSystemService(SmsManager::class.java)
@@ -1915,12 +1916,12 @@ object DshNativeBridge {
             200 to JSONObject().put("ok", true).put("to", to).put("parts", parts.size).toString()
         }.getOrElse { e ->
             Log.w(TAG, "发送短信失败: ${e.message}")
-            500 to err(str(ctx, R.string.dsh_native_err_sms_send, e.message ?: ""), "send_failed")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_sms_send, e.message ?: ""), "send_failed")
         }
     }
 
     private fun notify(ctx: Context, params: Map<String, String>): Pair<Int, String> {
-        val title = text(params["title"]) ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "title"), "missing_title")
+        val title = text(params["title"]) ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "title"), "missing_title")
         val body = text(params["body"]) ?: ""
         val slot = (params["id"]?.toIntOrNull() ?: 0).coerceIn(0, MAX_NOTIFICATION_SLOT)
         val ongoing = params["ongoing"] == "1"
@@ -1928,13 +1929,13 @@ object DshNativeBridge {
 
         ensureChannel(ctx)
         val nm = ctx.getSystemService(NotificationManager::class.java)
-            ?: return 500 to err(str(ctx, R.string.dsh_native_err_no_service, "NotificationManager"), "no_service")
+            ?: return 500 to err(str(ctx, CoreR.string.dsh_native_err_no_service, "NotificationManager"), "no_service")
         return runCatching {
             nm.notify(id, buildNotification(ctx, title, body, ongoing))
             200 to JSONObject().put("ok", true).put("id", slot).toString()
         }.getOrElse { e ->
             Log.w(TAG, "notify 失败: ${e.message}")
-            500 to err(str(ctx, R.string.dsh_native_err_notify_failed, e.message ?: ""), "notify_failed")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_notify_failed, e.message ?: ""), "notify_failed")
         }
     }
 
@@ -1976,11 +1977,11 @@ object DshNativeBridge {
         runCatching {
             val ch = NotificationChannel(
                 CHANNEL_ID,
-                ctx.appString(R.string.dsh_native_notif_channel_name),
+                ctx.appString(CoreR.string.dsh_native_notif_channel_name),
                 // 与前台服务那条 IMPORTANCE_LOW 分开：agent 主动发的通知本来就是要人看见的
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = ctx.appString(R.string.dsh_native_notif_channel_desc)
+                description = ctx.appString(CoreR.string.dsh_native_notif_channel_desc)
             }
             ctx.getSystemService(NotificationManager::class.java)?.createNotificationChannel(ch)
             channelReady = true
@@ -1989,11 +1990,11 @@ object DshNativeBridge {
 
     private fun toast(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val msg = text(params["text"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "text"), "missing_text")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "text"), "missing_text")
         // Toast 必须有 Looper；桥接线程没有
         val done = onMain { me.bmax.apatch.util.ui.showToast(ctx, msg) }
         return if (done) 200 to okJson()
-        else 500 to err(str(ctx, R.string.dsh_native_err_no_service, "UI"), "timeout")
+        else 500 to err(str(ctx, CoreR.string.dsh_native_err_no_service, "UI"), "timeout")
     }
 
     private fun vibrate(ctx: Context, params: Map<String, String>): Pair<Int, String> {
@@ -2002,13 +2003,13 @@ object DshNativeBridge {
             if (it < 0) VibrationEffect.DEFAULT_AMPLITUDE else it.coerceIn(1, 255)
         }
         val v = vibrator(ctx)
-            ?: return 500 to err(str(ctx, R.string.dsh_native_err_no_service, "Vibrator"), "no_service")
+            ?: return 500 to err(str(ctx, CoreR.string.dsh_native_err_no_service, "Vibrator"), "no_service")
         return runCatching {
             v.vibrate(VibrationEffect.createOneShot(ms, amplitude))
             200 to JSONObject().put("ok", true).put("ms", ms).toString()
         }.getOrElse { e ->
             Log.w(TAG, "vibrate 失败: ${e.message}")
-            500 to err(str(ctx, R.string.dsh_native_err_vibrate_failed, e.message ?: ""), "vibrate_failed")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_vibrate_failed, e.message ?: ""), "vibrate_failed")
         }
     }
 
@@ -2027,7 +2028,7 @@ object DshNativeBridge {
 
     private fun clipboardSet(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val value = text(params["text"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "text"), "missing_text")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "text"), "missing_text")
         val label = text(params["label"]) ?: "DSH"
         var failure: String? = null
         val done = onMain {
@@ -2040,13 +2041,13 @@ object DshNativeBridge {
         if (!done && failure == null) failure = "timeout"
         val f = failure
         return if (f == null) 200 to okJson()
-        else 500 to err(str(ctx, R.string.dsh_native_err_clipboard_write, f), "clipboard_failed")
+        else 500 to err(str(ctx, CoreR.string.dsh_native_err_clipboard_write, f), "clipboard_failed")
     }
 
     private fun clipboardGet(ctx: Context): Pair<Int, String> {
         // Android 10 起后台读剪贴板恒为 null，别把它当成「剪贴板是空的」
         if (!isForeground(ctx)) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_clipboard_background), "not_foreground")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_clipboard_background), "not_foreground")
         }
         var value: String? = null
         var present = false
@@ -2060,7 +2061,7 @@ object DshNativeBridge {
             }.onFailure { e -> Log.w(TAG, "读剪贴板失败: ${e.message}") }
         }
         // 主线程卡住没读到：不能回 empty:true（那正是被禁止的「假装剪贴板是空的」）
-        if (!done) return 500 to err(str(ctx, R.string.dsh_native_err_no_service, "UI"), "timeout")
+        if (!done) return 500 to err(str(ctx, CoreR.string.dsh_native_err_no_service, "UI"), "timeout")
         return 200 to JSONObject()
             .put("ok", true)
             .put("empty", !present)
@@ -2073,7 +2074,7 @@ object DshNativeBridge {
 
     private fun share(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val value = text(params["text"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "text"), "missing_text")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "text"), "missing_text")
         val title = text(params["title"])
         if (!isForeground(ctx)) return backgroundActivityDenied(ctx)
         val send = Intent(Intent.ACTION_SEND).apply {
@@ -2086,16 +2087,16 @@ object DshNativeBridge {
 
     private fun open(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val url = text(params["url"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "url"), "missing_url")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "url"), "missing_url")
         // 只放 http/https：file:// 要经 FileProvider 换 content URI，而 intent:// 之类
         // 能被用来拉起任意组件，不是这个接口该提供的能力
         val lower = url.lowercase(Locale.US)
         if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
-            return 400 to err(str(ctx, R.string.dsh_native_err_scheme), "unsupported_scheme")
+            return 400 to err(str(ctx, CoreR.string.dsh_native_err_scheme), "unsupported_scheme")
         }
         if (!isForeground(ctx)) return backgroundActivityDenied(ctx)
         val uri = runCatching { android.net.Uri.parse(url) }.getOrNull()
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_bad_url), "bad_url")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_url), "bad_url")
         return startChooser(ctx, Intent(Intent.ACTION_VIEW, uri))
     }
 
@@ -2107,9 +2108,9 @@ object DshNativeBridge {
      */
     private fun dial(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val number = text(params["number"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "number"), "missing_number")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "number"), "missing_number")
         if (!number.matches(Regex("[0-9+()#*,\\-. ]{1,40}"))) {
-            return 400 to err(str(ctx, R.string.dsh_native_err_bad_number), "bad_number")
+            return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_number), "bad_number")
         }
         if (!isForeground(ctx)) return backgroundActivityDenied(ctx)
         val uri = android.net.Uri.fromParts("tel", number, null)
@@ -2121,11 +2122,11 @@ object DshNativeBridge {
             200 to okJson()
         }.getOrElse { e ->
             Log.w(TAG, "startActivity 失败: ${e.message}")
-            500 to err(str(ctx, R.string.dsh_native_err_start_failed, e.message ?: ""), "start_failed")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_start_failed, e.message ?: ""), "start_failed")
         }
 
     private fun backgroundActivityDenied(ctx: Context): Pair<Int, String> =
-        409 to err(str(ctx, R.string.dsh_native_err_activity_background), "not_foreground")
+        409 to err(str(ctx, CoreR.string.dsh_native_err_activity_background), "not_foreground")
 
     private fun device(ctx: Context): Pair<Int, String> {
         val json = JSONObject()
@@ -2262,10 +2263,10 @@ object DshNativeBridge {
      */
     private fun mediaList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val type = mediaTypeOf(params["type"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_bad_media_type), "bad_type")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_media_type), "bad_type")
         if (!PermissionUtils.hasMediaPermission(ctx, type)) {
             return 403 to err(
-                str(ctx, R.string.dsh_native_err_media_type_denied, type.id),
+                str(ctx, CoreR.string.dsh_native_err_media_type_denied, type.id),
                 "no_media_permission",
             )
         }
@@ -2315,7 +2316,7 @@ object DshNativeBridge {
         queryResult.onFailure { e ->
             Log.w(TAG, "media 查询失败: ${e.message}")
             return 500 to err(
-                str(ctx, R.string.dsh_native_err_media_query, e.message ?: ""),
+                str(ctx, CoreR.string.dsh_native_err_media_query, e.message ?: ""),
                 "query_failed",
             )
         }
@@ -2338,15 +2339,15 @@ object DshNativeBridge {
      */
     private fun mediaRead(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val type = mediaTypeOf(params["type"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_bad_media_type), "bad_type")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_bad_media_type), "bad_type")
         if (!PermissionUtils.hasMediaPermission(ctx, type)) {
             return 403 to err(
-                str(ctx, R.string.dsh_native_err_media_type_denied, type.id),
+                str(ctx, CoreR.string.dsh_native_err_media_type_denied, type.id),
                 "no_media_permission",
             )
         }
         val id = params["id"]?.toLongOrNull()
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_id), "missing_id")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_id), "missing_id")
         val uri = ContentUris.withAppendedId(mediaCollection(type), id)
 
         var displayName = "media"
@@ -2366,7 +2367,7 @@ object DshNativeBridge {
         // SIZE 已经超限就不必开流了；SIZE 缺失（-1）时靠下面边写边数兜底
         if (declaredSize > MAX_MEDIA_BYTES) {
             return 400 to err(
-                str(ctx, R.string.dsh_native_err_media_too_big, MAX_MEDIA_BYTES / (1024 * 1024)),
+                str(ctx, CoreR.string.dsh_native_err_media_too_big, MAX_MEDIA_BYTES / (1024 * 1024)),
                 "too_large",
             )
         }
@@ -2407,11 +2408,11 @@ object DshNativeBridge {
             out.delete()
             return if (overflow) {
                 400 to err(
-                    str(ctx, R.string.dsh_native_err_media_too_big, MAX_MEDIA_BYTES / (1024 * 1024)),
+                    str(ctx, CoreR.string.dsh_native_err_media_too_big, MAX_MEDIA_BYTES / (1024 * 1024)),
                     "too_large",
                 )
             } else {
-                500 to err(str(ctx, R.string.dsh_native_err_media_read), "read_failed")
+                500 to err(str(ctx, CoreR.string.dsh_native_err_media_read), "read_failed")
             }
         }
         trimStage(dir)
@@ -2433,7 +2434,7 @@ object DshNativeBridge {
     private fun micRecord(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!isForeground(ctx)) return backgroundMicDenied(ctx)
         if (!recording.compareAndSet(false, true)) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_mic_busy), "already_recording")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_mic_busy), "already_recording")
         }
         try {
             return doRecord(ctx, params)
@@ -2497,11 +2498,11 @@ object DshNativeBridge {
     private fun micFailed(ctx: Context, started: MicStart): Pair<Int, String> =
         if (started.code == "recorder_failed") {
             500 to err(
-                str(ctx, R.string.dsh_native_err_mic_init, started.cause?.message ?: ""),
+                str(ctx, CoreR.string.dsh_native_err_mic_init, started.cause?.message ?: ""),
                 started.code,
             )
         } else {
-            500 to err(str(ctx, R.string.dsh_native_err_mic_start), "record_failed")
+            500 to err(str(ctx, CoreR.string.dsh_native_err_mic_start), "record_failed")
         }
 
     /**
@@ -2525,7 +2526,7 @@ object DshNativeBridge {
         runCatching { recorder?.release() }
         if (!stopped || !out.isFile || out.length() == 0L) {
             out.delete()
-            return 500 to err(str(ctx, R.string.dsh_native_err_mic_empty), "record_empty")
+            return 500 to err(str(ctx, CoreR.string.dsh_native_err_mic_empty), "record_empty")
         }
         // 录完再确认一次前台：中途切走的那段是静音，交出去等于交半份假数据
         if (!isForeground(ctx)) {
@@ -2561,7 +2562,7 @@ object DshNativeBridge {
     private fun micStart(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!isForeground(ctx)) return backgroundMicDenied(ctx)
         if (!recording.compareAndSet(false, true)) {
-            return 409 to err(str(ctx, R.string.dsh_native_err_mic_busy), "already_recording")
+            return 409 to err(str(ctx, CoreR.string.dsh_native_err_mic_busy), "already_recording")
         }
         val out = File(stageDir(ctx), "rec_${System.currentTimeMillis()}.m4a")
         val started = startMic(ctx, out)
@@ -2604,16 +2605,16 @@ object DshNativeBridge {
      */
     private fun micStop(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val id = text(params["id"])
-            ?: return 400 to err(str(ctx, R.string.dsh_native_err_missing_param, "id"), "missing_id")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_native_err_missing_param, "id"), "missing_id")
         synchronized(micLock) {
             val session = micSession
             if (session != null) {
                 return if (session.id == id) stopMicSessionLocked(ctx, session)
-                else 409 to err(str(ctx, R.string.dsh_native_err_mic_no_session), "bad_session")
+                else 409 to err(str(ctx, CoreR.string.dsh_native_err_mic_no_session), "bad_session")
             }
             val late = micLast?.takeIf { it.first == id }
             return if (late != null) 200 to late.second.toString()
-            else 409 to err(str(ctx, R.string.dsh_native_err_mic_no_session), "no_session")
+            else 409 to err(str(ctx, CoreR.string.dsh_native_err_mic_no_session), "no_session")
         }
     }
 
@@ -2636,7 +2637,7 @@ object DshNativeBridge {
     }
 
     private fun backgroundMicDenied(ctx: Context): Pair<Int, String> =
-        409 to err(str(ctx, R.string.dsh_native_err_mic_background), "not_foreground")
+        409 to err(str(ctx, CoreR.string.dsh_native_err_mic_background), "not_foreground")
 
     // ────────────────────────── 工具 ──────────────────────────
 
@@ -2708,7 +2709,7 @@ object DshNativeBridge {
 
     private fun methodNotAllowed(ctx: Context, method: String, path: String): Pair<Int, String> =
         404 to err(
-            str(ctx, R.string.dsh_native_err_unknown_endpoint, method, path),
+            str(ctx, CoreR.string.dsh_native_err_unknown_endpoint, method, path),
             "unknown_endpoint",
         )
 }

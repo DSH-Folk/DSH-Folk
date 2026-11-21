@@ -88,7 +88,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.WorkflowActionCatalog
 import me.bmax.apatch.dsh.WorkflowCompute
@@ -105,6 +104,7 @@ import me.bmax.apatch.dsh.WorkflowPinSpec
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowValidator
 import me.bmax.apatch.dsh.workflowDiff
+import me.bmax.apatch.res.R as CoreR
 
 /** 自动保存的可见状态。 */
 private enum class SaveState { IDLE, SAVING, SAVED, FAILED }
@@ -163,19 +163,19 @@ private val EDITOR_NODE_CATALOG = listOf(
     //
     // 这张是**空模板下的第一张卡**（见 WorkflowScreen.starter）：新建出来的画布是白的，
     // 而校验器要求「有节点就要有开始卡片」。没有这一项，用户加什么都会得到一份跑不起来的流程。
-    EditorNodeKind(WorkflowNodeType.TRIGGER, R.string.dsh_workflow_kind_trigger, R.string.dsh_wf_cat_trigger, defaultConfigFor(WorkflowNodeType.TRIGGER, null), R.string.dsh_workflow_kind_trigger_desc),
+    EditorNodeKind(WorkflowNodeType.TRIGGER, CoreR.string.dsh_workflow_kind_trigger, CoreR.string.dsh_wf_cat_trigger, defaultConfigFor(WorkflowNodeType.TRIGGER, null), CoreR.string.dsh_workflow_kind_trigger_desc),
     // ── 通用 ──
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_shell, R.string.dsh_wf_cat_general, editorConfigForAction(WorkflowActionType.SHELL), R.string.dsh_workflow_kind_shell_desc),
-    EditorNodeKind(WorkflowNodeType.EXTRACT, R.string.dsh_workflow_kind_extract, R.string.dsh_wf_cat_general, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value"), R.string.dsh_workflow_kind_extract_desc),
+    EditorNodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_shell, CoreR.string.dsh_wf_cat_general, editorConfigForAction(WorkflowActionType.SHELL), CoreR.string.dsh_workflow_kind_shell_desc),
+    EditorNodeKind(WorkflowNodeType.EXTRACT, CoreR.string.dsh_workflow_kind_extract, CoreR.string.dsh_wf_cat_general, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value"), CoreR.string.dsh_workflow_kind_extract_desc),
     // ── 应用管理 ──
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, R.string.dsh_wf_cat_dsh, editorConfigForAction(WorkflowActionType.DSH), R.string.dsh_workflow_kind_dsh_desc),
+    EditorNodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_dsh, CoreR.string.dsh_wf_cat_dsh, editorConfigForAction(WorkflowActionType.DSH), CoreR.string.dsh_workflow_kind_dsh_desc),
     // ── 系统操作 ──
-    EditorNodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_notify, R.string.dsh_wf_cat_system, editorConfigForAction(WorkflowActionType.NOTIFY), R.string.dsh_workflow_kind_notify_desc),
+    EditorNodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_notify, CoreR.string.dsh_wf_cat_system, editorConfigForAction(WorkflowActionType.NOTIFY), CoreR.string.dsh_workflow_kind_notify_desc),
     // ── 逻辑控制 ──
-    EditorNodeKind(WorkflowNodeType.WAIT, R.string.dsh_workflow_kind_wait, R.string.dsh_wf_cat_logic, mapOf("ms" to "1000"), R.string.dsh_workflow_kind_wait_desc),
-    EditorNodeKind(WorkflowNodeType.LOGIC, R.string.dsh_workflow_kind_logic, R.string.dsh_wf_cat_logic, mapOf("op" to "and", "sources" to ""), R.string.dsh_workflow_kind_logic_desc),
+    EditorNodeKind(WorkflowNodeType.WAIT, CoreR.string.dsh_workflow_kind_wait, CoreR.string.dsh_wf_cat_logic, mapOf("ms" to "1000"), CoreR.string.dsh_workflow_kind_wait_desc),
+    EditorNodeKind(WorkflowNodeType.LOGIC, CoreR.string.dsh_workflow_kind_logic, CoreR.string.dsh_wf_cat_logic, mapOf("op" to "and", "sources" to ""), CoreR.string.dsh_workflow_kind_logic_desc),
     // ── 条件判断 ──
-    EditorNodeKind(WorkflowNodeType.CONDITION, R.string.dsh_workflow_kind_condition, R.string.dsh_wf_cat_condition, mapOf("source" to "exitCode", "op" to "equals", "value" to "0"), R.string.dsh_workflow_kind_condition_desc),
+    EditorNodeKind(WorkflowNodeType.CONDITION, CoreR.string.dsh_workflow_kind_condition, CoreR.string.dsh_wf_cat_condition, mapOf("source" to "exitCode", "op" to "equals", "value" to "0"), CoreR.string.dsh_workflow_kind_condition_desc),
 )
 
 /** 取某一级分组（按标题资源）对应的动作节点。 */
@@ -214,35 +214,35 @@ private fun actionKindsOf(groupTitleRes: Int): List<EditorNodeKind> {
  */
 private val EDITOR_CATEGORY_ORDER = listOf(
     // 触发器：新建流程后要加的第一张卡（开始卡片）。
-    R.string.dsh_wf_cat_trigger,
+    CoreR.string.dsh_wf_cat_trigger,
     // 逻辑控制：等待、逻辑组合 —— 「什么时候做、按什么结论走」。
-    R.string.dsh_wf_cat_logic,
+    CoreR.string.dsh_wf_cat_logic,
     // 通用：执行命令、从上游取值这类每个流程都要用的节点。
-    R.string.dsh_wf_cat_general,
+    CoreR.string.dsh_wf_cat_general,
     // 应用管理：要求 APP 已运行的执行节点。
-    R.string.dsh_wf_cat_dsh,
+    CoreR.string.dsh_wf_cat_dsh,
     // 系统操作：通知、手电筒、亮度、音量、剪贴板、全局操作、传感器、网络、使用统计……
-    R.string.dsh_wf_cat_system,
+    CoreR.string.dsh_wf_cat_system,
     // 数值计算：四则、取整、最大最小、随机数。
-    R.string.dsh_wf_cat_number,
+    CoreR.string.dsh_wf_cat_number,
     // 文本处理：拼接、截取、替换、正则、大小写、编解码。
-    R.string.dsh_wf_cat_text,
+    CoreR.string.dsh_wf_cat_text,
     // 条件判断：判断节点本身，以及把几个结论与/或/非起来的算子。
-    R.string.dsh_wf_cat_condition,
+    CoreR.string.dsh_wf_cat_condition,
     // 控件操作：读控件树、按文本点控件、往控件里填文本。
-    R.string.dsh_wf_cat_widget,
+    CoreR.string.dsh_wf_cat_widget,
     // 图像处理：无障碍截图、虚拟屏截图、拍照。
-    R.string.dsh_wf_cat_image,
+    CoreR.string.dsh_wf_cat_image,
     // 颜色处理：暂无可落地的动作（面板会把这个空分类滤掉）。
-    R.string.dsh_wf_cat_color,
+    CoreR.string.dsh_wf_cat_color,
     // 区域操作：暂无可落地的动作（同上）。
-    R.string.dsh_wf_cat_region,
+    CoreR.string.dsh_wf_cat_region,
     // 位置操作：按坐标点按/滑动（无障碍与虚拟屏两套），以及取当前位置。
-    R.string.dsh_wf_cat_position,
+    CoreR.string.dsh_wf_cat_position,
     // 列表操作：列表算子，以及日历/联系人/短信/媒体这些「取一列」的动作。
-    R.string.dsh_wf_cat_list,
+    CoreR.string.dsh_wf_cat_list,
     // 字典操作：JSON 取值与取键。
-    R.string.dsh_wf_cat_dict,
+    CoreR.string.dsh_wf_cat_dict,
 )
 
 /**
@@ -798,7 +798,7 @@ internal fun WorkflowEditorSurface(
                         }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.dsh_workflow_action_cancel),
+                                contentDescription = stringResource(CoreR.string.dsh_workflow_action_cancel),
                             )
                         }
                     }
@@ -839,7 +839,7 @@ internal fun WorkflowEditorSurface(
                         IconButton(onClick = { searchOpen = !searchOpen }) {
                             Icon(
                                 Icons.Filled.Search,
-                                contentDescription = stringResource(R.string.dsh_wf_top_search),
+                                contentDescription = stringResource(CoreR.string.dsh_wf_top_search),
                             )
                         }
                     }
@@ -856,7 +856,7 @@ internal fun WorkflowEditorSurface(
                     ) {
                         Icon(Icons.Filled.Check, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.dsh_workflow_editor_save))
+                        Text(stringResource(CoreR.string.dsh_workflow_editor_save))
                     }
                     Spacer(Modifier.width(6.dp))
                     // 「更多」菜单必须**锚在这颗按钮上**。
@@ -869,7 +869,7 @@ internal fun WorkflowEditorSurface(
                             IconButton(onClick = { moreOpen = true }) {
                                 Icon(
                                     Icons.Filled.MoreVert,
-                                    contentDescription = stringResource(R.string.dsh_wf_top_more),
+                                    contentDescription = stringResource(CoreR.string.dsh_wf_top_more),
                                 )
                             }
                         }
@@ -880,30 +880,30 @@ internal fun WorkflowEditorSurface(
                             // 放的是"不常用但偶尔必须"的项：预览、自动布局、放弃改动。
                             // 常用操作（加节点、保存、复制、删除）在别处，不塞进来。
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.dsh_wf_top_preview)) },
+                                text = { Text(stringResource(CoreR.string.dsh_wf_top_preview)) },
                                 onClick = { moreOpen = false; previewOpen = true },
                             )
                             // 选中某张卡时才有意义：配置在卡上直接改，这里只管连线与删除。
                             if (selected != null) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.dsh_wf_top_node_detail)) },
+                                    text = { Text(stringResource(CoreR.string.dsh_wf_top_node_detail)) },
                                     onClick = { moreOpen = false; nodeSheetOpen = true },
                                 )
                             }
                             // 流程内变量：不是每个流程都要，但需要时非有不可，放这里不占常驻位置。
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.dsh_wf_top_vars)) },
+                                text = { Text(stringResource(CoreR.string.dsh_wf_top_vars)) },
                                 onClick = { moreOpen = false; varsOpen = true },
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.dsh_workflow_editor_auto_layout)) },
+                                text = { Text(stringResource(CoreR.string.dsh_workflow_editor_auto_layout)) },
                                 onClick = {
                                     moreOpen = false
                                     draft = def.copy(nodes = def.nodes.map { it.copy(posX = 0, posY = 0) })
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.dsh_workflow_editor_discard_title)) },
+                                text = { Text(stringResource(CoreR.string.dsh_workflow_editor_discard_title)) },
                                 onClick = { moreOpen = false; confirmDiscard = true },
                             )
                         }
@@ -1046,7 +1046,7 @@ internal fun WorkflowEditorSurface(
                                     // 返回同一个实例 = 被拒（成环 / 自环 / 重复边）
                                     Toast.makeText(
                                         context,
-                                        context.getString(R.string.dsh_workflow_cycle_rejected),
+                                        context.getString(CoreR.string.dsh_workflow_cycle_rejected),
                                         Toast.LENGTH_SHORT,
                                     ).show()
                                 } else {
@@ -1235,7 +1235,7 @@ internal fun WorkflowEditorSurface(
                             Spacer(Modifier.height(8.dp))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 TextButton(onClick = { previewOpen = false }) {
-                                    Text(stringResource(R.string.dsh_workflow_action_close))
+                                    Text(stringResource(CoreR.string.dsh_workflow_action_close))
                                 }
                             }
                         }
@@ -1310,7 +1310,7 @@ internal fun WorkflowEditorSurface(
                         if (related.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                stringResource(R.string.dsh_workflow_editor_edges),
+                                stringResource(CoreR.string.dsh_workflow_editor_edges),
                                 style = MaterialTheme.typography.labelLarge,
                             )
                             for (e in related) {
@@ -1322,7 +1322,7 @@ internal fun WorkflowEditorSurface(
                                     )
                                     TextButton(onClick = {
                                         draft = def.copy(edges = def.edges.filterNot { it == e })
-                                    }) { Text(stringResource(R.string.dsh_workflow_action_cancel)) }
+                                    }) { Text(stringResource(CoreR.string.dsh_workflow_action_cancel)) }
                                 }
                             }
                         }
@@ -1330,12 +1330,12 @@ internal fun WorkflowEditorSurface(
                 },
                 confirmButton = {
                     TextButton(onClick = { nodeSheetOpen = false }) {
-                        Text(stringResource(R.string.dsh_workflow_editor_save))
+                        Text(stringResource(CoreR.string.dsh_workflow_editor_save))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { nodeSheetOpen = false }) {
-                        Text(stringResource(R.string.dsh_workflow_action_cancel))
+                        Text(stringResource(CoreR.string.dsh_workflow_action_cancel))
                     }
                 },
             )
@@ -1381,11 +1381,11 @@ internal fun WorkflowEditorSurface(
         val related = def.edges.count { it.from == delId || it.to == delId }
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.dsh_wf_delete_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_wf_delete_title)) },
             text = {
                 Text(
                     stringResource(
-                        R.string.dsh_wf_delete_body,
+                        CoreR.string.dsh_wf_delete_body,
                         gone?.name?.ifBlank { delId } ?: delId,
                         related,
                     ),
@@ -1399,11 +1399,11 @@ internal fun WorkflowEditorSurface(
                     )
                     pendingDelete = null
                     selected = null
-                }) { Text(stringResource(R.string.dsh_wf_delete_confirm)) }
+                }) { Text(stringResource(CoreR.string.dsh_wf_delete_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
-                    Text(stringResource(R.string.dsh_workflow_action_cancel))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_cancel))
                 }
             },
         )
@@ -1413,21 +1413,21 @@ internal fun WorkflowEditorSurface(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text(stringResource(R.string.dsh_workflow_editor_discard_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_workflow_editor_discard_title)) },
             text = {
                 Text(
-                    stringResource(R.string.dsh_workflow_editor_discard_body, patchLines.size),
+                    stringResource(CoreR.string.dsh_workflow_editor_discard_body, patchLines.size),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
                 TextButton(onClick = { confirmDiscard = false; onCancel() }) {
-                    Text(stringResource(R.string.dsh_workflow_editor_discard_ok))
+                    Text(stringResource(CoreR.string.dsh_workflow_editor_discard_ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDiscard = false }) {
-                    Text(stringResource(R.string.dsh_workflow_editor_keep_editing))
+                    Text(stringResource(CoreR.string.dsh_workflow_editor_keep_editing))
                 }
             },
         )
@@ -1465,7 +1465,7 @@ private fun NodeParamEditor(
             )
             if (onDelete != null) {
                 TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.dsh_wf_param_delete))
+                    Text(stringResource(CoreR.string.dsh_wf_param_delete))
                 }
             }
         }
@@ -1566,23 +1566,23 @@ private fun FloatingEditorBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (hasSelection) {
-                    FloatBarIcon(Icons.Filled.ContentCopy, stringResource(R.string.dsh_wf_float_copy), onClick = onCopy)
+                    FloatBarIcon(Icons.Filled.ContentCopy, stringResource(CoreR.string.dsh_wf_float_copy), onClick = onCopy)
                     // 入口卡不给删除按钮：删掉它整张图没有起点，定义立刻不合法。
                     // 锁定 = 不能删除（与卡上锁按钮同一状态源）。入口卡本来就不给删除。
                     if (canDelete && !selectionLocked) {
                         FloatBarIcon(
                             icon = if (deleteArmed) Icons.Filled.Warning else Icons.Filled.Delete,
                             label = if (deleteArmed) {
-                                stringResource(R.string.dsh_wf_float_delete_confirm)
+                                stringResource(CoreR.string.dsh_wf_float_delete_confirm)
                             } else {
-                                stringResource(R.string.dsh_wf_float_delete)
+                                stringResource(CoreR.string.dsh_wf_float_delete)
                             },
                             tint = if (deleteArmed) MaterialTheme.colorScheme.error else null,
                             onClick = onDelete,
                         )
                     }
                 } else {
-                    FloatBarIcon(Icons.Filled.Visibility, stringResource(R.string.dsh_workflow_zoom_reset), onClick = onRecenter)
+                    FloatBarIcon(Icons.Filled.Visibility, stringResource(CoreR.string.dsh_workflow_zoom_reset), onClick = onRecenter)
                     // 中间那颗是实心主色圆：它是这一栏的主操作（唤出节点列表）。
                     Surface(
                         shape = CircleShape,
@@ -1592,12 +1592,12 @@ private fun FloatingEditorBar(
                         IconButton(onClick = onAdd) {
                             Icon(
                                 Icons.Filled.Add,
-                                contentDescription = stringResource(R.string.dsh_wf_float_add),
+                                contentDescription = stringResource(CoreR.string.dsh_wf_float_add),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
                     }
-                    FloatBarIcon(Icons.Filled.Refresh, stringResource(R.string.dsh_workflow_editor_auto_layout), onClick = onReset)
+                    FloatBarIcon(Icons.Filled.Refresh, stringResource(CoreR.string.dsh_workflow_editor_auto_layout), onClick = onReset)
                 }
             }
         }

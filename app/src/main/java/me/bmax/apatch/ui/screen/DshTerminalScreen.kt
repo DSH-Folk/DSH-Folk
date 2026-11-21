@@ -56,13 +56,13 @@ import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 import java.util.concurrent.atomic.AtomicBoolean
 import me.bmax.apatch.APApplication
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshPtySession
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.isImeVisible
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 private const val KEY_FONT_SP = "dsh_term_font_sp"
 
@@ -183,7 +183,7 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
     fun send(seq: String) {
         val s = DshPtySession.currentSession()
         if (s == null || !s.isRunning()) {
-            showToast(context, R.string.dsh_term_session_ended)
+            showToast(context, CoreR.string.dsh_term_session_ended)
             return
         }
         s.write(seq)
@@ -199,7 +199,7 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (installed) title else stringResource(R.string.dsh_phase_not_ready),
+                        text = if (installed) title else stringResource(CoreR.string.dsh_phase_not_ready),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 },
@@ -207,13 +207,13 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                     IconButton(onClick = { setFont(fontSp - 1) }) {
                         Icon(
                             Icons.Outlined.TextDecrease,
-                            contentDescription = stringResource(R.string.dsh_term_font_smaller),
+                            contentDescription = stringResource(CoreR.string.dsh_term_font_smaller),
                         )
                     }
                     IconButton(onClick = { setFont(fontSp + 1) }) {
                         Icon(
                             Icons.Outlined.TextIncrease,
-                            contentDescription = stringResource(R.string.dsh_term_font_larger),
+                            contentDescription = stringResource(CoreR.string.dsh_term_font_larger),
                         )
                     }
                     IconButton(onClick = {
@@ -222,11 +222,11 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                         restoreImeOnRestart = imeVisible
                         DshPtySession.restartQuietly()
                         sessionGen++
-                        showToast(context, R.string.dsh_term_restarted)
+                        showToast(context, CoreR.string.dsh_term_restarted)
                     }) {
                         Icon(
                             Icons.Outlined.RestartAlt,
-                            contentDescription = stringResource(R.string.dsh_term_restart),
+                            contentDescription = stringResource(CoreR.string.dsh_term_restart),
                         )
                     }
                 },
@@ -239,7 +239,7 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_term_not_ready),
+                    text = stringResource(CoreR.string.dsh_term_not_ready),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -296,7 +296,7 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                                 }
 
                                 override fun onExit(status: Int) {
-                                    main.post { title = context.getString(R.string.dsh_term_exited, status) }
+                                    main.post { title = context.getString(CoreR.string.dsh_term_exited, status) }
                                 }
 
                                 override fun onCopy(text: String) {
@@ -350,7 +350,7 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                                 title = ps.session?.title?.takeIf { it.isNotBlank() } ?: "Ubuntu · PTY"
                             }.onFailure {
                                 title = context.getString(
-                                    R.string.dsh_term_start_failed,
+                                    CoreR.string.dsh_term_start_failed,
                                     it.message ?: it.javaClass.simpleName,
                                 )
                             }

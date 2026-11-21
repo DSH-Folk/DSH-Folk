@@ -31,6 +31,7 @@ import me.bmax.apatch.ui.theme.ThemeManager
 import me.bmax.apatch.ui.theme.refreshTheme
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 private data class APColor(
     val name: String, @param:StringRes val nameId: Int
@@ -69,7 +70,7 @@ fun colorNameToString(colorName: String): Int {
 @Composable
 fun homeLayoutStyleToString(style: String): Int {
     return when (style) {
-        "dsh" -> R.string.settings_home_layout_dsh
+        "dsh" -> CoreR.string.settings_home_layout_dsh
         "kernelsu" -> R.string.settings_home_layout_grid
         "focus" -> R.string.settings_home_layout_focus
         "circle" -> R.string.settings_home_layout_circle
@@ -149,7 +150,7 @@ fun HomeLayoutChooseDialog(showDialog: MutableState<Boolean>, onLayoutSelected: 
                 ) {
                     Column {
                         ListItem(
-                            headlineContent = { Text(stringResource(R.string.settings_home_layout_dsh)) },
+                            headlineContent = { Text(stringResource(CoreR.string.settings_home_layout_dsh)) },
                             leadingContent = { RadioButton(selected = currentStyle == "dsh", onClick = null) },
                             modifier = Modifier.clickable {
                                 prefs.edit().putString("home_layout_style", "dsh").apply()

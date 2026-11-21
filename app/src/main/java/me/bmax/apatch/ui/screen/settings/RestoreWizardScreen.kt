@@ -38,7 +38,6 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshBackupCrypto
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshImportWizard
@@ -46,6 +45,7 @@ import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.WizardStep
 import me.bmax.apatch.util.BackupLogManager
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 向导带进来的临时文件可能落在哪些目录（退出时按它判断「这份副本是不是我们自己的」）。
@@ -319,7 +319,7 @@ fun RestoreWizardScreen(
                 }
             }.getOrNull()
             if (staged == null) {
-                val text = context.getString(R.string.dsh_plugin_local_read_failed)
+                val text = context.getString(CoreR.string.dsh_plugin_local_read_failed)
                 withContext(Dispatchers.Main) {
                     analyzeError = text
                 }
@@ -353,7 +353,7 @@ fun RestoreWizardScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.dsh_bk_wiz_title),
+                        text = stringResource(CoreR.string.dsh_bk_wiz_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )

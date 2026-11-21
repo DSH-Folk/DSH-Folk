@@ -83,6 +83,7 @@ import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
 import rikka.shizuku.Shizuku
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「功能」设置页：配置 DSH 的运行方式与权限通道。
@@ -433,7 +434,7 @@ internal fun DshSettingsScreen(
                     actions = {
                         if (permissionOnly) {
                             IconButton(onClick = { navigator.navigate(PermissionLogScreenDestination) { launchSingleTop = true } }) {
-                                Icon(Icons.Outlined.ReceiptLong, contentDescription = stringResource(R.string.dsh_permission_log_title))
+                                Icon(Icons.Outlined.ReceiptLong, contentDescription = stringResource(CoreR.string.dsh_permission_log_title))
                             }
                         }
                     },
@@ -764,7 +765,7 @@ internal fun DshSettingsScreen(
                     // 权限管理正文直接摆在安全首页上（真机反馈「安全页太空了」）：它本来属于这一页，
                     // 只留一个二级入口的话，安全页就只剩两张生物识别卡。
                     Text(
-                        text = stringResource(R.string.dsh_perm_hub_title),
+                        text = stringResource(CoreR.string.dsh_perm_hub_title),
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
@@ -785,14 +786,14 @@ internal fun DshSettingsScreen(
     importCandidate?.let { candidate ->
         AlertDialog(
             onDismissRequest = { importCandidate = null },
-            title = { Text(stringResource(R.string.dsh_runtime_import_confirm_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_runtime_import_confirm_title)) },
             text = {
                 Text(
                     stringResource(
-                        R.string.dsh_runtime_import_confirm_text,
+                        CoreR.string.dsh_runtime_import_confirm_text,
                         candidate.name,
                         if (candidate.size >= 0) Formatter.formatFileSize(context, candidate.size)
-                        else stringResource(R.string.dsh_runtime_import_size_unknown),
+                        else stringResource(CoreR.string.dsh_runtime_import_size_unknown),
                     )
                 )
             },
@@ -810,7 +811,7 @@ internal fun DshSettingsScreen(
                         }
                             .onFailure { file.delete() }
                     }
-                }) { Text(stringResource(R.string.dsh_runtime_import_confirm)) }
+                }) { Text(stringResource(CoreR.string.dsh_runtime_import_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { importCandidate = null }) { Text(stringResource(android.R.string.cancel)) }
@@ -859,10 +860,10 @@ internal fun RuntimeBackupAdviceDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(stringResource(R.string.dsh_runtime_backup_advice_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_runtime_backup_advice_title)) },
         text = {
             Column {
-                Text(stringResource(R.string.dsh_runtime_backup_advice_text))
+                Text(stringResource(CoreR.string.dsh_runtime_backup_advice_text))
                 if (exportMsg.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -875,13 +876,13 @@ internal fun RuntimeBackupAdviceDialog(
         },
         confirmButton = {
             TextButton(onClick = onContinue, enabled = !exporting) {
-                Text(stringResource(R.string.dsh_runtime_backup_advice_continue))
+                Text(stringResource(CoreR.string.dsh_runtime_backup_advice_continue))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = { showExport = true }, enabled = !exporting) {
-                    Text(stringResource(R.string.dsh_runtime_backup_advice_export))
+                    Text(stringResource(CoreR.string.dsh_runtime_backup_advice_export))
                 }
                 TextButton(onClick = onCancel, enabled = !exporting) {
                     Text(stringResource(android.R.string.cancel))
@@ -903,11 +904,11 @@ internal fun RuntimeBackupAdviceDialog(
             onConfirm = { plan ->
                 showExport = false
                 exporting = true
-                exportMsg = context.getString(R.string.dsh_backup_exporting)
+                exportMsg = context.getString(CoreR.string.dsh_backup_exporting)
                 scope.launch(Dispatchers.IO) {
                     val status = DshConfigBackup.status(context)
                     val text = if (!status.ready) {
-                        status.error.ifEmpty { context.getString(R.string.dsh_backup_plugin_missing) }
+                        status.error.ifEmpty { context.getString(CoreR.string.dsh_backup_plugin_missing) }
                     } else {
                         val r = DshConfigBackup.exportArchive(
                             context,

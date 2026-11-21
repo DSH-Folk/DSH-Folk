@@ -69,7 +69,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import me.bmax.apatch.APApplication
 import me.bmax.apatch.BuildConfig
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshPhase
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.HarnessService
@@ -80,6 +79,7 @@ import me.bmax.apatch.ui.component.copyInfoToClipboard
 import me.bmax.apatch.ui.component.copyableInfo
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 所有首页布局共用的 DSH 运行时状态层。
@@ -133,7 +133,7 @@ class DshHomeUiState internal constructor(
         // 不拉起服务（startServer 里还有第二道闸门兜底，这里是为了不白启动一遍）。
         if (appUpdateRequired) {
             requiredAppVersion?.let {
-                showToast(context, me.bmax.apatch.R.string.dsh_runtime_min_app_required, it)
+                showToast(context, me.bmax.apatch.CoreR.string.dsh_runtime_min_app_required, it)
             }
             return
         }
@@ -257,12 +257,12 @@ fun dshPhaseLabel(state: DshHomeUiState): String = dshPhaseLabelOf(state.phase, 
 fun dshPhaseLabelOf(phase: DshPhase, installed: Boolean): String = stringResource(
     when (phase) {
         DshPhase.NOT_READY ->
-            if (installed) R.string.dsh_phase_stopped else R.string.dsh_phase_not_ready
-        DshPhase.DOWNLOADING -> R.string.dsh_phase_downloading
-        DshPhase.EXTRACTING -> R.string.dsh_phase_extracting
-        DshPhase.STARTING -> R.string.dsh_phase_starting
-        DshPhase.RUNNING -> R.string.dsh_phase_running
-        DshPhase.ERROR -> R.string.dsh_phase_error
+            if (installed) CoreR.string.dsh_phase_stopped else CoreR.string.dsh_phase_not_ready
+        DshPhase.DOWNLOADING -> CoreR.string.dsh_phase_downloading
+        DshPhase.EXTRACTING -> CoreR.string.dsh_phase_extracting
+        DshPhase.STARTING -> CoreR.string.dsh_phase_starting
+        DshPhase.RUNNING -> CoreR.string.dsh_phase_running
+        DshPhase.ERROR -> CoreR.string.dsh_phase_error
     }
 )
 
@@ -273,8 +273,8 @@ fun dshPhaseDetail(state: DshHomeUiState): String {
     return when {
         state.isRunning -> state.webUrl
         state.phase == DshPhase.NOT_READY && !state.installed ->
-            stringResource(R.string.dsh_hint_tap_to_install)
-        state.phase == DshPhase.NOT_READY -> stringResource(R.string.dsh_hint_tap_to_start)
+            stringResource(CoreR.string.dsh_hint_tap_to_install)
+        state.phase == DshPhase.NOT_READY -> stringResource(CoreR.string.dsh_hint_tap_to_start)
         else -> ""
     }
 }
@@ -283,10 +283,10 @@ fun dshPhaseDetail(state: DshHomeUiState): String {
 @Composable
 fun dshPrimaryActionLabel(state: DshHomeUiState): String = stringResource(
     when {
-        state.isRunning -> R.string.dsh_open_webui
-        state.isBusy -> R.string.dsh_working
-        !state.installed -> R.string.dsh_install_and_start
-        else -> R.string.dsh_start
+        state.isRunning -> CoreR.string.dsh_open_webui
+        state.isBusy -> CoreR.string.dsh_working
+        !state.installed -> CoreR.string.dsh_install_and_start
+        else -> CoreR.string.dsh_start
     }
 )
 
@@ -347,12 +347,12 @@ data class DshInfoRow(val icon: ImageVector, val label: String, val value: Strin
 
 @Composable
 fun rememberDshInfoRows(state: DshHomeUiState): List<DshInfoRow> {
-    val runtimeLabel = stringResource(R.string.dsh_runtime_version)
-    val portLabel = stringResource(R.string.dsh_web_port)
-    val modeLabel = stringResource(R.string.dsh_run_mode)
-    val permLabel = stringResource(R.string.dsh_permission)
-    val sizeLabel = stringResource(R.string.dsh_rootfs_size)
-    val webLabel = stringResource(R.string.dsh_webui_address)
+    val runtimeLabel = stringResource(CoreR.string.dsh_runtime_version)
+    val portLabel = stringResource(CoreR.string.dsh_web_port)
+    val modeLabel = stringResource(CoreR.string.dsh_run_mode)
+    val permLabel = stringResource(CoreR.string.dsh_permission)
+    val sizeLabel = stringResource(CoreR.string.dsh_rootfs_size)
+    val webLabel = stringResource(CoreR.string.dsh_webui_address)
 
     return buildList {
         state.version?.let { add(DshInfoRow(Icons.Outlined.Layers, runtimeLabel, it)) }
@@ -454,11 +454,11 @@ private fun DshWebUiModeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_webui_mode_ask_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_webui_mode_ask_title)) },
         text = {
             Column {
                 Text(
-                    text = stringResource(R.string.dsh_webui_mode_ask_body),
+                    text = stringResource(CoreR.string.dsh_webui_mode_ask_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(12.dp))
@@ -468,7 +468,7 @@ private fun DshWebUiModeDialog(
                 ) {
                     Checkbox(checked = remember, onCheckedChange = { remember = it })
                     Text(
-                        text = stringResource(R.string.dsh_webui_mode_remember),
+                        text = stringResource(CoreR.string.dsh_webui_mode_remember),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -476,12 +476,12 @@ private fun DshWebUiModeDialog(
         },
         confirmButton = {
             TextButton(onClick = { onPick(DshWebUi.MODE_IN_APP, remember) }) {
-                Text(stringResource(R.string.dsh_webui_mode_in_app))
+                Text(stringResource(CoreR.string.dsh_webui_mode_in_app))
             }
         },
         dismissButton = {
             TextButton(onClick = { onPick(DshWebUi.MODE_BROWSER, remember) }) {
-                Text(stringResource(R.string.dsh_webui_mode_browser))
+                Text(stringResource(CoreR.string.dsh_webui_mode_browser))
             }
         },
     )
@@ -529,7 +529,7 @@ internal fun DshLogCard() {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_boot_log),
+                    text = stringResource(CoreR.string.dsh_boot_log),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -537,14 +537,14 @@ internal fun DshLogCard() {
                 IconButton(onClick = {
                     copyInfoToClipboard(
                         context,
-                        context.getString(R.string.dsh_boot_log),
+                        context.getString(CoreR.string.dsh_boot_log),
                         log.ifEmpty { "(empty)" },
                     )
-                    showToast(context, R.string.dsh_log_copied)
+                    showToast(context, CoreR.string.dsh_log_copied)
                 }) {
                     Icon(
                         Icons.Filled.ContentCopy,
-                        contentDescription = stringResource(R.string.dsh_copy_log),
+                        contentDescription = stringResource(CoreR.string.dsh_copy_log),
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -557,12 +557,12 @@ internal fun DshLogCard() {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     context.startActivity(
-                        Intent.createChooser(share, context.getString(R.string.dsh_export_log)),
+                        Intent.createChooser(share, context.getString(CoreR.string.dsh_export_log)),
                     )
                 }) {
                     Icon(
                         Icons.Outlined.Share,
-                        contentDescription = stringResource(R.string.dsh_export_log),
+                        contentDescription = stringResource(CoreR.string.dsh_export_log),
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -575,7 +575,7 @@ internal fun DshLogCard() {
                     .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = log.ifEmpty { stringResource(R.string.dsh_log_empty) },
+                    text = log.ifEmpty { stringResource(CoreR.string.dsh_log_empty) },
                     style = MaterialTheme.typography.bodySmall,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurface,

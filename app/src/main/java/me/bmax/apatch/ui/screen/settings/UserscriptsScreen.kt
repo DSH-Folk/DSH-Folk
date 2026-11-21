@@ -73,6 +73,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「用户脚本」管理页：一个不需要发版的扩展口。
@@ -115,7 +116,7 @@ fun UserscriptsScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_userscripts_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_userscripts_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
@@ -132,8 +133,8 @@ fun UserscriptsScreen(navigator: DestinationsNavigator) {
                         Icon(
                             Icons.Outlined.VisibilityOff,
                             contentDescription = stringResource(
-                                if (hideBuiltins) R.string.dsh_userscripts_show_builtin
-                                else R.string.dsh_userscripts_hide_builtin
+                                if (hideBuiltins) CoreR.string.dsh_userscripts_show_builtin
+                                else CoreR.string.dsh_userscripts_hide_builtin
                             ),
                         )
                     }
@@ -174,17 +175,17 @@ internal fun UserscriptAddFab(
         listOf(
             AddMenuEntry(
                 icon = Icons.Outlined.Link,
-                labelRes = R.string.dsh_userscripts_market_link_install,
+                labelRes = CoreR.string.dsh_userscripts_market_link_install,
                 onClick = { installRequest.requestLink() },
             ),
             AddMenuEntry(
                 icon = Icons.Outlined.FolderOpen,
-                labelRes = R.string.dsh_userscripts_install_file,
+                labelRes = CoreR.string.dsh_userscripts_install_file,
                 onClick = { installRequest.requestLocal() },
             ),
             AddMenuEntry(
                 icon = Icons.Outlined.Storefront,
-                labelRes = R.string.dsh_userscripts_market_section,
+                labelRes = CoreR.string.dsh_userscripts_market_section,
                 onClick = onOpenMarket,
             ),
         )
@@ -296,7 +297,7 @@ internal fun UserscriptsContent(
             // 读不出 → 报「不是文本文件」；读出来了**不直接装**：先算清同名与版本，弹确认框
             val prepared = withContext(Dispatchers.IO) { text?.let { Userscripts.prepare(context, it) } }
             if (prepared == null) {
-                showToast(context, context.getString(R.string.dsh_userscripts_read_failed))
+                showToast(context, context.getString(CoreR.string.dsh_userscripts_read_failed))
             } else {
                 pendingInstall.offer(prepared)
             }
@@ -337,16 +338,16 @@ internal fun UserscriptsContent(
             val outcome = withContext(Dispatchers.IO) { Userscripts.update(ctx, script.id) }
             when (outcome) {
                 Userscripts.UpdateOutcome.NO_SOURCE -> {
-                    showToast(ctx, ctx.getString(R.string.dsh_userscripts_update_check_market))
+                    showToast(ctx, ctx.getString(CoreR.string.dsh_userscripts_update_check_market))
                     onOpenMarket(script.title)
                 }
                 Userscripts.UpdateOutcome.FETCH_FAILED ->
-                    showToast(ctx, ctx.getString(R.string.dsh_userscripts_update_failed))
+                    showToast(ctx, ctx.getString(CoreR.string.dsh_userscripts_update_failed))
                 Userscripts.UpdateOutcome.UP_TO_DATE ->
-                    showToast(ctx, ctx.getString(R.string.dsh_userscripts_update_same))
+                    showToast(ctx, ctx.getString(CoreR.string.dsh_userscripts_update_same))
                 Userscripts.UpdateOutcome.UPDATED -> {
                     reload()
-                    showToast(ctx, ctx.getString(R.string.dsh_userscripts_update_done))
+                    showToast(ctx, ctx.getString(CoreR.string.dsh_userscripts_update_done))
                 }
             }
         }
@@ -427,7 +428,7 @@ internal fun UserscriptsContent(
         // 旧设备上残留的 pref 值被忽略（等于永远视为开），也没有界面能再碰它。
         item(key = "scope") {
             Text(
-                stringResource(R.string.dsh_userscripts_scope),
+                stringResource(CoreR.string.dsh_userscripts_scope),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -442,8 +443,8 @@ internal fun UserscriptsContent(
             item(key = "empty") {
                 Text(
                     stringResource(
-                        if (filter.isBlank()) R.string.dsh_userscripts_empty
-                        else R.string.dsh_userscripts_empty_filtered
+                        if (filter.isBlank()) CoreR.string.dsh_userscripts_empty
+                        else CoreR.string.dsh_userscripts_empty_filtered
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -510,7 +511,7 @@ internal fun UserscriptsContent(
                     // 先拉正文并算清同名/版本（用户要的「先检测、再问」），**不直接落盘**
                     val prepared = withContext(Dispatchers.IO) { Userscripts.prepareFromUrl(context, url) }
                     if (prepared == null) {
-                        showToast(context, context.getString(R.string.dsh_userscripts_read_failed))
+                        showToast(context, context.getString(CoreR.string.dsh_userscripts_read_failed))
                     } else {
                         pendingInstall.offer(prepared)
                     }
@@ -525,9 +526,9 @@ internal fun UserscriptsContent(
         state = pendingInstall,
         onInstalled = {
             reload()
-            showToast(context, context.getString(R.string.dsh_userscripts_installed))
+            showToast(context, context.getString(CoreR.string.dsh_userscripts_installed))
         },
-        onFailed = { showToast(context, context.getString(R.string.dsh_userscripts_install_failed)) },
+        onFailed = { showToast(context, context.getString(CoreR.string.dsh_userscripts_install_failed)) },
     )
 
     val deleting = pendingDelete
@@ -535,14 +536,14 @@ internal fun UserscriptsContent(
         val title = scripts.firstOrNull { it.id == deleting }?.title ?: deleting
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.dsh_userscripts_delete)) },
+            title = { Text(stringResource(CoreR.string.dsh_userscripts_delete)) },
             text = { Text(title) },
             confirmButton = {
                 TextButton(onClick = {
                     Userscripts.remove(context, deleting)
                     pendingDelete = null
                     reload()
-                }) { Text(stringResource(R.string.dsh_userscripts_delete_confirm)) }
+                }) { Text(stringResource(CoreR.string.dsh_userscripts_delete_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) }
@@ -578,7 +579,7 @@ private fun BuiltinRow(
     ScriptCard {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             ModuleLabel(
-                text = stringResource(R.string.dsh_plugin_builtin_label),
+                text = stringResource(CoreR.string.dsh_plugin_builtin_label),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
@@ -591,7 +592,7 @@ private fun BuiltinRow(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        stringResource(R.string.dsh_host_plugin_version),
+                        stringResource(CoreR.string.dsh_host_plugin_version),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -601,7 +602,7 @@ private fun BuiltinRow(
                 } else if (extra == null) {
                     // 只有「真的没有控件」的行才标常开：compat 的控件在 extra 里（三档）
                     Text(
-                        stringResource(R.string.dsh_userscripts_builtin_always_on),
+                        stringResource(CoreR.string.dsh_userscripts_builtin_always_on),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -718,12 +719,12 @@ private fun ScriptRow(
                 TextButton(onClick = onUpdate) {
                     Icon(Icons.Outlined.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text(stringResource(R.string.dsh_userscripts_update))
+                    Text(stringResource(CoreR.string.dsh_userscripts_update))
                 }
                 TextButton(onClick = onDelete) {
                     Icon(Icons.Outlined.Delete, null, Modifier.size(16.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text(stringResource(R.string.dsh_userscripts_delete))
+                    Text(stringResource(CoreR.string.dsh_userscripts_delete))
                 }
             }
         }
@@ -741,7 +742,7 @@ private fun ScriptRow(
 private fun CompatPicker(mode: String, kernel: String, onPick: (String) -> Unit) {
     Column {
         Text(
-            stringResource(R.string.dsh_userscripts_builtin_kernel, kernel.ifEmpty { "?" }),
+            stringResource(CoreR.string.dsh_userscripts_builtin_kernel, kernel.ifEmpty { "?" }),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -767,7 +768,7 @@ private fun CompatPicker(mode: String, kernel: String, onPick: (String) -> Unit)
 }
 
 private fun modeLabel(mode: String): Int = when (mode) {
-    DshWebCompat.MODE_ON -> R.string.dsh_webui_compat_on
-    DshWebCompat.MODE_OFF -> R.string.dsh_webui_compat_off
-    else -> R.string.dsh_webui_compat_auto
+    DshWebCompat.MODE_ON -> CoreR.string.dsh_webui_compat_on
+    DshWebCompat.MODE_OFF -> CoreR.string.dsh_webui_compat_off
+    else -> CoreR.string.dsh_webui_compat_auto
 }

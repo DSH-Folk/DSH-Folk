@@ -26,6 +26,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowStore
 import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 工作流编辑页 —— **次级页面**（导航进出的那种）。
@@ -67,7 +68,7 @@ fun WorkflowEditorScreen(
     }
     WorkflowDefinitionEditor(
         initial = initial,
-        title = stringResource(R.string.dsh_workflow_editor_title),
+        title = stringResource(CoreR.string.dsh_workflow_editor_title),
         // 自动保存：界面每次改动都会走这里，返回的是落盘后的定义（含新 revision）。
         // 冲突/失败返回 null，编辑器会显示状态并保留草稿，不会假装已保存。
         //
@@ -114,17 +115,17 @@ internal fun WorkflowNameDialog(
     fun validate(raw: String): String? {
         val name = raw.trim()
         return when {
-            name.isEmpty() -> ctx.getString(R.string.dsh_workflow_name_empty)
+            name.isEmpty() -> ctx.getString(CoreR.string.dsh_workflow_name_empty)
             name.length > WorkflowSchema.MAX_NAME_CHARS ->
-                ctx.getString(R.string.dsh_workflow_name_too_long, WorkflowSchema.MAX_NAME_CHARS)
-            WorkflowStore.nameTaken(ctx, name) -> ctx.getString(R.string.dsh_workflow_name_taken)
+                ctx.getString(CoreR.string.dsh_workflow_name_too_long, WorkflowSchema.MAX_NAME_CHARS)
+            WorkflowStore.nameTaken(ctx, name) -> ctx.getString(CoreR.string.dsh_workflow_name_taken)
             else -> null
         }
     }
 
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text(stringResource(R.string.dsh_workflow_name_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_workflow_name_title)) },
         text = {
             OutlinedTextField(
                 value = text,
@@ -132,7 +133,7 @@ internal fun WorkflowNameDialog(
                     text = it
                     error = 0
                 },
-                label = { Text(stringResource(R.string.dsh_workflow_name_hint)) },
+                label = { Text(stringResource(CoreR.string.dsh_workflow_name_hint)) },
                 isError = error != 0,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -152,10 +153,10 @@ internal fun WorkflowNameDialog(
                     val problem = validate(text)
                     if (problem != null) {
                         error = when {
-                            text.trim().isEmpty() -> R.string.dsh_workflow_name_empty
+                            text.trim().isEmpty() -> CoreR.string.dsh_workflow_name_empty
                             text.trim().length > WorkflowSchema.MAX_NAME_CHARS ->
-                                R.string.dsh_workflow_name_too_long
-                            else -> R.string.dsh_workflow_name_taken
+                                CoreR.string.dsh_workflow_name_too_long
+                            else -> CoreR.string.dsh_workflow_name_taken
                         }
                         return@TextButton
                     }
@@ -169,10 +170,10 @@ internal fun WorkflowNameDialog(
                             WorkflowStore.saveIfRevision(ctx, def, 0)?.id
                         }
                         busy = false
-                        if (created != null) onCreate(created) else error = R.string.dsh_workflow_name_create_failed
+                        if (created != null) onCreate(created) else error = CoreR.string.dsh_workflow_name_create_failed
                     }
                 },
-            ) { Text(stringResource(R.string.dsh_workflow_name_create)) }
+            ) { Text(stringResource(CoreR.string.dsh_workflow_name_create)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !busy) {

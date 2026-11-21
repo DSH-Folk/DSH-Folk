@@ -54,6 +54,7 @@ import me.bmax.apatch.dsh.DshPhase
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.ui.DshWebUi
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「分享/以…打开 → 用途选择 → 交给 DSH 处理」的**弹窗**（方案 A，全程不离开本页）。
@@ -118,14 +119,14 @@ fun DshFileHandoffDialog(
             }
             busy = false
             result.onSuccess { guestFilePath ->
-                showToast(context, R.string.dsh_handoff_copied)
+                showToast(context, CoreR.string.dsh_handoff_copied)
                 clipboard.setText(
-                    AnnotatedString(context.getString(R.string.dsh_handoff_prompt, guestFilePath))
+                    AnnotatedString(context.getString(CoreR.string.dsh_handoff_prompt, guestFilePath))
                 )
                 doneWorkspace = ws.title
                 step = "DONE"
             }.onFailure {
-                showToast(context, context.getString(R.string.dsh_handoff_copy_failed, it.message ?: ""))
+                showToast(context, context.getString(CoreR.string.dsh_handoff_copy_failed, it.message ?: ""))
             }
         }
     }
@@ -148,17 +149,17 @@ fun DshFileHandoffDialog(
                 when (step) {
                     "CHOOSER" -> {
                         DialogHeader(
-                            title = stringResource(R.string.dsh_share_chooser_title),
-                            subtitle = stringResource(R.string.dsh_share_chooser_message, fileName),
+                            title = stringResource(CoreR.string.dsh_share_chooser_title),
+                            subtitle = stringResource(CoreR.string.dsh_share_chooser_message, fileName),
                         )
                         Spacer(Modifier.height(12.dp))
-                        OptionRow(Icons.Outlined.Terminal, stringResource(R.string.dsh_share_use_dsh)) {
+                        OptionRow(Icons.Outlined.Terminal, stringResource(CoreR.string.dsh_share_use_dsh)) {
                             step = "DSH"
                         }
-                        OptionRow(Icons.Outlined.SettingsBackupRestore, stringResource(R.string.dsh_share_use_backup)) {
+                        OptionRow(Icons.Outlined.SettingsBackupRestore, stringResource(CoreR.string.dsh_share_use_backup)) {
                             onBackup(uri); onDismiss()
                         }
-                        OptionRow(Icons.Outlined.Palette, stringResource(R.string.dsh_share_use_theme)) {
+                        OptionRow(Icons.Outlined.Palette, stringResource(CoreR.string.dsh_share_use_theme)) {
                             onTheme(uri); onDismiss()
                         }
                         Spacer(Modifier.height(8.dp))
@@ -169,15 +170,15 @@ fun DshFileHandoffDialog(
 
                     "DSH" -> {
                         DialogHeader(
-                            title = stringResource(R.string.dsh_handoff_title),
-                            subtitle = stringResource(R.string.dsh_handoff_file_label, fileName),
+                            title = stringResource(CoreR.string.dsh_handoff_title),
+                            subtitle = stringResource(CoreR.string.dsh_handoff_file_label, fileName),
                         )
                         Spacer(Modifier.height(8.dp))
                         val list = workspaces
                         when {
                             state.phase == DshPhase.ERROR && list == null ->
                                 Text(
-                                    text = state.message.ifBlank { stringResource(R.string.dsh_handoff_starting) },
+                                    text = state.message.ifBlank { stringResource(CoreR.string.dsh_handoff_starting) },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.padding(vertical = 24.dp),
@@ -191,19 +192,19 @@ fun DshFileHandoffDialog(
                                 ) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                     Spacer(Modifier.width(12.dp))
-                                    Text(stringResource(R.string.dsh_handoff_starting))
+                                    Text(stringResource(CoreR.string.dsh_handoff_starting))
                                 }
 
                             else -> {
                                 Text(
-                                    text = stringResource(R.string.dsh_handoff_pick),
+                                    text = stringResource(CoreR.string.dsh_handoff_pick),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 if (list.isEmpty()) {
                                     Text(
-                                        text = stringResource(R.string.dsh_handoff_empty),
+                                        text = stringResource(CoreR.string.dsh_handoff_empty),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(vertical = 12.dp),
@@ -231,18 +232,18 @@ fun DshFileHandoffDialog(
                             Spacer(Modifier.width(12.dp))
                             Text(
                                 text = stringResource(
-                                    R.string.dsh_handoff_done_message,
-                                    doneWorkspace.ifBlank { stringResource(R.string.dsh_handoff_default_workspace) },
+                                    CoreR.string.dsh_handoff_done_message,
+                                    doneWorkspace.ifBlank { stringResource(CoreR.string.dsh_handoff_default_workspace) },
                                 ),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
                         Spacer(Modifier.height(16.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_bk_wiz_stage_done)) }
+                            TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_bk_wiz_stage_done)) }
                             Spacer(Modifier.width(8.dp))
                             TextButton(onClick = { openWeb(); onDismiss() }) {
-                                Text(stringResource(R.string.dsh_open_webui))
+                                Text(stringResource(CoreR.string.dsh_open_webui))
                             }
                         }
                     }
@@ -280,7 +281,7 @@ private fun OptionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 
 @Composable
 private fun WorkspaceRow(ws: DshFileHandoff.Workspace, enabled: Boolean, onClick: () -> Unit) {
-    val title = ws.title.ifBlank { stringResource(R.string.dsh_handoff_default_workspace) }
+    val title = ws.title.ifBlank { stringResource(CoreR.string.dsh_handoff_default_workspace) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -295,7 +296,7 @@ private fun WorkspaceRow(ws: DshFileHandoff.Workspace, enabled: Boolean, onClick
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = stringResource(R.string.dsh_handoff_sessions_count, ws.sessionCount),
+            text = stringResource(CoreR.string.dsh_handoff_sessions_count, ws.sessionCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

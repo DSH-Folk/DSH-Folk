@@ -235,11 +235,11 @@ function fsScopeBranchBody(src, header) {
 }
 {
   const linkWarn = fsScopeBranchBody(faScreen, "if (!storageLinkOk) {");
-  const noteAll = (faScreen.match(/R\.string\.dsh_ws_mount_note/g) || []).length;
-  const noteInWarn = (linkWarn.match(/R\.string\.dsh_ws_mount_note/g) || []).length;
+  const noteAll = (faScreen.match(/(?:Core)?R\.string\.dsh_ws_mount_note/g) || []).length;
+  const noteInWarn = (linkWarn.match(/(?:Core)?R\.string\.dsh_ws_mount_note/g) || []).length;
   ok(linkWarn.length > 0 && noteInWarn === 1 && noteAll === noteInWarn,
     "「共享存储不支持硬链接」那段说明整段在 !storageLinkOk 分支里（硬链接可用时不该出现）");
-  ok(/R\.string\.dsh_ws_mount_recheck/.test(linkWarn) && /resetStorageLinkProbe\(\)/.test(linkWarn),
+  ok(/(?:Core)?R\.string\.dsh_ws_mount_recheck/.test(linkWarn) && /resetStorageLinkProbe\(\)/.test(linkWarn),
     "「重新检测」也在同一分支里（有硬链接时不需要它）");
 }
 
@@ -265,7 +265,7 @@ function fsScopeBranchBody(src, header) {
     !/function_grant_docs_mt/.test(fn) && !/function_grant_docs_mt/.test(reg),
     "原来那两个 item key 已经不存在（否则就是两处入口各说各话）");
   ok((reg.match(/SettingEntry\(\s*"function_docs_access"/g) || []).length === 1 &&
-    /R\.string\.dsh_docs_access_title/.test(reg),
+    /(?:Core)?R\.string\.dsh_docs_access_title/.test(reg),
     "设置搜索只剩一条，标题就是「允许第三方应用访问数据目录」");
 
   // 候选名单：按能力查，不按厂商包名。三处都要钉「用在哪」，只查符号存在会被绕过：
@@ -295,8 +295,8 @@ function fsScopeBranchBody(src, header) {
     /Checkbox\(checked = on, onCheckedChange = null\)/.test(dialog) &&
     /mutableStateOf\(candidates\.filter \{ it\.defaultOn \}\.map \{ it\.packageName \}\.toSet\(\)\)/.test(dialog),
     "弹窗是多选（整行 toggleable + Checkbox），默认勾选 defaultOn 那些");
-  ok(/OutlinedTextField\(/.test(dialog) && /R\.string\.dsh_docs_grant_search/.test(dialog) &&
-    /R\.string\.dsh_docs_grant_empty/.test(dialog),
+  ok(/OutlinedTextField\(/.test(dialog) && /(?:Core)?R\.string\.dsh_docs_grant_search/.test(dialog) &&
+    /(?:Core)?R\.string\.dsh_docs_grant_empty/.test(dialog),
     "多选之上有搜索与空名单提示（候选可能有几十个）");
   ok(/val picked = candidates\.filter \{ it\.packageName in checked \}/.test(dialog) &&
     /picked\.count \{ DshDocsAccess\.grant\(context, it\.packageName\) \}/.test(dialog),
@@ -304,7 +304,7 @@ function fsScopeBranchBody(src, header) {
   ok(/DshDocsAccess\.revokeAll\(context\)/.test(dialog) &&
     /docsGranted\.value = DshDocsAccess\.grantedPackages\(context\)/.test(fn),
     "撤销作用于记下来的授权记录，撤销后卡片就地刷新");
-  ok(/R\.string\.dsh_docs_granted_label/.test(itemBlock) &&
+  ok(/(?:Core)?R\.string\.dsh_docs_granted_label/.test(itemBlock) &&
     /docsCandidates\.firstOrNull \{ it\.packageName == pkg \}\?\.label \?: pkg/.test(itemBlock),
     "卡片上写出「已直接授权：谁」（被授权方卸载后名字退化成包名）");
   ok(/docsCandidates\.isNotEmpty\(\) \|\| docsGranted\.value\.isNotEmpty\(\)/.test(itemBlock),
@@ -400,7 +400,7 @@ console.log("\u2500 #4 深度清理：长按入口 + 搜索 + 删除纪律");
     "搜索结果真的会开深度清理页（枚举加了但没接导航 = 搜到跳不过去）");
 
   // ③ 常驻警告：删除立刻生效、没有回收站
-  ok(/R\.string\.dsh_clean_warning/.test(dcScreen),
+  ok(/(?:Core)?R\.string\.dsh_clean_warning/.test(dcScreen),
     "页面常驻引用 dsh_clean_warning（删除不可撤销，得先说）");
 
   // ④ 删除纪律：canonicalPath 白名单 + 不跟随符号链接

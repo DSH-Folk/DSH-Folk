@@ -50,13 +50,13 @@ import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.DisplayChannelGuideDialog
 import me.bmax.apatch.ui.component.displayChannelReady
 import me.bmax.apatch.dsh.DisplayMirror
 import me.bmax.apatch.dsh.DisplayServer
 import me.bmax.apatch.dsh.DisplayVideoSink
 import kotlin.math.hypot
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 虚拟屏预览：一边看画面，一边在画面上点/滑。
@@ -81,7 +81,7 @@ import kotlin.math.hypot
 fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = null) {
     val context = LocalContext.current
 
-    var state by remember { mutableStateOf(context.getString(R.string.dsh_display_preview_starting)) }
+    var state by remember { mutableStateOf(context.getString(CoreR.string.dsh_display_preview_starting)) }
     var sessionId by remember { mutableStateOf(-1) }
     var displayW by remember { mutableStateOf(0) }
     var displayH by remember { mutableStateOf(0) }
@@ -142,9 +142,9 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
                     displayH = h
                 },
             )
-            state = context.getString(R.string.dsh_display_preview_session, s.displayId, s.width, s.height)
+            state = context.getString(CoreR.string.dsh_display_preview_session, s.displayId, s.width, s.height)
         }.onFailure { e ->
-            state = e.message ?: context.getString(R.string.dsh_display_preview_start_failed)
+            state = e.message ?: context.getString(CoreR.string.dsh_display_preview_start_failed)
             // 通道不可用是这里最常见的失败（其余失败的说明在预览页那行报错里更准确），
             // 所以再判一次：弹窗给的是"去开哪一个开关"，而不是一句"启动失败"。
             if (!displayChannelReady(context)) guide = true
@@ -159,8 +159,8 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
         decoder.attach(s)
         val id = sessionId
         val r = withContext(Dispatchers.IO) { DisplayServer.setVideoSink(context, id, decoder.asBinder()) }
-        r.onSuccess { state = context.getString(R.string.dsh_display_preview_connected, id) }
-            .onFailure { e -> state = e.message ?: context.getString(R.string.dsh_display_preview_start_failed) }
+        r.onSuccess { state = context.getString(CoreR.string.dsh_display_preview_connected, id) }
+            .onFailure { e -> state = e.message ?: context.getString(CoreR.string.dsh_display_preview_start_failed) }
     }
 
     // 离开时摘掉 sink：不摘的话服务端会一直往一个没人看的解码器推帧
@@ -201,7 +201,7 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_display_preview_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_display_preview_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -284,9 +284,9 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
 
             Spacer(Modifier.height(8.dp))
             Text(
-                stringResource(R.string.dsh_display_preview_hint) +
+                stringResource(CoreR.string.dsh_display_preview_hint) +
                     if (displayW > 0) {
-                        stringResource(R.string.dsh_display_preview_size, displayW, displayH)
+                        stringResource(CoreR.string.dsh_display_preview_size, displayW, displayH)
                     } else {
                         ""
                     },
@@ -296,13 +296,13 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { sendKey(sessionId, KEY_BACK) }) {
-                    Text(stringResource(R.string.dsh_display_preview_key_back))
+                    Text(stringResource(CoreR.string.dsh_display_preview_key_back))
                 }
                 TextButton(onClick = { sendKey(sessionId, KEY_HOME) }) {
-                    Text(stringResource(R.string.dsh_display_preview_key_home))
+                    Text(stringResource(CoreR.string.dsh_display_preview_key_home))
                 }
                 TextButton(onClick = { sendKey(sessionId, KEY_RECENTS) }) {
-                    Text(stringResource(R.string.dsh_display_preview_key_recents))
+                    Text(stringResource(CoreR.string.dsh_display_preview_key_recents))
                 }
             }
 
@@ -310,7 +310,7 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
                 OutlinedTextField(
                     value = launchedText,
                     onValueChange = { launchedText = it },
-                    label = { Text(stringResource(R.string.dsh_display_preview_pkg_label)) },
+                    label = { Text(stringResource(CoreR.string.dsh_display_preview_pkg_label)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
@@ -322,7 +322,7 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
                         val id = sessionId
                         Thread { runCatching { DisplayServer.current()?.launchApp(pkg, id) } }.start()
                     },
-                ) { Text(stringResource(R.string.dsh_display_preview_launch)) }
+                ) { Text(stringResource(CoreR.string.dsh_display_preview_launch)) }
             }
             Spacer(Modifier.height(8.dp))
         }

@@ -123,6 +123,7 @@ import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.util.DshWebCompat
 import me.bmax.apatch.util.LauncherIconUtils
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * WebUI 打开方式。
@@ -170,7 +171,7 @@ object DshWebUi {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }.isSuccess
-        if (!ok) showToast(ctx, ctx.getString(R.string.dsh_no_browser))
+        if (!ok) showToast(ctx, ctx.getString(CoreR.string.dsh_no_browser))
         return ok
     }
 }
@@ -226,11 +227,11 @@ private fun DshCompatShimDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_webui_compat_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_webui_compat_title)) },
         text = {
             Text(
                 text = stringResource(
-                    R.string.dsh_webui_compat_body,
+                    CoreR.string.dsh_webui_compat_body,
                     kernel.display.ifEmpty { "?" },
                 ),
                 style = MaterialTheme.typography.bodyMedium,
@@ -238,12 +239,12 @@ private fun DshCompatShimDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dsh_webui_compat_ok))
+                Text(stringResource(CoreR.string.dsh_webui_compat_ok))
             }
         },
         dismissButton = {
             TextButton(onClick = onDisable) {
-                Text(stringResource(R.string.dsh_webui_compat_disable))
+                Text(stringResource(CoreR.string.dsh_webui_compat_disable))
             }
         },
     )
@@ -674,7 +675,7 @@ class DshWebUiActivity : AppCompatActivity() {
                                         if (request?.isForMainFrame == true) {
                                             showToast(
                                                 this@DshWebUiActivity,
-                                                getString(R.string.dsh_webui_load_failed),
+                                                getString(CoreR.string.dsh_webui_load_failed),
                                             )
                                         }
                                         super.onReceivedError(view, request, error)
@@ -789,7 +790,7 @@ class DshWebUiActivity : AppCompatActivity() {
                                             callback?.onReceiveValue(null)
                                             showToast(
                                                 this@DshWebUiActivity,
-                                                getString(R.string.dsh_webui_no_file_picker),
+                                                getString(CoreR.string.dsh_webui_no_file_picker),
                                             )
                                             false
                                         }
@@ -869,7 +870,7 @@ class DshWebUiActivity : AppCompatActivity() {
                             } else {
                                 showToast(
                                     this@DshWebUiActivity,
-                                    getString(R.string.dsh_webui_browser_mode_off_hint),
+                                    getString(CoreR.string.dsh_webui_browser_mode_off_hint),
                                 )
                             }
                         },
@@ -1167,8 +1168,8 @@ class DshWebUiActivity : AppCompatActivity() {
         }
         showToast(
             this,
-            if (ok) getString(R.string.dsh_webui_downloading, name)
-            else getString(R.string.dsh_webui_download_failed),
+            if (ok) getString(CoreR.string.dsh_webui_downloading, name)
+            else getString(CoreR.string.dsh_webui_download_failed),
         )
     }
 
@@ -1237,8 +1238,8 @@ class DshWebUiActivity : AppCompatActivity() {
             runOnUiThread {
                 showToast(
                     this@DshWebUiActivity,
-                    if (ok != null) getString(R.string.dsh_webui_downloaded, safe)
-                    else getString(R.string.dsh_webui_download_failed),
+                    if (ok != null) getString(CoreR.string.dsh_webui_downloaded, safe)
+                    else getString(CoreR.string.dsh_webui_download_failed),
                 )
             }
         }
@@ -1626,7 +1627,7 @@ private fun WebUiFloatingBall(
             ) {
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.dsh_webui_back),
+                    contentDescription = stringResource(CoreR.string.dsh_webui_back),
                 )
             }
             BallMenuButton(
@@ -1639,7 +1640,7 @@ private fun WebUiFloatingBall(
             ) {
                 Icon(
                     Icons.Outlined.Refresh,
-                    contentDescription = stringResource(R.string.dsh_webui_reload),
+                    contentDescription = stringResource(CoreR.string.dsh_webui_reload),
                 )
             }
             // 主开关关掉时这一条不出现：不是灰掉，是根本不画（点了没用的入口
@@ -1655,7 +1656,7 @@ private fun WebUiFloatingBall(
                 ) {
                     Icon(
                         Icons.Outlined.PictureInPictureAlt,
-                        contentDescription = stringResource(R.string.dsh_pip_button),
+                        contentDescription = stringResource(CoreR.string.dsh_pip_button),
                     )
                 }
             }
@@ -1669,7 +1670,7 @@ private fun WebUiFloatingBall(
             ) {
                 Icon(
                     Icons.Outlined.OpenInBrowser,
-                    contentDescription = stringResource(R.string.dsh_webui_open_external),
+                    contentDescription = stringResource(CoreR.string.dsh_webui_open_external),
                 )
             }
 
@@ -1741,7 +1742,7 @@ private fun WebUiFloatingBall(
                 ) {
                     Image(
                         painter = painterResource(LauncherIconUtils.currentIconForeground()),
-                        contentDescription = stringResource(R.string.dsh_webui_ball),
+                        contentDescription = stringResource(CoreR.string.dsh_webui_ball),
                         // requiredSize 而不是 size：IconButton/Surface 会把最小约束往下传，
                         // size 会被夹回球径，画出来就偏小。位图四周那圈透明留白会被
                         // IconButton 的圆形裁剪吃掉，只留下中间本来就有内容的圆角方形。
@@ -1809,19 +1810,19 @@ private fun PipGuideDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_pip_guide_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_pip_guide_title)) },
         text = {
             Text(
                 stringResource(
-                    if (switchOff) R.string.dsh_pip_guide_text_supported
-                    else R.string.dsh_pip_guide_text_unsupported
+                    if (switchOff) CoreR.string.dsh_pip_guide_text_supported
+                    else CoreR.string.dsh_pip_guide_text_unsupported
                 )
             )
         },
         confirmButton = {
             if (switchOff) {
                 TextButton(onClick = onOpenSettings) {
-                    Text(stringResource(R.string.dsh_pip_guide_settings))
+                    Text(stringResource(CoreR.string.dsh_pip_guide_settings))
                 }
             } else {
                 TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.ok)) }

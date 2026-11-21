@@ -35,6 +35,7 @@ import me.bmax.apatch.ui.component.UpdateDialog
 import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.util.*
 import me.bmax.apatch.ui.screen.settings.general.*
+import me.bmax.apatch.res.R as CoreR
 
 @Composable
 fun GeneralSettingsContent(
@@ -143,7 +144,7 @@ fun GeneralSettingsContent(
                 withContext(Dispatchers.IO) { runCatching { getBugreportFile(context, window) }.getOrNull() }
             }
             if (bugreport == null) {
-                showToast(context, R.string.dsh_log_collect_failed)
+                showToast(context, CoreR.string.dsh_log_collect_failed)
                 return@launch
             }
             val uri: Uri = FileProvider.getUriForFile(
@@ -607,14 +608,14 @@ fun GeneralSettingsContent(
     if (showLogTrimDialog.value) {
         AlertDialog(
             onDismissRequest = { showLogTrimDialog.value = false },
-            title = { Text(stringResource(R.string.dsh_log_trim_title)) },
-            text = { Text(stringResource(R.string.dsh_log_trim_message)) },
+            title = { Text(stringResource(CoreR.string.dsh_log_trim_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_log_trim_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showLogTrimDialog.value = false
                     showLogWindowDialog.value = true
                 }) {
-                    Text(stringResource(R.string.dsh_log_trim_yes))
+                    Text(stringResource(CoreR.string.dsh_log_trim_yes))
                 }
             },
             dismissButton = {
@@ -622,7 +623,7 @@ fun GeneralSettingsContent(
                     showLogTrimDialog.value = false
                     collectAndShare(LogWindow.All)
                 }) {
-                    Text(stringResource(R.string.dsh_log_trim_all))
+                    Text(stringResource(CoreR.string.dsh_log_trim_all))
                 }
             },
         )
@@ -633,7 +634,7 @@ fun GeneralSettingsContent(
         val currentLevel = levels[logWindowIndex.toInt().coerceIn(0, levels.size - 1)]
         AlertDialog(
             onDismissRequest = { showLogWindowDialog.value = false },
-            title = { Text(stringResource(R.string.dsh_log_window_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_log_window_title)) },
             text = {
                 Column {
                     Text(
@@ -650,7 +651,7 @@ fun GeneralSettingsContent(
                     // 时间窗口，于是"报告里含能力调用记录"只在文件头里写着 —— 那句是给读
                     // 报告的人看的，不是给做决定的人看的。
                     Text(
-                        text = stringResource(R.string.dsh_log_window_includes),
+                        text = stringResource(CoreR.string.dsh_log_window_includes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

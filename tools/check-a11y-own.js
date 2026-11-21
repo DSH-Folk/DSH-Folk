@@ -139,9 +139,9 @@ console.log("\n── 设置页：三档 + 免责声明 ──");
   ok(/private fun A11yOwnPicker\(mode: String, onPick: \(String\) -> Unit\)/.test(CAPS) &&
      /stringResource\(a11yOwnLabelRes\(option\)\)/.test(CAPS),
     "三档直接铺开（不是弹层：免责声明是档位的限定词，藏起来等于藏了它）");
-  ok(/A11yOwn\.MODE_OFF -> R\.string\.dsh_a11y_own_off[\s\S]{0,200}A11yOwn\.MODE_ALL -> R\.string\.dsh_a11y_own_all/.test(CAPS),
+  ok(/A11yOwn\.MODE_OFF -> (?:Core)?R\.string\.dsh_a11y_own_off[\s\S]{0,200}A11yOwn\.MODE_ALL -> (?:Core)?R\.string\.dsh_a11y_own_all/.test(CAPS),
     "标签/说明都覆盖到 off 与 all 两档（不许只剩一个 else 兜底）");
-  ok(/stringResource\(R\.string\.dsh_a11y_own_note\)/.test(CAPS),
+  ok(/stringResource\((?:Core)?R\.string\.dsh_a11y_own_note\)/.test(CAPS),
     "卡片里带「不保证完全拦截」那行");
   ok(/Hit\("perm-a11y-own", a11yOwnTitle, a11yOwnSummary, HubTarget\.Group\(CapGroup\.SCREEN\)\)/.test(HUB),
     "权限页搜索能搜到它（并跳到它所在的那一组）");

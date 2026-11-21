@@ -7,7 +7,6 @@ import android.os.Environment
 import android.os.StatFs
 import android.provider.DocumentsContract
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
@@ -23,6 +22,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * SAF 桥路由（saf 端点族）：挂不上的那一类提供器（Termux…）经宿主 App 用 ContentResolver /
@@ -54,7 +54,7 @@ internal fun DshFsBridge.dispatchSaf(
         headers: Map<String, String>,
         out: OutputStream,
     ): Pair<Int, String>? {
-        val ctx = appCtx ?: return 500 to errorJson(str(R.string.dsh_fs_err_native_uninit), "native_uninit")
+        val ctx = appCtx ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_native_uninit), "native_uninit")
         // 权限判定在服务端、落在 Cap.SAF —— 和 /native/… 一样不信容器。
         DshNativeBridge.safGate(ctx, method, path)?.let { denial ->
             DshNativeBridge.safAudit(ctx, method, path, params, denial)
@@ -70,7 +70,7 @@ internal fun DshFsBridge.dispatchSaf(
             method == "POST" && path == "/saf/move" -> safMove(ctx, params)
             method == "POST" && path == "/saf/copy" -> safCopy(ctx, params)
             method == "DELETE" && path == "/saf/delete" -> safDelete(ctx, params)
-            else -> 404 to errorJson(str(R.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
+            else -> 404 to errorJson(str(CoreR.string.dsh_fs_err_unknown_endpoint, method, path), "unknown_endpoint")
         }
         // read 自己写出二进制流（result==null）时不记录响应体，记一条成功的占位，和别的端点
         // 一样进 native-capability.jsonl。
@@ -205,13 +205,13 @@ internal fun DshFsBridge.safDocJson(doc: SafDoc, path: String): JSONObject = JSO
         .put("mtime", doc.mtime)
 
 internal fun DshFsBridge.safNotFound(): Pair<Int, String> =
-        404 to errorJson(str(R.string.dsh_fs_err_not_found), "not_found")
+        404 to errorJson(str(CoreR.string.dsh_fs_err_not_found), "not_found")
 
 internal fun DshFsBridge.safBadSource(): Pair<Int, String> =
-        404 to errorJson(str(R.string.dsh_saf_err_unknown_source), "unknown_source")
+        404 to errorJson(str(CoreR.string.dsh_saf_err_unknown_source), "unknown_source")
 
 internal fun DshFsBridge.safBadPath(): Pair<Int, String> =
-        400 to errorJson(str(R.string.dsh_fs_err_bad_path), "bad_path")
+        400 to errorJson(str(CoreR.string.dsh_fs_err_bad_path), "bad_path")
 
 internal fun DshFsBridge.safSources(ctx: Context): Pair<Int, String> {
         val arr = JSONArray()
@@ -265,23 +265,23 @@ internal fun DshFsBridge.safRead(ctx: Context, params: Map<String, String>, out:
         val src = safSource(ctx, params) ?: return safBadSource()
         val segs = safSegments(params["path"]) ?: return safBadPath()
         val doc = resolveSafDoc(ctx, src, segs) ?: return safNotFound()
-        if (doc.isDir) return 400 to errorJson(str(R.string.dsh_fs_err_is_dir), "is_dir")
+        if (doc.isDir) return 400 to errorJson(str(CoreR.string.dsh_fs_err_is_dir), "is_dir")
         val offset = params["offset"]?.let {
-            it.toLongOrNull() ?: return 400 to errorJson(str(R.string.dsh_fs_err_not_int, "offset"), "not_int")
+            it.toLongOrNull() ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_int, "offset"), "not_int")
         } ?: 0L
-        if (offset < 0) return 400 to errorJson(str(R.string.dsh_fs_err_negative, "offset"), "negative")
+        if (offset < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_negative, "offset"), "negative")
         val requested = params["length"]?.let {
-            it.toLongOrNull() ?: return 400 to errorJson(str(R.string.dsh_fs_err_not_int, "length"), "not_int")
+            it.toLongOrNull() ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_int, "length"), "not_int")
         }
-        if (requested != null && requested < 0) return 400 to errorJson(str(R.string.dsh_fs_err_negative, "length"), "negative")
+        if (requested != null && requested < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_negative, "length"), "negative")
         if (requested != null && requested > MAX_READ_BYTES) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_read_too_big, requested), "read_too_big")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_read_too_big, requested), "read_too_big")
         }
         val docUri = runCatching {
             DocumentsContract.buildDocumentUriUsingTree(src.uri, doc.docId)
         }.getOrNull() ?: return safNotFound()
         val stream = runCatching { ctx.contentResolver.openInputStream(docUri) }.getOrNull()
-            ?: return 500 to errorJson(str(R.string.dsh_fs_err_open_failed, ""), "open_failed")
+            ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_open_failed, ""), "open_failed")
         stream.use { ins ->
             // SAF 流不保证可随机定位：offset 用 skip 跳过（提供器大多实现了 skip，没有也退化成读弃）。
             var toSkip = offset
@@ -328,32 +328,32 @@ internal fun DshFsBridge.safWrite(
         val segs = safSegments(params["path"]) ?: return safBadPath()
         if (segs.isEmpty()) return safBadPath()
         val len = headers["content-length"]?.toLongOrNull()
-            ?: return 400 to errorJson(str(R.string.dsh_fs_err_missing_length), "missing_length")
-        if (len < 0) return 400 to errorJson(str(R.string.dsh_fs_err_bad_length), "bad_length")
+            ?: return 400 to errorJson(str(CoreR.string.dsh_fs_err_missing_length), "missing_length")
+        if (len < 0) return 400 to errorJson(str(CoreR.string.dsh_fs_err_bad_length), "bad_length")
         val append = boolParam(params["append"])
         // 先把 body 收进内存：SAF 的 openOutputStream 要先有文档，而文档可能需要先 create；
         // 一次性读进来（受 MAX_READ_BYTES 约束）比边收边建简单也更可控。
         if (len > MAX_READ_BYTES) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_read_too_big, len), "read_too_big")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_read_too_big, len), "read_too_big")
         }
         val buf = ByteArrayOutputStream()
         val received = pump(input, buf, len)
         if (received != len) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_short_body, len, received), "short_body")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_short_body, len, received), "short_body")
         }
         val data = buf.toByteArray()
 
         val existing = resolveSafDoc(ctx, src, segs)
         if (existing != null && existing.isDir) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_is_dir), "is_dir")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_is_dir), "is_dir")
         }
         val docId = existing?.docId ?: run {
             // 不存在：在父目录下 createDocument。父目录必须已存在。
             val parentSegs = segs.dropLast(1)
             val parent = resolveSafDoc(ctx, src, parentSegs) ?: return safNotFound()
-            if (!parent.isDir) return 400 to errorJson(str(R.string.dsh_fs_err_not_dir), "not_dir")
+            if (!parent.isDir) return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_dir), "not_dir")
             createSafChild(ctx, src.uri, parent.docId, segs.last(), isDir = false)
-                ?: return 500 to errorJson(str(R.string.dsh_saf_err_create_failed), "create_failed")
+                ?: return 500 to errorJson(str(CoreR.string.dsh_saf_err_create_failed), "create_failed")
         }
         val docUri = runCatching {
             DocumentsContract.buildDocumentUriUsingTree(src.uri, docId)
@@ -366,7 +366,7 @@ internal fun DshFsBridge.safWrite(
             os?.use { it.write(data); it.flush() }
             os != null
         }.getOrDefault(false)
-        if (!written) return 500 to errorJson(str(R.string.dsh_fs_err_write_failed), "write_failed")
+        if (!written) return 500 to errorJson(str(CoreR.string.dsh_fs_err_write_failed), "write_failed")
         return 200 to JSONObject().put("ok", true).put("path", segs.joinToString("/"))
             .put("append", append).put("bytes", data.size).toString()
     }
@@ -376,12 +376,12 @@ internal fun DshFsBridge.safMkdir(ctx: Context, params: Map<String, String>): Pa
         val segs = safSegments(params["path"]) ?: return safBadPath()
         if (segs.isEmpty()) return safBadPath()
         if (resolveSafDoc(ctx, src, segs) != null) {
-            return 400 to errorJson(str(R.string.dsh_fs_err_file_exists), "file_exists")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_file_exists), "file_exists")
         }
         val parent = resolveSafDoc(ctx, src, segs.dropLast(1)) ?: return safNotFound()
-        if (!parent.isDir) return 400 to errorJson(str(R.string.dsh_fs_err_not_dir), "not_dir")
+        if (!parent.isDir) return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_dir), "not_dir")
         val created = createSafChild(ctx, src.uri, parent.docId, segs.last(), isDir = true)
-            ?: return 500 to errorJson(str(R.string.dsh_fs_err_mkdir_failed), "mkdir_failed")
+            ?: return 500 to errorJson(str(CoreR.string.dsh_fs_err_mkdir_failed), "mkdir_failed")
         return 200 to JSONObject().put("ok", true).put("docId", created).toString()
     }
 
@@ -390,7 +390,7 @@ internal fun DshFsBridge.safDelete(ctx: Context, params: Map<String, String>): P
         val segs = safSegments(params["path"]) ?: return safBadPath()
         if (segs.isEmpty()) {
             // 不允许删树根：那是用户授权的来源本体，撤销来源走 App 侧的「文件访问范围」页。
-            return 400 to errorJson(str(R.string.dsh_fs_err_no_delete_root), "no_delete_root")
+            return 400 to errorJson(str(CoreR.string.dsh_fs_err_no_delete_root), "no_delete_root")
         }
         val doc = resolveSafDoc(ctx, src, segs) ?: return safNotFound()
         val docUri = runCatching {
@@ -399,7 +399,7 @@ internal fun DshFsBridge.safDelete(ctx: Context, params: Map<String, String>): P
         val ok = runCatching { DocumentsContract.deleteDocument(ctx.contentResolver, docUri) }
             .getOrDefault(false)
         return if (ok) 200 to JSONObject().put("ok", true).toString()
-        else 500 to errorJson(str(R.string.dsh_fs_err_delete_failed), "delete_failed")
+        else 500 to errorJson(str(CoreR.string.dsh_fs_err_delete_failed), "delete_failed")
     }
 
 internal fun DshFsBridge.safMove(ctx: Context, params: Map<String, String>): Pair<Int, String> {
@@ -418,15 +418,15 @@ internal fun DshFsBridge.safMove(ctx: Context, params: Map<String, String>): Pai
                 DocumentsContract.renameDocument(ctx.contentResolver, fromUri, toSegs.last())
             }.getOrNull()
             return if (renamed != null) 200 to JSONObject().put("ok", true).put("mode", "rename").toString()
-            else 500 to errorJson(str(R.string.dsh_saf_err_move_failed), "move_failed")
+            else 500 to errorJson(str(CoreR.string.dsh_saf_err_move_failed), "move_failed")
         }
         // 跨父目录：目标父目录必须存在，且文件名不能同时变（SAF moveDocument 不改名）。
         if (fromSegs.last() != toSegs.last()) {
-            return 400 to errorJson(str(R.string.dsh_saf_err_move_rename), "move_rename_unsupported")
+            return 400 to errorJson(str(CoreR.string.dsh_saf_err_move_rename), "move_rename_unsupported")
         }
         val oldParent = resolveSafDoc(ctx, src, fromSegs.dropLast(1)) ?: return safNotFound()
         val newParent = resolveSafDoc(ctx, src, toSegs.dropLast(1)) ?: return safNotFound()
-        if (!newParent.isDir) return 400 to errorJson(str(R.string.dsh_fs_err_not_dir), "not_dir")
+        if (!newParent.isDir) return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_dir), "not_dir")
         val oldParentUri = runCatching {
             DocumentsContract.buildDocumentUriUsingTree(src.uri, oldParent.docId)
         }.getOrNull() ?: return safNotFound()
@@ -437,7 +437,7 @@ internal fun DshFsBridge.safMove(ctx: Context, params: Map<String, String>): Pai
             DocumentsContract.moveDocument(ctx.contentResolver, fromUri, oldParentUri, newParentUri)
         }.getOrNull()
         return if (moved != null) 200 to JSONObject().put("ok", true).put("mode", "move").toString()
-        else 500 to errorJson(str(R.string.dsh_saf_err_move_failed), "move_failed")
+        else 500 to errorJson(str(CoreR.string.dsh_saf_err_move_failed), "move_failed")
     }
 
 internal fun DshFsBridge.safCopy(ctx: Context, params: Map<String, String>): Pair<Int, String> {
@@ -447,14 +447,14 @@ internal fun DshFsBridge.safCopy(ctx: Context, params: Map<String, String>): Pai
         if (fromSegs.isEmpty() || toSegs.isEmpty()) return safBadPath()
         // SAF copyDocument 只能复制进一个目标父目录、保留原名，不能顺带改名。要求同名、父目录存在。
         if (fromSegs.last() != toSegs.last()) {
-            return 400 to errorJson(str(R.string.dsh_saf_err_copy_rename), "copy_rename_unsupported")
+            return 400 to errorJson(str(CoreR.string.dsh_saf_err_copy_rename), "copy_rename_unsupported")
         }
         val fromDoc = resolveSafDoc(ctx, src, fromSegs) ?: return safNotFound()
         val fromUri = runCatching {
             DocumentsContract.buildDocumentUriUsingTree(src.uri, fromDoc.docId)
         }.getOrNull() ?: return safNotFound()
         val newParent = resolveSafDoc(ctx, src, toSegs.dropLast(1)) ?: return safNotFound()
-        if (!newParent.isDir) return 400 to errorJson(str(R.string.dsh_fs_err_not_dir), "not_dir")
+        if (!newParent.isDir) return 400 to errorJson(str(CoreR.string.dsh_fs_err_not_dir), "not_dir")
         val newParentUri = runCatching {
             DocumentsContract.buildDocumentUriUsingTree(src.uri, newParent.docId)
         }.getOrNull() ?: return safNotFound()
@@ -463,7 +463,7 @@ internal fun DshFsBridge.safCopy(ctx: Context, params: Map<String, String>): Pai
         }.getOrNull()
         // 不是所有提供器都支持 copyDocument（能力位 FLAG_SUPPORTS_COPY），回明确错误而不是假装成功。
         return if (copied != null) 200 to JSONObject().put("ok", true).toString()
-        else 500 to errorJson(str(R.string.dsh_saf_err_copy_unsupported), "copy_unsupported")
+        else 500 to errorJson(str(CoreR.string.dsh_saf_err_copy_unsupported), "copy_unsupported")
     }
 
     /** 在父目录文档下建一个子文档/子目录；返回新文档 id，失败 null。 */

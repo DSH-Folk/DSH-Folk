@@ -33,6 +33,7 @@ import kotlin.math.sin
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.navigation.LocalBottomBarVisible
 import me.bmax.apatch.ui.navigation.LocalIsFloatingNavMode
+import me.bmax.apatch.res.R as CoreR
 
 /** 主按钮（右下角那颗 ＋/✕）的直径。 */
 private val ADD_FAB_SIZE = 56.dp
@@ -139,7 +140,7 @@ internal fun AddMenuFab(entries: List<AddMenuEntry>) {
                 // 展开时这一颗的语义是「取消」：图标与读屏名一起换，否则读屏还会念「添加」，
                 // 而按下去其实是收回菜单。
                 contentDescription = stringResource(
-                    if (expanded) R.string.cancel else R.string.dsh_add_menu
+                    if (expanded) R.string.cancel else CoreR.string.dsh_add_menu
                 ),
             )
         }

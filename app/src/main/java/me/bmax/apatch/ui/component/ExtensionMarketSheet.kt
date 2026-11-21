@@ -59,6 +59,7 @@ import kotlinx.coroutines.withContext
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionMarket
 import me.bmax.apatch.dsh.ext.MarketEntry
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 扩展市场弹层。
@@ -154,7 +155,7 @@ fun ExtensionMarketSheet(
         scope.launch {
             ExtensionMarket.install(context, entry).fold(
                 onSuccess = { mf ->
-                    message = context.getString(R.string.dsh_ext_market_done, mf.name)
+                    message = context.getString(CoreR.string.dsh_ext_market_done, mf.name)
                     onInstalled()
                     // 装完立刻重读已装表：那一行要从「安装」翻成 ✓，不能等下次开弹层
                     refreshInstalled()
@@ -201,7 +202,7 @@ fun ExtensionMarketSheet(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_ext_market)) },
+                title = { Text(stringResource(CoreR.string.dsh_ext_market)) },
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
@@ -211,7 +212,7 @@ fun ExtensionMarketSheet(
                     IconButton(onClick = { reload() }, enabled = !loading) {
                         Icon(
                             Icons.Outlined.Refresh,
-                            contentDescription = stringResource(R.string.dsh_ext_market_refresh),
+                            contentDescription = stringResource(CoreR.string.dsh_ext_market_refresh),
                         )
                     }
                 },
@@ -223,7 +224,7 @@ fun ExtensionMarketSheet(
             // 所以不做「显示 N / 共 M」——那个数字只在「搜的是全量」时才有意义。
             if (!loading && entries.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_ext_market_count, entries.size),
+                    text = stringResource(CoreR.string.dsh_ext_market_count, entries.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -248,7 +249,7 @@ fun ExtensionMarketSheet(
             // 列表已经有内容时，刷新失败只加一行红字，不把列表换成错误页（见 reload）。
             if (error.isNotEmpty() && entries.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_ext_market_failed, error),
+                    text = stringResource(CoreR.string.dsh_ext_market_failed, error),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -266,7 +267,7 @@ fun ExtensionMarketSheet(
                     ) {
                         CircularProgressIndicator(Modifier.size(24.dp))
                         Text(
-                            text = stringResource(R.string.dsh_ext_market_loading),
+                            text = stringResource(CoreR.string.dsh_ext_market_loading),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -281,7 +282,7 @@ fun ExtensionMarketSheet(
                     ) {
                         if (error.isNotEmpty()) {
                             Text(
-                                text = stringResource(R.string.dsh_ext_market_failed, error),
+                                text = stringResource(CoreR.string.dsh_ext_market_failed, error),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -291,12 +292,12 @@ fun ExtensionMarketSheet(
                             }
                         } else {
                             Text(
-                                text = stringResource(R.string.dsh_ext_market_empty),
+                                text = stringResource(CoreR.string.dsh_ext_market_empty),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                text = stringResource(R.string.dsh_ext_market_empty_hint),
+                                text = stringResource(CoreR.string.dsh_ext_market_empty_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -408,15 +409,15 @@ private fun MarketRow(
                         installing -> CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         upToDate -> Icon(
                             Icons.Outlined.Check,
-                            contentDescription = stringResource(R.string.dsh_ext_market_installed),
+                            contentDescription = stringResource(CoreR.string.dsh_ext_market_installed),
                         )
                         else -> Icon(
                             if (installedVersion == null) Icons.Outlined.Download else Icons.Outlined.SystemUpdate,
                             contentDescription = stringResource(
                                 if (installedVersion == null) {
-                                    R.string.dsh_ext_market_install
+                                    CoreR.string.dsh_ext_market_install
                                 } else {
-                                    R.string.dsh_ext_market_update
+                                    CoreR.string.dsh_ext_market_update
                                 },
                             ),
                         )
@@ -439,7 +440,7 @@ private fun MarketRow(
                 if (entry.declaredCaps.isNotEmpty()) {
                     ModuleLabel(
                         text = stringResource(
-                            R.string.dsh_ext_caps,
+                            CoreR.string.dsh_ext_caps,
                             entry.declaredCaps.take(3).joinToString(", "),
                         ),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -515,13 +516,13 @@ private fun MarketDetailSheet(
                 }
                 if (upToDate) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_ext_market_installed),
+                        text = stringResource(CoreR.string.dsh_ext_market_installed),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 } else if (installedVersion != null) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_ext_market_update),
+                        text = stringResource(CoreR.string.dsh_ext_market_update),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
@@ -543,7 +544,7 @@ private fun MarketDetailSheet(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = stringResource(R.string.dsh_ext_detail_caps_all),
+                            text = stringResource(CoreR.string.dsh_ext_detail_caps_all),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -559,21 +560,21 @@ private fun MarketDetailSheet(
                 }
             }
 
-            MarketDetailRow(stringResource(R.string.dsh_ext_detail_id), entry.id)
+            MarketDetailRow(stringResource(CoreR.string.dsh_ext_detail_id), entry.id)
             if (installedVersion != null) {
-                MarketDetailRow(stringResource(R.string.dsh_ext_market_field_installed), installedVersion)
+                MarketDetailRow(stringResource(CoreR.string.dsh_ext_market_field_installed), installedVersion)
             }
             MarketDetailRow(
-                stringResource(R.string.dsh_ext_market_field_minapi),
+                stringResource(CoreR.string.dsh_ext_market_field_minapi),
                 if (entry.minApi <= 1) {
-                    stringResource(R.string.dsh_ext_market_field_minapi_any)
+                    stringResource(CoreR.string.dsh_ext_market_field_minapi_any)
                 } else {
                     entry.minApi.toString()
                 },
             )
-            MarketDetailRow(stringResource(R.string.dsh_ext_market_field_url), entry.downloadUrl)
+            MarketDetailRow(stringResource(CoreR.string.dsh_ext_market_field_url), entry.downloadUrl)
             // 校验值也摆出来：目录与安装包都来自网络，这是用户唯一能自己核对的证据。
-            MarketDetailRow(stringResource(R.string.dsh_ext_market_field_sha), entry.sha256)
+            MarketDetailRow(stringResource(CoreR.string.dsh_ext_market_field_sha), entry.sha256)
 
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -590,9 +591,9 @@ private fun MarketDetailSheet(
                         Text(
                             stringResource(
                                 if (installedVersion == null) {
-                                    R.string.dsh_ext_market_install
+                                    CoreR.string.dsh_ext_market_install
                                 } else {
-                                    R.string.dsh_ext_market_update
+                                    CoreR.string.dsh_ext_market_update
                                 },
                             ),
                         )

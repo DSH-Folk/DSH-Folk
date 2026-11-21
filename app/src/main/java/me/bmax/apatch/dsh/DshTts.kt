@@ -7,7 +7,6 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import android.util.Log
-import me.bmax.apatch.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -15,6 +14,7 @@ import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 语音合成（`/native/tts/speak`、`/native/tts/file`、`/native/tts/voices`）：把文字交给
@@ -109,13 +109,13 @@ internal object DshTts {
         val raw = params["text"].orEmpty()
         if (raw.isBlank()) {
             return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "text"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "text"),
                 "missing_text",
             )
         }
         if (!speaking.compareAndSet(false, true)) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_busy),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_busy),
                 "already_speaking",
             )
         }
@@ -146,7 +146,7 @@ internal object DshTts {
                 val queued = tts.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), id)
                 if (queued != TextToSpeech.SUCCESS) {
                     return@withEngine 500 to DshNativeBridge.err(
-                        DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_speak),
+                        DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_speak),
                         "speak_failed",
                     )
                 }
@@ -157,13 +157,13 @@ internal object DshTts {
                     // 超时就停掉：留着它继续读，用户会在几十秒后听到一段莫名其妙的话
                     runCatching { tts.stop() }
                     return@withEngine 504 to DshNativeBridge.err(
-                        DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_timeout),
+                        DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_timeout),
                         "timeout",
                     )
                 }
                 if (failed >= 0) {
                     return@withEngine 500 to DshNativeBridge.err(
-                        DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_synth, errorName(failed)),
+                        DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_synth, errorName(failed)),
                         errorReason(failed),
                     )
                 }
@@ -190,13 +190,13 @@ internal object DshTts {
         val raw = params["text"].orEmpty()
         if (raw.isBlank()) {
             return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "text"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "text"),
                 "missing_text",
             )
         }
         if (!speaking.compareAndSet(false, true)) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_busy),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_busy),
                 "already_speaking",
             )
         }
@@ -230,7 +230,7 @@ internal object DshTts {
                 if (queued != TextToSpeech.SUCCESS) {
                     out.delete()
                     return@withEngine 500 to DshNativeBridge.err(
-                        DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_speak),
+                        DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_speak),
                         "speak_failed",
                     )
                 }
@@ -242,12 +242,12 @@ internal object DshTts {
                     out.delete()
                     return@withEngine if (!finished) {
                         504 to DshNativeBridge.err(
-                            DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_timeout),
+                            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_timeout),
                             "timeout",
                         )
                     } else {
                         500 to DshNativeBridge.err(
-                            DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_synth, errorName(failed)),
+                            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_synth, errorName(failed)),
                             errorReason(failed),
                         )
                     }
@@ -256,7 +256,7 @@ internal object DshTts {
                 if (!out.isFile || out.length() == 0L) {
                     out.delete()
                     return@withEngine 500 to DshNativeBridge.err(
-                        DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_empty),
+                        DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_empty),
                         "empty_output",
                     )
                 }
@@ -342,7 +342,7 @@ internal object DshTts {
         }.getOrElse { e ->
             Log.w(TAG, "TTS 构造失败: ${e.message}")
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_init),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_init),
                 "tts_init_failed",
             )
         }
@@ -355,12 +355,12 @@ internal object DshTts {
             // 前者要提示用户去装一个，后者重试可能就好了。
             return if (!inited) {
                 504 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_timeout),
+                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_timeout),
                     "timeout",
                 )
             } else {
                 500 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_no_engine),
+                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_no_engine),
                     // 与能力可用性检查用同一个原因 id，别让同一状态出现两种叫法
                     "no_tts_engine",
                 )
@@ -371,7 +371,7 @@ internal object DshTts {
         } catch (e: Throwable) {
             Log.w(TAG, "TTS 处理失败: ${e.message}")
             500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_tts_synth, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_tts_synth, e.message ?: ""),
                 "tts_failed",
             )
         } finally {

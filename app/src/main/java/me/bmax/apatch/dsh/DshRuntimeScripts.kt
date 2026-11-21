@@ -1,8 +1,8 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
-import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 容器侧的脚本与文档（原来内嵌在 [DshRuntime] 里，约一千二百行）。
@@ -1263,19 +1263,19 @@ internal object DshRuntimeScripts {
      * （root_unverified / shizuku_unauthorized / adb_unpaired），照抄进清单 agent 才对得上。
      */
     fun nativeTroubleshootDoc(ctx: Context): String = buildString {
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_intro))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_intro))
         appendLine()
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_no_channel))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_no_channel))
         appendLine()
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_root, PrivilegedShell.REASON_ROOT_UNVERIFIED))
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_shizuku, PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED))
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_adb, PrivilegedShell.REASON_ADB_UNPAIRED))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_root, PrivilegedShell.REASON_ROOT_UNVERIFIED))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_shizuku, PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_adb, PrivilegedShell.REASON_ADB_UNPAIRED))
         appendLine()
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_cap))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_cap))
         appendLine()
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_perm))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_perm))
         appendLine()
-        appendLine(ctx.appString(R.string.dsh_troubleshoot_rom))
+        appendLine(ctx.appString(CoreR.string.dsh_troubleshoot_rom))
     }
 
 }

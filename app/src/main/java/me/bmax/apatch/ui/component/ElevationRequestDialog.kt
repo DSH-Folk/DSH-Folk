@@ -36,10 +36,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshElevationRequests
 import me.bmax.apatch.dsh.DshHostPrompt
 import me.bmax.apatch.dsh.DshNativeBridge
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 原生能力申请弹窗（两段）。
@@ -111,8 +111,8 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
         title = {
             Text(
                 stringResource(
-                    if (confirmOnly) R.string.dsh_native_priv_confirm_title
-                    else R.string.dsh_native_elevate_title
+                    if (confirmOnly) CoreR.string.dsh_native_priv_confirm_title
+                    else CoreR.string.dsh_native_elevate_title
                 )
             )
         },
@@ -123,8 +123,8 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                     // 所以这里给的是通道与身份，而不是能力 id 与档位 id
                     Text(
                         stringResource(
-                            R.string.dsh_native_priv_confirm_message,
-                            request.channel ?: stringResource(R.string.dsh_perm_none),
+                            CoreR.string.dsh_native_priv_confirm_message,
+                            request.channel ?: stringResource(CoreR.string.dsh_perm_none),
                             request.uid ?: -1,
                             request.reason,
                         )
@@ -132,7 +132,7 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                 } else {
                     Text(
                         stringResource(
-                            R.string.dsh_native_elevate_message,
+                            CoreR.string.dsh_native_elevate_message,
                             request.cap.id,
                             request.access.id,
                             request.reason,
@@ -143,7 +143,7 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                     request.access == DshNativeBridge.Access.CONTROL
                 ) {
                     Spacer(Modifier.height(12.dp))
-                    Text(stringResource(R.string.dsh_native_full_control_warning_message))
+                    Text(stringResource(CoreR.string.dsh_native_full_control_warning_message))
                 }
                 // 附带的命令：原文照显、等宽、可选中复制，不做任何润色。
                 val script = request.command ?: request.invocation
@@ -152,9 +152,9 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                     Text(
                         text = stringResource(
                             if (request.command != null) {
-                                R.string.dsh_native_elevate_command_title
+                                CoreR.string.dsh_native_elevate_command_title
                             } else {
-                                R.string.dsh_native_elevate_invocation_title
+                                CoreR.string.dsh_native_elevate_invocation_title
                             }
                         ),
                         style = MaterialTheme.typography.labelMedium,
@@ -165,8 +165,8 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = stringResource(
-                        if (confirmOnly) R.string.dsh_native_priv_confirm_strict_hint
-                        else R.string.dsh_native_elevate_once_hint
+                        if (confirmOnly) CoreR.string.dsh_native_priv_confirm_strict_hint
+                        else CoreR.string.dsh_native_elevate_once_hint
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -175,7 +175,7 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                 // 想让它以后别问，入口只在「权限管理 → 限制模式」（名单只在一处管理）——
                 // 弹窗这里只说清"去哪"，不给第二个入口。
                 Text(
-                    text = stringResource(R.string.dsh_native_elevate_where_hint),
+                    text = stringResource(CoreR.string.dsh_native_elevate_where_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -183,7 +183,7 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                 // 倒计时放在正文末尾而不是按钮行里：按钮行是几个并排的动作，塞一个会跳动的
                 // 秒数进去会让整行随秒数重排；这里它是一条稳定宽度的说明。
                 Text(
-                    text = stringResource(R.string.dsh_native_elevate_countdown, secondsLeft),
+                    text = stringResource(CoreR.string.dsh_native_elevate_countdown, secondsLeft),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -194,21 +194,21 @@ private fun ElevationDialog(activity: Activity, request: DshElevationRequests.Re
                 TextButton(onClick = { allowOnce(activity, request) }) {
                     Text(
                         stringResource(
-                            if (confirmOnly) R.string.dsh_native_priv_confirm_allow_once
-                            else R.string.dsh_native_elevate_once
+                            if (confirmOnly) CoreR.string.dsh_native_priv_confirm_allow_once
+                            else CoreR.string.dsh_native_elevate_once
                         )
                     )
                 }
                 if (persistent) {
                     TextButton(onClick = { allow(activity, request) }) {
-                        Text(stringResource(R.string.dsh_native_elevate_allow))
+                        Text(stringResource(CoreR.string.dsh_native_elevate_allow))
                     }
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = { DshElevationRequests.clear(request.id) }) {
-                Text(stringResource(R.string.dsh_native_elevate_deny))
+                Text(stringResource(CoreR.string.dsh_native_elevate_deny))
             }
         },
     )
@@ -244,27 +244,27 @@ private fun OsPermissionDialog(activity: Activity, os: DshElevationRequests.OsRe
     AlertDialog(
         // 关掉弹窗等于「知道了」：这次调用以「Android 层没授权」结束，而不是继续挂着
         onDismissRequest = { DshElevationRequests.resolveOs(os.id, granted = false) },
-        title = { Text(stringResource(R.string.dsh_native_os_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_native_os_title)) },
         text = {
             Column {
-                Text(stringResource(R.string.dsh_native_os_message, os.missing.joinToString(", ")))
+                Text(stringResource(CoreR.string.dsh_native_os_message, os.missing.joinToString(", ")))
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = stringResource(R.string.dsh_native_os_hint),
+                    text = stringResource(CoreR.string.dsh_native_os_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (stillMissing) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.dsh_native_os_still_missing),
+                        text = stringResource(CoreR.string.dsh_native_os_still_missing),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = stringResource(R.string.dsh_native_os_countdown, secondsLeft),
+                    text = stringResource(CoreR.string.dsh_native_os_countdown, secondsLeft),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -274,7 +274,7 @@ private fun OsPermissionDialog(activity: Activity, os: DshElevationRequests.OsRe
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 os.settingsAction?.let { action ->
                     TextButton(onClick = { runCatching { activity.startActivity(Intent(action)) } }) {
-                        Text(stringResource(R.string.dsh_native_os_open_settings))
+                        Text(stringResource(CoreR.string.dsh_native_os_open_settings))
                     }
                 }
                 TextButton(
@@ -286,13 +286,13 @@ private fun OsPermissionDialog(activity: Activity, os: DshElevationRequests.OsRe
                         }
                     },
                 ) {
-                    Text(stringResource(R.string.dsh_native_os_recheck))
+                    Text(stringResource(CoreR.string.dsh_native_os_recheck))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = { DshElevationRequests.resolveOs(os.id, granted = false) }) {
-                Text(stringResource(R.string.dsh_native_os_ack))
+                Text(stringResource(CoreR.string.dsh_native_os_ack))
             }
         },
     )

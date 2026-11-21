@@ -61,6 +61,7 @@ import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshDeepClean
 import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「深度清理」页：功能页那张「清理资源和缓存」卡片**长按**进来的。
@@ -179,7 +180,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
             }
             deleting = null
             failed = result.failed
-            showToast(context, context.getString(R.string.dsh_clean_done, result.deleted))
+            showToast(context, context.getString(CoreR.string.dsh_clean_done, result.deleted))
             // 删完重扫：留下的与没删掉的要按真实情况重新列
             startScan()
         }
@@ -188,7 +189,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_clean_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_clean_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
@@ -201,7 +202,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                             // 还没扫过时不能叫「重新扫描」：这页以前进页即扫，那个标签一直是对的，
                             // 现在第一次进来读屏软件会听到一句与事实不符的说明。
                             contentDescription = stringResource(
-                                if (scanned) R.string.dsh_clean_rescan else R.string.dsh_clean_start_scan,
+                                if (scanned) CoreR.string.dsh_clean_rescan else CoreR.string.dsh_clean_start_scan,
                             ),
                         )
                     }
@@ -218,7 +219,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             stringResource(
-                                R.string.dsh_clean_selected,
+                                CoreR.string.dsh_clean_selected,
                                 chosen.size,
                                 Formatter.formatFileSize(context, chosenBytes),
                             ),
@@ -227,7 +228,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                     }
                     Spacer(Modifier.width(12.dp))
                     Button(onClick = { confirming = true }, enabled = chosen.isNotEmpty()) {
-                        Text(stringResource(R.string.dsh_clean_action))
+                        Text(stringResource(CoreR.string.dsh_clean_action))
                     }
                 }
             }
@@ -242,7 +243,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
             item(key = "warning") {
                 ExpressiveCard(flat = true) {
                     Text(
-                        text = stringResource(R.string.dsh_clean_warning),
+                        text = stringResource(CoreR.string.dsh_clean_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -259,12 +260,12 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                     ExpressiveCard(flat = true) {
                         Column(Modifier.fillMaxWidth().padding(16.dp)) {
                             Text(
-                                text = stringResource(R.string.dsh_clean_scan_shared_hint),
+                                text = stringResource(CoreR.string.dsh_clean_scan_shared_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Spacer(Modifier.height(12.dp))
                             Button(onClick = { startScan(DshDeepClean.Scope.INCLUDE_SHARED) }) {
-                                Text(stringResource(R.string.dsh_clean_scan_shared))
+                                Text(stringResource(CoreR.string.dsh_clean_scan_shared))
                             }
                         }
                     }
@@ -279,9 +280,9 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                         Text(
                             text = stringResource(
                                 if (scanningScope == DshDeepClean.Scope.INCLUDE_SHARED) {
-                                    R.string.dsh_clean_scanning_shared
+                                    CoreR.string.dsh_clean_scanning_shared
                                 } else {
-                                    R.string.dsh_clean_scanning
+                                    CoreR.string.dsh_clean_scanning
                                 },
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -301,7 +302,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                         )
                         Text(
                             text = stringResource(
-                                R.string.dsh_clean_partition,
+                                CoreR.string.dsh_clean_partition,
                                 section.partitionPath,
                                 Formatter.formatFileSize(context, section.freeBytes),
                                 Formatter.formatFileSize(context, section.totalBytes),
@@ -335,7 +336,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
             if (scanned && !scanning && allTargets.isEmpty()) {
                 item(key = "empty") {
                     Text(
-                        text = stringResource(R.string.dsh_clean_empty),
+                        text = stringResource(CoreR.string.dsh_clean_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -347,11 +348,11 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     if (confirming) {
         AlertDialog(
             onDismissRequest = { confirming = false },
-            title = { Text(stringResource(R.string.dsh_clean_confirm_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_clean_confirm_title)) },
             text = {
                 Text(
                     stringResource(
-                        R.string.dsh_clean_confirm_text,
+                        CoreR.string.dsh_clean_confirm_text,
                         Formatter.formatFileSize(context, chosenBytes),
                     ),
                 )
@@ -360,7 +361,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                 TextButton(onClick = {
                     confirming = false
                     clean()
-                }) { Text(stringResource(R.string.dsh_clean_action)) }
+                }) { Text(stringResource(CoreR.string.dsh_clean_action)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.cancel)) }
@@ -373,7 +374,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     deleting?.let { (done, total, current) ->
         AlertDialog(
             onDismissRequest = { /* 删除中不允许关 */ },
-            title = { Text(stringResource(R.string.dsh_clean_deleting_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_clean_deleting_title)) },
             text = {
                 Column(Modifier.fillMaxWidth()) {
                     LinearProgressIndicator(
@@ -382,7 +383,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.dsh_clean_deleting_count, done, total),
+                        text = stringResource(CoreR.string.dsh_clean_deleting_count, done, total),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     if (current.isNotBlank()) {
@@ -405,7 +406,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
     if (failed.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { failed = emptyList() },
-            title = { Text(stringResource(R.string.dsh_clean_failed_title, failed.size)) },
+            title = { Text(stringResource(CoreR.string.dsh_clean_failed_title, failed.size)) },
             text = {
                 // 限高 + 自己滚，不把对话框顶出屏幕；里面的 Text 不单独限高
                 Column(
@@ -415,7 +416,7 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                         .verticalScroll(rememberScrollState()),
                 ) {
                     Text(
-                        text = stringResource(R.string.dsh_clean_failed_hint),
+                        text = stringResource(CoreR.string.dsh_clean_failed_hint),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Spacer(Modifier.height(8.dp))

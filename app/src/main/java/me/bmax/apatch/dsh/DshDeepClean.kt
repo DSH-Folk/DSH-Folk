@@ -6,8 +6,8 @@ import android.os.StatFs
 import android.system.Os
 import android.system.OsConstants
 import androidx.annotation.StringRes
-import me.bmax.apatch.R
 import java.io.File
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「深度清理」的扫描与删除（功能页那张「清理资源和缓存」卡片**长按**进的页）。
@@ -101,18 +101,18 @@ internal object DshDeepClean {
      * —— 理由见类 KDoc。
      */
     private val RUNTIME_JUNK = listOf(
-        "tmp" to R.string.dsh_clean_kind_temp,
-        "var/tmp" to R.string.dsh_clean_kind_temp,
-        "var/cache/apt/archives" to R.string.dsh_clean_kind_pkg,
-        "var/lib/apt/lists" to R.string.dsh_clean_kind_pkg,
-        "var/log" to R.string.dsh_clean_kind_log,
-        "root/.npm" to R.string.dsh_clean_kind_pkg,
-        "root/.cache" to R.string.dsh_clean_kind_cache,
-        "root/.node-gyp" to R.string.dsh_clean_kind_cache,
+        "tmp" to CoreR.string.dsh_clean_kind_temp,
+        "var/tmp" to CoreR.string.dsh_clean_kind_temp,
+        "var/cache/apt/archives" to CoreR.string.dsh_clean_kind_pkg,
+        "var/lib/apt/lists" to CoreR.string.dsh_clean_kind_pkg,
+        "var/log" to CoreR.string.dsh_clean_kind_log,
+        "root/.npm" to CoreR.string.dsh_clean_kind_pkg,
+        "root/.cache" to CoreR.string.dsh_clean_kind_cache,
+        "root/.node-gyp" to CoreR.string.dsh_clean_kind_cache,
         // pnpm 内容存储里**只有 tmp 是临时目录**（store/<版本>/ 下的真实布局是
         // files / index.db / projects / tmp，本地实测 pnpm 10/11 的 store 都是这四项）。
         // 版本段用 `*`：pnpm 升一个大版本就换名字，写死 v10 会在升级后失效。
-        "root/.local/share/pnpm/store/*/tmp" to R.string.dsh_clean_kind_temp,
+        "root/.local/share/pnpm/store/*/tmp" to CoreR.string.dsh_clean_kind_temp,
     )
 
     /**
@@ -160,9 +160,9 @@ internal object DshDeepClean {
         // dsh 与插件自己落盘的日志。整棵 /root/.dsh 都不能删，只挑出 *.log 这几个文件。
         for (f in logsUnder(File(rootfs, "root/.dsh"), 3)) {
             val (bytes, files) = sizeOf(f)
-            runtime.add(Target(f.absolutePath, R.string.dsh_clean_kind_log, bytes, files))
+            runtime.add(Target(f.absolutePath, CoreR.string.dsh_clean_kind_log, bytes, files))
         }
-        out.add(section(rootfs, R.string.dsh_clean_section_runtime, runtime, null))
+        out.add(section(rootfs, CoreR.string.dsh_clean_section_runtime, runtime, null))
 
         // ── 2. 应用内部存储 ──
         // 应用自己的 dsh 日志（`filesDir/logs` 下的 `*.log`）也列进来 —— 但删除时**不能走 deleteTree**：
@@ -173,12 +173,12 @@ internal object DshDeepClean {
         //     SHA 校验失败；
         //   - `cacheDir/shm` 与 `filesDir` 下的其它目录：前者就在缓存里，后者是数据不是垃圾。
         val app = ArrayList<Target>()
-        addIfPresent(app, ctx.cacheDir, R.string.dsh_clean_kind_cache)
+        addIfPresent(app, ctx.cacheDir, CoreR.string.dsh_clean_kind_cache)
         for (f in DshEnv.logFiles(ctx)) {
             val (bytes, files) = sizeOf(f)
-            app.add(Target(f.absolutePath, R.string.dsh_clean_kind_log, bytes, files))
+            app.add(Target(f.absolutePath, CoreR.string.dsh_clean_kind_log, bytes, files))
         }
-        out.add(section(ctx.filesDir, R.string.dsh_clean_section_app, app, null))
+        out.add(section(ctx.filesDir, CoreR.string.dsh_clean_section_app, app, null))
 
         // ── 3. 共享存储的大文件 / 大文件夹（只在 INCLUDE_SHARED 时做）──
         //
@@ -192,12 +192,12 @@ internal object DshDeepClean {
         val readable = runCatching { ext.listFiles() }.getOrNull() != null
         if (!readable) {
             // 没有「所有文件访问」时 listFiles 拿不到东西；不猜原因，照实说
-            note = R.string.dsh_clean_note_no_perm
+            note = CoreR.string.dsh_clean_note_no_perm
         } else {
             shared.addAll(largeTargets(ext))
-            if (shared.isEmpty()) note = R.string.dsh_clean_note_none
+            if (shared.isEmpty()) note = CoreR.string.dsh_clean_note_none
         }
-        out.add(section(ext, R.string.dsh_clean_section_shared, shared, note))
+        out.add(section(ext, CoreR.string.dsh_clean_section_shared, shared, note))
 
         return out
     }
@@ -318,14 +318,14 @@ internal object DshDeepClean {
                 if (isSymlink(f)) continue
                 if (f.isFile) {
                     if (f.length() >= LARGE_FILE_BYTES) {
-                        out.add(Target(f.absolutePath, R.string.dsh_clean_kind_large_file, f.length(), 1))
+                        out.add(Target(f.absolutePath, CoreR.string.dsh_clean_kind_large_file, f.length(), 1))
                     }
                     continue
                 }
                 if (!f.isDirectory) continue
                 val (bytes, files) = sizeOf(f)
                 if (bytes >= LARGE_DIR_BYTES) {
-                    out.add(Target(f.absolutePath, R.string.dsh_clean_kind_large_dir, bytes, files))
+                    out.add(Target(f.absolutePath, CoreR.string.dsh_clean_kind_large_dir, bytes, files))
                 } else if (depth < LARGE_SCAN_DEPTH) {
                     walk(f, depth + 1)
                 }

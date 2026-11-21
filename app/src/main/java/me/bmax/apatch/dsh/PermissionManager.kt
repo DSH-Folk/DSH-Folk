@@ -8,8 +8,8 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import me.bmax.apatch.R
 import rikka.shizuku.Shizuku
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 权限通道探测。
@@ -83,10 +83,10 @@ object PermissionManager {
          */
         val labelRes: Int
             get() = when (channel) {
-                Channel.ROOT -> R.string.dsh_perm_root
-                Channel.SHIZUKU -> R.string.dsh_perm_shizuku
-                Channel.ADB -> R.string.dsh_perm_adb
-                Channel.NONE -> R.string.dsh_perm_none
+                Channel.ROOT -> CoreR.string.dsh_perm_root
+                Channel.SHIZUKU -> CoreR.string.dsh_perm_shizuku
+                Channel.ADB -> CoreR.string.dsh_perm_adb
+                Channel.NONE -> CoreR.string.dsh_perm_none
             }
 
         /** 已本地化的通道名，root 时带上实现名。 */

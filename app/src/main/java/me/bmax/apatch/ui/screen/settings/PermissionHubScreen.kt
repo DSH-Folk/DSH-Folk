@@ -56,7 +56,6 @@ import com.ramcosta.composedestinations.generated.destinations.PrivilegedChannel
 import com.ramcosta.composedestinations.generated.destinations.RestrictModeScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.WirelessAdbScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshHostPrompt
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.ui.component.ExpressiveSwitch
@@ -67,6 +66,7 @@ import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.dsh.DshFileAccess
 import me.bmax.apatch.dsh.PermissionManager
 import me.bmax.apatch.dsh.PrivPolicy
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 权限管理：把「通道」「配对」和每一项原生能力收进一个带搜索的分类入口。
@@ -104,7 +104,7 @@ fun PermissionHubScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.dsh_perm_hub_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_perm_hub_title)) },
                 searchText = query,
                 onSearchTextChange = { query = it },
                 onClearClick = { query = "" },
@@ -125,7 +125,7 @@ fun PermissionHubScreen(navigator: DestinationsNavigator) {
                     .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_perm_hub_summary),
+                    text = stringResource(CoreR.string.dsh_perm_hub_summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -143,7 +143,7 @@ fun PermissionHubScreen(navigator: DestinationsNavigator) {
                 if (hits.isEmpty()) {
                     item {
                         Text(
-                            text = stringResource(R.string.dsh_perm_hub_empty),
+                            text = stringResource(CoreR.string.dsh_perm_hub_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp),
@@ -202,8 +202,8 @@ internal fun PermissionEntriesSection(
         HubCard {
             HubRow(
                 icon = Icons.Filled.Security,
-                title = stringResource(R.string.dsh_perm_cat_privileged),
-                summary = stringResource(R.string.dsh_perm_cat_privileged_summary, channelLabel),
+                title = stringResource(CoreR.string.dsh_perm_cat_privileged),
+                summary = stringResource(CoreR.string.dsh_perm_cat_privileged_summary, channelLabel),
                 onClick = { navigator.navigate(PrivilegedChannelScreenDestination) { launchSingleTop = true } },
             )
             // 共享存储：一个开关管两件事（容器 bind 挂载 + dsh-fs 桥）。原先它是安全页上
@@ -224,11 +224,11 @@ internal fun PermissionEntriesSection(
             if (perm.channel == PermissionManager.Channel.ADB) {
                 HubRow(
                     icon = Icons.Filled.Wifi,
-                    title = stringResource(R.string.dsh_perm_cat_wireless_adb),
+                    title = stringResource(CoreR.string.dsh_perm_cat_wireless_adb),
                     summary = stringResource(
-                        if (perm.adbPaired) R.string.dsh_adb_paired
-                        else R.string.dsh_perm_state_adb_unconfigured
-                    ) + " · " + stringResource(R.string.dsh_adb_summary),
+                        if (perm.adbPaired) CoreR.string.dsh_adb_paired
+                        else CoreR.string.dsh_perm_state_adb_unconfigured
+                    ) + " · " + stringResource(CoreR.string.dsh_adb_summary),
                     onClick = { navigator.navigate(WirelessAdbScreenDestination) { launchSingleTop = true } },
                 )
             }
@@ -236,7 +236,7 @@ internal fun PermissionEntriesSection(
 
         Spacer(Modifier.height(12.dp))
         Text(
-            text = stringResource(R.string.dsh_perm_hub_cat_native),
+            text = stringResource(CoreR.string.dsh_perm_hub_cat_native),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -247,9 +247,9 @@ internal fun PermissionEntriesSection(
             // 只留在页内，安全页上就只剩一个入口，读不出任何状态。
             Text(
                 text = if (activeCaps > 0) {
-                    stringResource(R.string.dsh_native_off_hint_kept, activeCaps)
+                    stringResource(CoreR.string.dsh_native_off_hint_kept, activeCaps)
                 } else {
-                    stringResource(R.string.dsh_native_off_hint)
+                    stringResource(CoreR.string.dsh_native_off_hint)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -266,11 +266,11 @@ internal fun PermissionEntriesSection(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.dsh_native_enable),
+                        text = stringResource(CoreR.string.dsh_native_enable),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        text = stringResource(R.string.dsh_native_enable_summary),
+                        text = stringResource(CoreR.string.dsh_native_enable_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -291,7 +291,7 @@ internal fun PermissionEntriesSection(
                 HubRow(
                     icon = groupIcon(group),
                     title = stringResource(group.titleRes),
-                    summary = stringResource(R.string.dsh_perm_caps_count, group.caps.size),
+                    summary = stringResource(CoreR.string.dsh_perm_caps_count, group.caps.size),
                     onClick = { navigateToGroup(navigator, group) },
                 )
             }
@@ -299,12 +299,12 @@ internal fun PermissionEntriesSection(
             // 一个开关 + 两张跨全部能力的清单。挤在分类之间会让人以为它也是其中一类。
             HubRow(
                 icon = Icons.Filled.VerifiedUser,
-                title = stringResource(R.string.dsh_priv_restrict_title),
+                title = stringResource(CoreR.string.dsh_priv_restrict_title),
                 summary = stringResource(
-                    R.string.dsh_priv_restrict_hub_summary,
+                    CoreR.string.dsh_priv_restrict_hub_summary,
                     stringResource(
-                        if (PrivPolicy.restrictMode(context)) R.string.dsh_priv_restrict_on
-                        else R.string.dsh_priv_restrict_off
+                        if (PrivPolicy.restrictMode(context)) CoreR.string.dsh_priv_restrict_on
+                        else CoreR.string.dsh_priv_restrict_off
                     ),
                     PrivPolicy.restrictedCaps(context).size,
                 ),
@@ -315,7 +315,7 @@ internal fun PermissionEntriesSection(
             // 只在桥开着时给这条提示：关着桥还教人怎么调 CLI 是自相矛盾的
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.dsh_native_cli_hint),
+                text = stringResource(CoreR.string.dsh_native_cli_hint),
                 style = MaterialTheme.typography.bodySmall,
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -351,11 +351,11 @@ private fun StorageMountRow(
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.dsh_storage_cap_title),
+                text = stringResource(CoreR.string.dsh_storage_cap_title),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
-                text = stringResource(R.string.dsh_storage_row_summary),
+                text = stringResource(CoreR.string.dsh_storage_row_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -411,33 +411,33 @@ private fun searchHits(query: String, context: Context): List<Hit> {
     if (q.isEmpty()) return emptyList()
     val hits = ArrayList<Hit>()
 
-    val channelTitle = context.getString(R.string.dsh_perm_cat_privileged)
+    val channelTitle = context.getString(CoreR.string.dsh_perm_cat_privileged)
     if (channelTitle.lowercase().contains(q)) {
-        hits += Hit("perm-channel", channelTitle, context.getString(R.string.dsh_perm_summary), HubTarget.Channel)
+        hits += Hit("perm-channel", channelTitle, context.getString(CoreR.string.dsh_perm_summary), HubTarget.Channel)
     }
-    val adbTitle = context.getString(R.string.dsh_perm_cat_wireless_adb)
+    val adbTitle = context.getString(CoreR.string.dsh_perm_cat_wireless_adb)
     if (adbTitle.lowercase().contains(q)) {
-        hits += Hit("perm-adb", adbTitle, context.getString(R.string.dsh_adb_summary), HubTarget.WirelessAdb)
+        hits += Hit("perm-adb", adbTitle, context.getString(CoreR.string.dsh_adb_summary), HubTarget.WirelessAdb)
     }
 
     // 「别看本应用」不是一项能力，而是无障碍**这张卡片里**的一个档位选择 ——
     // 它没有自己的目的地，命中了就跳到它所在的那一组（屏幕与外部界面）。
-    val a11yOwnTitle = context.getString(R.string.dsh_a11y_own_title)
-    val a11yOwnSummary = context.getString(R.string.dsh_a11y_own_summary)
+    val a11yOwnTitle = context.getString(CoreR.string.dsh_a11y_own_title)
+    val a11yOwnSummary = context.getString(CoreR.string.dsh_a11y_own_summary)
     if (a11yOwnTitle.lowercase().contains(q) || a11yOwnSummary.lowercase().contains(q)) {
         hits += Hit("perm-a11y-own", a11yOwnTitle, a11yOwnSummary, HubTarget.Group(CapGroup.SCREEN))
     }
 
-    val restrictTitle = context.getString(R.string.dsh_priv_restrict_title)
+    val restrictTitle = context.getString(CoreR.string.dsh_priv_restrict_title)
     if (restrictTitle.lowercase().contains(q)) {
         hits += Hit(
             "perm-restrict",
             restrictTitle,
             context.getString(
-                R.string.dsh_priv_restrict_hub_summary,
+                CoreR.string.dsh_priv_restrict_hub_summary,
                 context.getString(
-                    if (PrivPolicy.restrictMode(context)) R.string.dsh_priv_restrict_on
-                    else R.string.dsh_priv_restrict_off
+                    if (PrivPolicy.restrictMode(context)) CoreR.string.dsh_priv_restrict_on
+                    else CoreR.string.dsh_priv_restrict_off
                 ),
                 PrivPolicy.restrictedCaps(context).size,
             ),

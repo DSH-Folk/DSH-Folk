@@ -145,7 +145,7 @@ must(/stopped = viewModel\.installStopped && !viewModel\.installing/.test(screen
   "对话框的 stopped 判据不对（运行中会显示成「已停止」）");
 must(/viewModel\.installing && viewModel\.progressHidden/.test(screen),
   "隐藏后没有「显示进度」入口");
-must(/R\.string\.dsh_plugin_show_progress/.test(screen), "「显示进度」没有走字符串资源");
+must(/(?:Core)?R\.string\.dsh_plugin_show_progress/.test(screen), "「显示进度」没有走字符串资源");
 // ── 目录里「没有 npm 包名、只有仓库」的条目必须可安装 ──
 //
 // dsh-market 的 manifest 有 106 条，其中 23 条只登记 repo、没有 npm 字段。

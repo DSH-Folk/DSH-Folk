@@ -13,7 +13,6 @@ import android.provider.CalendarContract
 import android.provider.ContactsContract
 import android.provider.Telephony
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,6 +21,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「读手机上的个人数据」这一类能力：日历、通讯录、位置。
@@ -66,7 +66,7 @@ internal object DshPersonalData {
     fun calendarList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasCalendarReadPermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_denied),
                 "no_calendar_permission",
             )
         }
@@ -111,7 +111,7 @@ internal object DshPersonalData {
         result.onFailure { e ->
             Log.w(TAG, "日历查询失败: ${e.message}")
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_query, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_query, e.message ?: ""),
                 "query_failed",
             )
         }
@@ -132,18 +132,18 @@ internal object DshPersonalData {
     fun calendarCreate(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasCalendarWritePermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_write_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_write_denied),
                 "no_calendar_permission",
             )
         }
         val title = DshNativeBridge.text(params["title"])
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "title"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "title"),
                 "missing_title",
             )
         val start = params["start"]?.toLongOrNull()
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "start"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "start"),
                 "missing_start",
             )
         // 默认 1 小时：不给 end 的请求远比给错 end 的常见
@@ -151,14 +151,14 @@ internal object DshPersonalData {
         val end = params["end"]?.toLongOrNull() ?: (start + minutes * 60_000L)
         if (end <= start) {
             return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_bad_range),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_bad_range),
                 "bad_range",
             )
         }
 
         val calId = writableCalendarId(ctx)
             ?: return 404 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_none),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_none),
                 "no_calendar",
             )
 
@@ -182,7 +182,7 @@ internal object DshPersonalData {
             null
         }
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_calendar_insert),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_calendar_insert),
                 "insert_failed",
             )
         return 200 to JSONObject()
@@ -220,7 +220,7 @@ internal object DshPersonalData {
     fun contactsList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasContactsPermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_contacts_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_contacts_denied),
                 "no_contacts_permission",
             )
         }
@@ -274,7 +274,7 @@ internal object DshPersonalData {
         result.onFailure { e ->
             Log.w(TAG, "通讯录查询失败: ${e.message}")
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_contacts_query, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_contacts_query, e.message ?: ""),
                 "query_failed",
             )
         }
@@ -306,7 +306,7 @@ internal object DshPersonalData {
     fun usageList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasUsageStatsPermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_usage_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_usage_denied),
                 "no_usage_permission",
             )
         }
@@ -316,7 +316,7 @@ internal object DshPersonalData {
         val start = end - days * 24L * 60 * 60 * 1000
         val manager = ctx.getSystemService(UsageStatsManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "UsageStatsManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "UsageStatsManager"),
                 "no_service",
             )
         val out = JSONArray()
@@ -337,7 +337,7 @@ internal object DshPersonalData {
         }.onFailure { e ->
             Log.w(TAG, "使用统计查询失败: ${e.message}")
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_usage_query, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_usage_query, e.message ?: ""),
                 "query_failed",
             )
         }
@@ -347,7 +347,7 @@ internal object DshPersonalData {
     fun smsList(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasSmsPermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sms_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sms_denied),
                 "no_sms_permission",
             )
         }
@@ -384,7 +384,7 @@ internal object DshPersonalData {
         }.onFailure { e ->
             Log.w(TAG, "短信查询失败: ${e.message}")
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sms_query, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sms_query, e.message ?: ""),
                 "query_failed",
             )
         }
@@ -407,13 +407,13 @@ internal object DshPersonalData {
     fun location(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!PermissionUtils.hasLocationPermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_location_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_location_denied),
                 "no_location_permission",
             )
         }
         val lm = ctx.getSystemService(LocationManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "LocationManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "LocationManager"),
                 "no_service",
             )
         val maxAge = (params["maxAge"]?.toLongOrNull() ?: DEFAULT_MAX_AGE_MS)
@@ -430,20 +430,20 @@ internal object DshPersonalData {
         }.getOrDefault(false)
         if (!anyEnabled) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_location_disabled),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_location_disabled),
                 "location_disabled",
             )
         }
         if (waitMs == 0L) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_location_stale),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_location_stale),
                 "no_fresh_fix",
             )
         }
 
         val fix = requestFix(lm, waitMs)
             ?: return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_location_timeout, waitMs / 1000),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_location_timeout, waitMs / 1000),
                 "fix_timeout",
             )
         return 200 to locationJson(ctx, fix, fresh = true)

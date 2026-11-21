@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
-import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 发送日志的时间窗口。
@@ -41,11 +41,11 @@ import me.bmax.apatch.R
  * @param minutes 回看多少分钟；0 表示全量。
  */
 enum class LogWindow(val minutes: Int, val labelRes: Int) {
-    M10(10, R.string.dsh_log_window_10m),
-    M30(30, R.string.dsh_log_window_30m),
-    H1(60, R.string.dsh_log_window_1h),
-    H12(720, R.string.dsh_log_window_12h),
-    All(0, R.string.dsh_log_window_all),
+    M10(10, CoreR.string.dsh_log_window_10m),
+    M30(30, CoreR.string.dsh_log_window_30m),
+    H1(60, CoreR.string.dsh_log_window_1h),
+    H12(720, CoreR.string.dsh_log_window_12h),
+    All(0, CoreR.string.dsh_log_window_all),
 }
 
 /** shell 里的 $，用普通字符串写出来，免得与原始字符串的插值语法打架。 */

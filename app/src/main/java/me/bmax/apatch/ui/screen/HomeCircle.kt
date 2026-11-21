@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.copyableInfo
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 圆角卡片风格首页。
@@ -60,8 +60,8 @@ fun HomeScreenCircle(
             EntryCardCircle(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Outlined.Terminal,
-                title = stringResource(R.string.dsh_terminal),
-                subtitle = stringResource(R.string.dsh_run_mode) + ": " + LocalDshHomeState.current.runtimeLabel,
+                title = stringResource(CoreR.string.dsh_terminal),
+                subtitle = stringResource(CoreR.string.dsh_run_mode) + ": " + LocalDshHomeState.current.runtimeLabel,
                 onClick = {
                     navigator.navigate(BottomBarDestination.Terminal.direction) {
                         popUpTo(NavGraphs.root) { saveState = true }
@@ -74,8 +74,8 @@ fun HomeScreenCircle(
             EntryCardCircle(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Outlined.Widgets,
-                title = stringResource(R.string.dsh_plugins),
-                subtitle = stringResource(R.string.dsh_plugin_store),
+                title = stringResource(CoreR.string.dsh_plugins),
+                subtitle = stringResource(CoreR.string.dsh_plugin_store),
                 onClick = {
                     navigator.navigate(BottomBarDestination.Plugin.direction) {
                         popUpTo(NavGraphs.root) { saveState = true }
@@ -157,7 +157,7 @@ fun StatusCardCircle() {
                 IconButton(onClick = { state.stop() }) {
                     Icon(
                         imageVector = Icons.Outlined.Stop,
-                        contentDescription = stringResource(R.string.dsh_stop),
+                        contentDescription = stringResource(CoreR.string.dsh_stop),
                         tint = content
                     )
                 }

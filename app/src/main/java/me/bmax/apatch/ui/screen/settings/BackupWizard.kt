@@ -50,6 +50,7 @@ import me.bmax.apatch.dsh.DshImportWizard
 import me.bmax.apatch.dsh.WizardStage
 import me.bmax.apatch.dsh.WizardStep
 import me.bmax.apatch.ui.component.SectionHeader
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 恢复向导的结果步要显示的东西。
@@ -264,7 +265,7 @@ private fun WizardStepper(step: WizardStep) {
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(
-                    R.string.dsh_bk_wiz_stage_of,
+                    CoreR.string.dsh_bk_wiz_stage_of,
                     index + 1,
                     DshImportWizard.STAGE_COUNT,
                 ),
@@ -277,12 +278,12 @@ private fun WizardStepper(step: WizardStep) {
 
 /** 阶段名。六个阶段都在 [WizardStage] 里，这里只做「枚举 → 资源」的映射。 */
 private fun wizardStageTitle(stage: WizardStage): Int = when (stage) {
-    WizardStage.SELECT -> R.string.dsh_bk_wiz_stage_select
-    WizardStage.ANALYZE -> R.string.dsh_bk_wiz_stage_analyze
-    WizardStage.DECIDE -> R.string.dsh_bk_wiz_stage_decide
-    WizardStage.CONFIRM -> R.string.dsh_bk_wiz_stage_confirm
-    WizardStage.EXECUTE -> R.string.dsh_bk_wiz_stage_execute
-    WizardStage.DONE -> R.string.dsh_bk_wiz_stage_done
+    WizardStage.SELECT -> CoreR.string.dsh_bk_wiz_stage_select
+    WizardStage.ANALYZE -> CoreR.string.dsh_bk_wiz_stage_analyze
+    WizardStage.DECIDE -> CoreR.string.dsh_bk_wiz_stage_decide
+    WizardStage.CONFIRM -> CoreR.string.dsh_bk_wiz_stage_confirm
+    WizardStage.EXECUTE -> CoreR.string.dsh_bk_wiz_stage_execute
+    WizardStage.DONE -> CoreR.string.dsh_bk_wiz_stage_done
 }
 
 @Composable
@@ -300,7 +301,7 @@ private fun WizardAnalyzeStep(
             Spacer(Modifier.height(12.dp))
         }
         Text(
-            text = stringResource(R.string.dsh_bk_wiz_analyzing, fileName),
+            text = stringResource(CoreR.string.dsh_bk_wiz_analyzing, fileName),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -317,10 +318,10 @@ private fun WizardAnalyzeStep(
             // 失败要能原路退回：换一个文件，或对同一个文件再试一次（插件可能只是没起来）
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onPickFile) {
-                    Text(stringResource(R.string.dsh_bk_wiz_pick_again))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_pick_again))
                 }
                 Button(onClick = onRetry) {
-                    Text(stringResource(R.string.dsh_backup_plugin_retry))
+                    Text(stringResource(CoreR.string.dsh_backup_plugin_retry))
                 }
             }
         }
@@ -340,7 +341,7 @@ private fun WizardSelectStep(
 ) {
     Column(Modifier.fillMaxWidth()) {
         Text(
-            text = stringResource(R.string.dsh_bk_wiz_select_hint),
+            text = stringResource(CoreR.string.dsh_bk_wiz_select_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -349,17 +350,17 @@ private fun WizardSelectStep(
         // 灰着的「开始分析」）：用户从设置页点进来，第一眼要能看出「这一步要我做的是选文件」。
         if (fileName.isEmpty()) {
             Button(onClick = onPickFile) {
-                Text(stringResource(R.string.dsh_bk_wiz_pick_file))
+                Text(stringResource(CoreR.string.dsh_bk_wiz_pick_file))
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.dsh_bk_wiz_no_file),
+                text = stringResource(CoreR.string.dsh_bk_wiz_no_file),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             // 选好之后，文件名要能一眼看到（用户刚从系统选择器回来，需要确认选对了）
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_selected_file))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_selected_file))
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -369,7 +370,7 @@ private fun WizardSelectStep(
                 )
                 Spacer(Modifier.width(8.dp))
                 TextButton(onClick = onPickFile) {
-                    Text(stringResource(R.string.dsh_bk_wiz_pick_again))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_pick_again))
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -377,8 +378,8 @@ private fun WizardSelectStep(
             // 那句话（「不是本生态的备份」）会把人指到完全错误的方向去。
             Text(
                 text = stringResource(
-                    if (encrypted) R.string.dsh_bk_import_pw_hint_encrypted
-                    else R.string.dsh_bk_import_pw_hint_plain,
+                    if (encrypted) CoreR.string.dsh_bk_import_pw_hint_encrypted
+                    else CoreR.string.dsh_bk_import_pw_hint_plain,
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (encrypted) MaterialTheme.colorScheme.error
@@ -388,7 +389,7 @@ private fun WizardSelectStep(
             OutlinedTextField(
                 value = password,
                 onValueChange = onPasswordChange,
-                label = { Text(stringResource(R.string.dsh_bk_pw_title)) },
+                label = { Text(stringResource(CoreR.string.dsh_bk_pw_title)) },
                 singleLine = true,
                 visualTransformation = if (showPassword) VisualTransformation.None
                 else PasswordVisualTransformation(),
@@ -396,7 +397,7 @@ private fun WizardSelectStep(
                     IconButton(onClick = onToggleShowPassword) {
                         Text(
                             text = stringResource(
-                                if (showPassword) R.string.dsh_pw_hide else R.string.dsh_pw_show,
+                                if (showPassword) CoreR.string.dsh_pw_hide else CoreR.string.dsh_pw_show,
                             ),
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -409,7 +410,7 @@ private fun WizardSelectStep(
                 onClick = onAnalyze,
                 enabled = !encrypted || password.isNotEmpty(),
             ) {
-                Text(stringResource(R.string.dsh_bk_wiz_start_analyze))
+                Text(stringResource(CoreR.string.dsh_bk_wiz_start_analyze))
             }
         }
     }
@@ -429,59 +430,59 @@ private fun WizardPreviewStep(
         if (analysis != null) {
             CompatibilityBand(analysis.compatibility)
             Spacer(Modifier.height(12.dp))
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_preview_scope))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_preview_scope))
             Spacer(Modifier.height(6.dp))
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_sections),
+                stringResource(CoreR.string.dsh_bk_wiz_sections),
                 analysis.sections.toString(),
             )
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_plugins),
+                stringResource(CoreR.string.dsh_bk_wiz_plugins),
                 stringResource(
-                    R.string.dsh_bk_wiz_plugins_value,
+                    CoreR.string.dsh_bk_wiz_plugins_value,
                     analysis.pluginsInstalled,
                     analysis.pluginsToInstall,
                 ),
             )
             if (analysis.secretCount > 0) {
                 StatRow(
-                    stringResource(R.string.dsh_bk_wiz_secrets),
+                    stringResource(CoreR.string.dsh_bk_wiz_secrets),
                     analysis.secretCount.toString(),
                 )
             }
             if (analysis.pathIssues > 0) {
                 StatRow(
-                    stringResource(R.string.dsh_bk_wiz_path_issues),
-                    stringResource(R.string.dsh_bk_wiz_path_issues_value, analysis.pathIssues),
+                    stringResource(CoreR.string.dsh_bk_wiz_path_issues),
+                    stringResource(CoreR.string.dsh_bk_wiz_path_issues_value, analysis.pathIssues),
                 )
             }
         }
         if (plan != null) {
             Spacer(Modifier.height(14.dp))
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_preview_plan))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_preview_plan))
             Spacer(Modifier.height(6.dp))
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_will_change),
+                stringResource(CoreR.string.dsh_bk_wiz_will_change),
                 plan.willChange.toString(),
             )
-            StatRow(stringResource(R.string.dsh_bk_wiz_unchanged), plan.unchanged.toString())
+            StatRow(stringResource(CoreR.string.dsh_bk_wiz_unchanged), plan.unchanged.toString())
             if (plan.installs > 0) {
-                StatRow(stringResource(R.string.dsh_bk_wiz_installs), plan.installs.toString())
+                StatRow(stringResource(CoreR.string.dsh_bk_wiz_installs), plan.installs.toString())
             }
             if (plan.conflicts > 0) {
-                StatRow(stringResource(R.string.dsh_bk_wiz_conflicts), plan.conflicts.toString())
+                StatRow(stringResource(CoreR.string.dsh_bk_wiz_conflicts), plan.conflicts.toString())
             }
             if (plan.needsRestart) {
                 StatRow(
-                    stringResource(R.string.dsh_bk_wiz_needs_restart),
-                    stringResource(R.string.dsh_bk_wiz_yes),
+                    stringResource(CoreR.string.dsh_bk_wiz_needs_restart),
+                    stringResource(CoreR.string.dsh_bk_wiz_yes),
                 )
             }
             if (plan.missingSecrets.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(
-                        R.string.dsh_bk_wiz_missing_secrets,
+                        CoreR.string.dsh_bk_wiz_missing_secrets,
                         plan.missingSecrets.size,
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -499,20 +500,20 @@ private fun WizardPreviewStep(
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = stringResource(R.string.dsh_bk_wiz_pick_items),
+                        text = stringResource(CoreR.string.dsh_bk_wiz_pick_items),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = { onSelectAll(true) }) {
-                        Text(stringResource(R.string.dsh_bk_wiz_select_all))
+                        Text(stringResource(CoreR.string.dsh_bk_wiz_select_all))
                     }
                     TextButton(onClick = { onSelectAll(false) }) {
-                        Text(stringResource(R.string.dsh_bk_wiz_select_none))
+                        Text(stringResource(CoreR.string.dsh_bk_wiz_select_none))
                     }
                 }
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_pick_items_note),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_pick_items_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -531,7 +532,7 @@ private fun WizardPreviewStep(
                 if (skipped > 0) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = stringResource(R.string.dsh_bk_wiz_items_skipped, skipped),
+                        text = stringResource(CoreR.string.dsh_bk_wiz_items_skipped, skipped),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -540,39 +541,39 @@ private fun WizardPreviewStep(
         }
         if (appData != null) {
             Spacer(Modifier.height(14.dp))
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_preview_appdata))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_preview_appdata))
             Spacer(Modifier.height(6.dp))
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_prefs_files),
-                stringResource(R.string.dsh_bk_wiz_prefs_files_value, appData.prefsFiles, appData.keys),
+                stringResource(CoreR.string.dsh_bk_wiz_prefs_files),
+                stringResource(CoreR.string.dsh_bk_wiz_prefs_files_value, appData.prefsFiles, appData.keys),
             )
             if (appData.schema >= 2 && appData.prefsFiles > 1) {
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_prefs_runtime_included),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_prefs_runtime_included),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else if (appData.schema > 0 && appData.schema < 2) {
                 // 旧包只带 config：不说清楚的话，用户会以为「运行时设置也回来了」
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_prefs_old_schema),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_prefs_old_schema),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (appData.auditFiles > 0) {
                 StatRow(
-                    stringResource(R.string.dsh_bk_wiz_audit),
+                    stringResource(CoreR.string.dsh_bk_wiz_audit),
                     appData.auditFiles.toString(),
                 )
             }
             if (appData.excluded > 0) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_bk_excluded_note, appData.excluded) +
+                    text = stringResource(CoreR.string.dsh_bk_excluded_note, appData.excluded) +
                         if (appData.privilegeSkipped > 0) {
                             "；" + stringResource(
-                                R.string.dsh_bk_excluded_privilege,
+                                CoreR.string.dsh_bk_excluded_privilege,
                                 appData.privilegeSkipped,
                             )
                         } else {
@@ -589,18 +590,18 @@ private fun WizardPreviewStep(
         val themeBytes = preflight?.themeBytes ?: -1L
         if (themeBytes >= 0L) {
             Spacer(Modifier.height(14.dp))
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_appearance))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_appearance))
             Spacer(Modifier.height(6.dp))
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_theme),
+                stringResource(CoreR.string.dsh_bk_wiz_theme),
                 if (themeBytes > 0L) {
-                    stringResource(R.string.dsh_bk_wiz_theme_value, themeBytes / 1024)
+                    stringResource(CoreR.string.dsh_bk_wiz_theme_value, themeBytes / 1024)
                 } else {
-                    stringResource(R.string.dsh_bk_wiz_theme_included)
+                    stringResource(CoreR.string.dsh_bk_wiz_theme_included)
                 },
             )
             Text(
-                text = stringResource(R.string.dsh_bk_wiz_theme_note),
+                text = stringResource(CoreR.string.dsh_bk_wiz_theme_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -608,7 +609,7 @@ private fun WizardPreviewStep(
         val warnings = analysis?.warnings.orEmpty()
         if (warnings.isNotEmpty()) {
             Spacer(Modifier.height(14.dp))
-            SectionHeader(stringResource(R.string.dsh_bk_wiz_warnings))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_warnings))
             Spacer(Modifier.height(6.dp))
             for (w in warnings) {
                 Text(
@@ -655,7 +656,7 @@ private fun PlanItemRow(
             )
             if (!selectable) {
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_item_conflict_note),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_item_conflict_note),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -668,10 +669,10 @@ private fun PlanItemRow(
 @Composable
 private fun CompatibilityBand(compatibility: String) {
     val (textRes, color) = when (compatibility) {
-        "excellent" -> R.string.dsh_bk_wiz_compat_excellent to MaterialTheme.colorScheme.primary
-        "good" -> R.string.dsh_bk_wiz_compat_good to MaterialTheme.colorScheme.primary
-        "partial" -> R.string.dsh_bk_wiz_compat_partial to MaterialTheme.colorScheme.error
-        else -> R.string.dsh_bk_wiz_compat_unknown to MaterialTheme.colorScheme.onSurfaceVariant
+        "excellent" -> CoreR.string.dsh_bk_wiz_compat_excellent to MaterialTheme.colorScheme.primary
+        "good" -> CoreR.string.dsh_bk_wiz_compat_good to MaterialTheme.colorScheme.primary
+        "partial" -> CoreR.string.dsh_bk_wiz_compat_partial to MaterialTheme.colorScheme.error
+        else -> CoreR.string.dsh_bk_wiz_compat_unknown to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -735,10 +736,10 @@ private fun WizardDecideStep(
     val conflicts = preflight?.conflicts.orEmpty()
     Column(Modifier.fillMaxWidth()) {
         if (sessions > 0) {
-            SectionHeader(stringResource(R.string.dsh_bk_sessions_ask_title))
+            SectionHeader(stringResource(CoreR.string.dsh_bk_sessions_ask_title))
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.dsh_bk_sessions_ask_message, sessions),
+                text = stringResource(CoreR.string.dsh_bk_sessions_ask_message, sessions),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -746,16 +747,16 @@ private fun WizardDecideStep(
             // 会话恢复由插件完整处理（写文件 + 改首帧 cwd + 归位 + 登记），所以只剩两选：
             // 恢复 / 不恢复。默认恢复。
             SessionChoiceRow(
-                title = stringResource(R.string.dsh_bk_sessions_ask_restore),
-                note = stringResource(R.string.dsh_bk_sessions_ask_restore_note),
+                title = stringResource(CoreR.string.dsh_bk_sessions_ask_restore),
+                note = stringResource(CoreR.string.dsh_bk_sessions_ask_restore_note),
                 recommended = true,
                 selected = sessionChoice == DshConfigBackup.SessionImport.RESTORE,
                 onClick = { onSessionChoice(DshConfigBackup.SessionImport.RESTORE) },
             )
             Spacer(Modifier.height(8.dp))
             SessionChoiceRow(
-                title = stringResource(R.string.dsh_bk_sessions_ask_skip),
-                note = stringResource(R.string.dsh_bk_sessions_ask_skip_note),
+                title = stringResource(CoreR.string.dsh_bk_sessions_ask_skip),
+                note = stringResource(CoreR.string.dsh_bk_sessions_ask_skip_note),
                 selected = sessionChoice == DshConfigBackup.SessionImport.SKIP,
                 onClick = { onSessionChoice(DshConfigBackup.SessionImport.SKIP) },
             )
@@ -764,21 +765,21 @@ private fun WizardDecideStep(
         if (conflicts.isNotEmpty()) {
             if (sessions > 0) Spacer(Modifier.height(16.dp))
             SectionHeader(
-                stringResource(R.string.dsh_bk_conflict_title, preflight?.conflictTotal ?: 0),
+                stringResource(CoreR.string.dsh_bk_conflict_title, preflight?.conflictTotal ?: 0),
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = stringResource(R.string.dsh_bk_conflict_note),
+                text = stringResource(CoreR.string.dsh_bk_conflict_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onChooseAll(ConflictChoice.KEEP_CURRENT.wire) }) {
-                    Text(stringResource(R.string.dsh_bk_wiz_choose_all_keep))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_choose_all_keep))
                 }
                 OutlinedButton(onClick = { onChooseAll(ConflictChoice.USE_IMPORTED.wire) }) {
-                    Text(stringResource(R.string.dsh_bk_wiz_choose_all_use))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_choose_all_use))
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -793,7 +794,7 @@ private fun WizardDecideStep(
             val undecided = DshImportWizard.undecided(conflicts, choices)
             if (undecided > 0) {
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_undecided, undecided),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_undecided, undecided),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -803,7 +804,7 @@ private fun WizardDecideStep(
             if (hidden > 0) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_strategy_for_rest, hidden),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_strategy_for_rest, hidden),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -832,12 +833,12 @@ private fun ConflictRow(
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ChoiceChip(
-                text = stringResource(R.string.dsh_bk_wiz_keep_current),
+                text = stringResource(CoreR.string.dsh_bk_wiz_keep_current),
                 selected = chosen == ConflictChoice.KEEP_CURRENT.wire,
                 onClick = { onChoice(ConflictChoice.KEEP_CURRENT.wire) },
             )
             ChoiceChip(
-                text = stringResource(R.string.dsh_bk_wiz_use_imported),
+                text = stringResource(CoreR.string.dsh_bk_wiz_use_imported),
                 selected = chosen == ConflictChoice.USE_IMPORTED.wire,
                 onClick = { onChoice(ConflictChoice.USE_IMPORTED.wire) },
             )
@@ -869,23 +870,23 @@ private fun ChoiceChip(text: String, selected: Boolean, onClick: () -> Unit) {
 private fun StrategyRow(strategy: String, onStrategyChange: (String) -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         SessionChoiceRow(
-            title = stringResource(R.string.dsh_bk_strategy_merge),
-            note = stringResource(R.string.dsh_bk_strategy_merge_desc),
+            title = stringResource(CoreR.string.dsh_bk_strategy_merge),
+            note = stringResource(CoreR.string.dsh_bk_strategy_merge_desc),
             recommended = true,
             selected = strategy == DshConfigBackup.STRATEGY_MERGE,
             onClick = { onStrategyChange(DshConfigBackup.STRATEGY_MERGE) },
         )
         Spacer(Modifier.height(8.dp))
         SessionChoiceRow(
-            title = stringResource(R.string.dsh_bk_strategy_replace),
-            note = stringResource(R.string.dsh_bk_strategy_replace_desc),
+            title = stringResource(CoreR.string.dsh_bk_strategy_replace),
+            note = stringResource(CoreR.string.dsh_bk_strategy_replace_desc),
             selected = strategy == DshConfigBackup.STRATEGY_REPLACE,
             onClick = { onStrategyChange(DshConfigBackup.STRATEGY_REPLACE) },
         )
         Spacer(Modifier.height(8.dp))
         SessionChoiceRow(
-            title = stringResource(R.string.dsh_bk_strategy_skip),
-            note = stringResource(R.string.dsh_bk_strategy_skip_desc),
+            title = stringResource(CoreR.string.dsh_bk_strategy_skip),
+            note = stringResource(CoreR.string.dsh_bk_strategy_skip_desc),
             selected = strategy == DshConfigBackup.STRATEGY_SKIP_EXISTING,
             onClick = { onStrategyChange(DshConfigBackup.STRATEGY_SKIP_EXISTING) },
         )
@@ -906,42 +907,42 @@ private fun WizardConfirmStep(
     val tally = DshImportWizard.tally(conflicts, choices, preflight?.conflictTotal ?: 0)
     Column(Modifier.fillMaxWidth()) {
         Text(
-            text = stringResource(R.string.dsh_bk_wiz_confirm_hint),
+            text = stringResource(CoreR.string.dsh_bk_wiz_confirm_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(12.dp))
         if (plan != null) {
-            StatRow(stringResource(R.string.dsh_bk_wiz_will_change), plan.willChange.toString())
+            StatRow(stringResource(CoreR.string.dsh_bk_wiz_will_change), plan.willChange.toString())
         }
         if (preflight != null && preflight.sessions > 0) {
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_sessions_value),
+                stringResource(CoreR.string.dsh_bk_wiz_sessions_value),
                 stringResource(
                     when (sessionChoice ?: DshConfigBackup.SessionImport.SKIP) {
-                        DshConfigBackup.SessionImport.RESTORE -> R.string.dsh_bk_wiz_sessions_restore
-                        DshConfigBackup.SessionImport.SKIP -> R.string.dsh_bk_wiz_sessions_skip
+                        DshConfigBackup.SessionImport.RESTORE -> CoreR.string.dsh_bk_wiz_sessions_restore
+                        DshConfigBackup.SessionImport.SKIP -> CoreR.string.dsh_bk_wiz_sessions_skip
                     },
                 ),
             )
         }
         if (preflight != null && preflight.conflictTotal > 0) {
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_conflicts),
+                stringResource(CoreR.string.dsh_bk_wiz_conflicts),
                 stringResource(
-                    R.string.dsh_bk_wiz_conflict_tally,
+                    CoreR.string.dsh_bk_wiz_conflict_tally,
                     tally.keepCurrent,
                     tally.useImported,
                     tally.byStrategy,
                 ),
             )
             StatRow(
-                stringResource(R.string.dsh_bk_wiz_conflict_strategy),
+                stringResource(CoreR.string.dsh_bk_wiz_conflict_strategy),
                 stringResource(
                     when (strategy) {
-                        DshConfigBackup.STRATEGY_REPLACE -> R.string.dsh_bk_strategy_replace
-                        DshConfigBackup.STRATEGY_SKIP_EXISTING -> R.string.dsh_bk_strategy_skip
-                        else -> R.string.dsh_bk_strategy_merge
+                        DshConfigBackup.STRATEGY_REPLACE -> CoreR.string.dsh_bk_strategy_replace
+                        DshConfigBackup.STRATEGY_SKIP_EXISTING -> CoreR.string.dsh_bk_strategy_skip
+                        else -> CoreR.string.dsh_bk_strategy_merge
                     },
                 ),
             )
@@ -952,14 +953,14 @@ private fun WizardConfirmStep(
             Spacer(Modifier.height(10.dp))
             if (restartNeeded) {
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_needs_restart_note),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_needs_restart_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (themeIncluded) {
                 Text(
-                    text = stringResource(R.string.dsh_bk_wiz_theme_note),
+                    text = stringResource(CoreR.string.dsh_bk_wiz_theme_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -969,16 +970,16 @@ private fun WizardConfirmStep(
         HorizontalDivider()
         Spacer(Modifier.height(10.dp))
         SessionChoiceRow(
-            title = stringResource(R.string.dsh_bk_wiz_rollback_on),
-            note = stringResource(R.string.dsh_bk_wiz_rollback_on_note),
+            title = stringResource(CoreR.string.dsh_bk_wiz_rollback_on),
+            note = stringResource(CoreR.string.dsh_bk_wiz_rollback_on_note),
             recommended = true,
             selected = rollback,
             onClick = { onRollbackChange(true) },
         )
         Spacer(Modifier.height(8.dp))
         SessionChoiceRow(
-            title = stringResource(R.string.dsh_bk_wiz_rollback_off),
-            note = stringResource(R.string.dsh_bk_wiz_rollback_off_note),
+            title = stringResource(CoreR.string.dsh_bk_wiz_rollback_off),
+            note = stringResource(CoreR.string.dsh_bk_wiz_rollback_off_note),
             selected = !rollback,
             onClick = { onRollbackChange(false) },
         )
@@ -993,7 +994,7 @@ private fun WizardExecuteStep(lines: List<String>, running: Boolean) {
             Spacer(Modifier.height(12.dp))
         }
         Text(
-            text = stringResource(R.string.dsh_bk_wiz_execute_hint),
+            text = stringResource(CoreR.string.dsh_bk_wiz_execute_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1020,7 +1021,7 @@ private fun WizardResultStep(
             Spacer(Modifier.width(8.dp))
             Text(
                 text = stringResource(
-                    if (r.ok) R.string.dsh_bk_wiz_result_ok else R.string.dsh_bk_wiz_result_partial,
+                    if (r.ok) CoreR.string.dsh_bk_wiz_result_ok else CoreR.string.dsh_bk_wiz_result_partial,
                 ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
@@ -1033,64 +1034,64 @@ private fun WizardResultStep(
             // 「需要重启」这组只列清单、不带按钮 —— 与下面其它「下一步」分组一致；
             // 真正的「立即重启」按钮只在底部动作行出现一次（曾经这里也放了一个，导致两个重复按钮）。
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_next_restart),
+                title = stringResource(CoreR.string.dsh_bk_wiz_next_restart),
                 items = r.restartItems.ifEmpty {
-                    listOf(stringResource(R.string.dsh_bk_wiz_next_restart_generic))
+                    listOf(stringResource(CoreR.string.dsh_bk_wiz_next_restart_generic))
                 },
             )
         }
         if (r.theme == "restored") {
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_next_theme),
-                items = listOf(stringResource(R.string.dsh_bk_wiz_next_theme_note)),
+                title = stringResource(CoreR.string.dsh_bk_wiz_next_theme),
+                items = listOf(stringResource(CoreR.string.dsh_bk_wiz_next_theme_note)),
             )
         }
         if (r.privilegeSkipped > 0) {
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_next_privilege),
+                title = stringResource(CoreR.string.dsh_bk_wiz_next_privilege),
                 items = listOf(
-                    stringResource(R.string.dsh_bk_excluded_privilege, r.privilegeSkipped),
+                    stringResource(CoreR.string.dsh_bk_excluded_privilege, r.privilegeSkipped),
                 ),
             )
         }
         if (r.missingSecrets.isNotEmpty()) {
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_next_secrets),
+                title = stringResource(CoreR.string.dsh_bk_wiz_next_secrets),
                 items = r.missingSecrets,
             )
         }
         if (r.unresolved.isNotEmpty()) {
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_next_unresolved),
+                title = stringResource(CoreR.string.dsh_bk_wiz_next_unresolved),
                 items = r.unresolved,
             )
         }
         if (r.warnings.isNotEmpty()) {
             ResultGroup(
-                title = stringResource(R.string.dsh_bk_wiz_warnings),
+                title = stringResource(CoreR.string.dsh_bk_wiz_warnings),
                 items = r.warnings,
             )
         }
         if (r.snapshotId.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
             Text(
-                text = stringResource(R.string.dsh_bk_snapshot, r.snapshotId),
+                text = stringResource(CoreR.string.dsh_bk_snapshot, r.snapshotId),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Spacer(Modifier.height(14.dp))
-        SectionHeader(stringResource(R.string.dsh_bk_wiz_result_log))
+        SectionHeader(stringResource(CoreR.string.dsh_bk_wiz_result_log))
         Spacer(Modifier.height(6.dp))
         LogBox(r.text.lines())
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { onCopy(r.text) }) {
-                Text(stringResource(R.string.dsh_copy_log))
+                Text(stringResource(CoreR.string.dsh_copy_log))
             }
             if (r.needsRestart) {
                 Button(onClick = onRestart) {
-                    Text(stringResource(R.string.dsh_plugin_restart_now))
+                    Text(stringResource(CoreR.string.dsh_plugin_restart_now))
                 }
             }
         }
@@ -1170,7 +1171,7 @@ internal fun SessionChoiceRow(
                         shape = RoundedCornerShape(6.dp),
                     ) {
                         Text(
-                            text = stringResource(R.string.dsh_bk_wiz_recommended),
+                            text = stringResource(CoreR.string.dsh_bk_wiz_recommended),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -1209,7 +1210,7 @@ private fun LogBox(lines: List<String>) {
     ) {
         Text(
             text = lines.joinToString("\n").ifEmpty {
-                stringResource(R.string.dsh_plugin_waiting_output)
+                stringResource(CoreR.string.dsh_plugin_waiting_output)
             },
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
@@ -1251,13 +1252,13 @@ private fun WizardButtons(
             }
             if (step != WizardStep.SELECT) {
                 TextButton(onClick = onBack, enabled = !running) {
-                    Text(stringResource(R.string.dsh_bk_wiz_back))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_back))
                 }
             }
             Spacer(Modifier.weight(1f))
             if (step == WizardStep.CONFIRM) {
                 Button(onClick = onStartRun, enabled = !running) {
-                    Text(stringResource(R.string.dsh_bk_wiz_restore_now))
+                    Text(stringResource(CoreR.string.dsh_bk_wiz_restore_now))
                 }
             }
         }
@@ -1281,9 +1282,9 @@ internal fun WizardAdvanceButton(
     onClick: () -> Unit,
 ) {
     val label = when (step) {
-        WizardStep.PREVIEW -> if (nextIsDecide) R.string.dsh_bk_wiz_to_decide else R.string.dsh_bk_wiz_to_confirm
-        WizardStep.DECIDE -> R.string.dsh_bk_wiz_to_confirm
-        else -> R.string.dsh_bk_wiz_next
+        WizardStep.PREVIEW -> if (nextIsDecide) CoreR.string.dsh_bk_wiz_to_decide else CoreR.string.dsh_bk_wiz_to_confirm
+        WizardStep.DECIDE -> CoreR.string.dsh_bk_wiz_to_confirm
+        else -> CoreR.string.dsh_bk_wiz_next
     }
     Spacer(Modifier.height(14.dp))
     Button(onClick = onClick, enabled = enabled) {

@@ -35,11 +35,11 @@ import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshHostPrompt
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.PrivPolicy
 import me.bmax.apatch.ui.component.SearchAppBar
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「限制模式」：一个开关 + 两张清单，**一处**管理「还要不要再问」。
@@ -93,7 +93,7 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.dsh_priv_restrict_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_priv_restrict_title)) },
                 searchText = query,
                 onSearchTextChange = { query = it },
                 onClearClick = { query = "" },
@@ -119,13 +119,13 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = stringResource(
-                            if (restrictMode) R.string.dsh_priv_restrict_on
-                            else R.string.dsh_priv_restrict_off
+                            if (restrictMode) CoreR.string.dsh_priv_restrict_on
+                            else CoreR.string.dsh_priv_restrict_off
                         ),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        text = stringResource(R.string.dsh_priv_restrict_summary),
+                        text = stringResource(CoreR.string.dsh_priv_restrict_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -144,20 +144,20 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
 
             HorizontalDivider(Modifier.padding(horizontal = 16.dp))
             Text(
-                text = stringResource(R.string.dsh_priv_restrict_caps_header),
+                text = stringResource(CoreR.string.dsh_priv_restrict_caps_header),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 2.dp),
             )
             Text(
-                text = stringResource(R.string.dsh_priv_restrict_caps_default),
+                text = stringResource(CoreR.string.dsh_priv_restrict_caps_default),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             if (groups.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_priv_restrict_empty),
+                    text = stringResource(CoreR.string.dsh_priv_restrict_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp),
@@ -191,19 +191,19 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                 },
                 modifier = Modifier.padding(start = 8.dp),
             ) {
-                Text(stringResource(R.string.dsh_priv_restrict_caps_reset))
+                Text(stringResource(CoreR.string.dsh_priv_restrict_caps_reset))
             }
 
             // ── 危险操作清单 ──
             HorizontalDivider(Modifier.padding(horizontal = 16.dp))
             Text(
-                text = stringResource(R.string.dsh_priv_danger_header),
+                text = stringResource(CoreR.string.dsh_priv_danger_header),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 2.dp),
             )
             Text(
-                text = stringResource(R.string.dsh_priv_danger_summary),
+                text = stringResource(CoreR.string.dsh_priv_danger_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -223,7 +223,7 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                     )
                     if (entry !in PrivPolicy.BUILTIN_DANGER) {
                         Text(
-                            text = stringResource(R.string.dsh_priv_danger_added_tag),
+                            text = stringResource(CoreR.string.dsh_priv_danger_added_tag),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -237,7 +237,7 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
-                            contentDescription = stringResource(R.string.dsh_priv_danger_remove),
+                            contentDescription = stringResource(CoreR.string.dsh_priv_danger_remove),
                         )
                     }
                 }
@@ -257,7 +257,7 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                         draft = it
                         addError = null
                     },
-                    label = { Text(stringResource(R.string.dsh_priv_danger_add_label)) },
+                    label = { Text(stringResource(CoreR.string.dsh_priv_danger_add_label)) },
                     singleLine = true,
                     isError = addError != null,
                     // 支持文本只在这条输入不合法时出现；类型上要显式包一层 composable lambda
@@ -271,9 +271,9 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                 Button(onClick = {
                     val raw = draft.trim()
                     addError = when {
-                        raw.isEmpty() -> R.string.dsh_priv_danger_invalid
+                        raw.isEmpty() -> CoreR.string.dsh_priv_danger_invalid
                         !PrivPolicy.addDangerEntry(context.applicationContext, raw) ->
-                            R.string.dsh_priv_danger_exists
+                            CoreR.string.dsh_priv_danger_exists
                         else -> null
                     }
                     if (addError == null) {
@@ -283,13 +283,13 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                         refreshFacts()
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_priv_danger_add))
+                    Text(stringResource(CoreR.string.dsh_priv_danger_add))
                 }
             }
             // 被删掉的内置条目只在"恢复默认"里回来，所以这个按钮同时说清它还原什么
             if (disabledBuiltin.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_priv_danger_removed_builtin, disabledBuiltin.size),
+                    text = stringResource(CoreR.string.dsh_priv_danger_removed_builtin, disabledBuiltin.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -304,7 +304,7 @@ fun RestrictModeScreen(navigator: DestinationsNavigator) {
                 },
                 modifier = Modifier.padding(start = 8.dp),
             ) {
-                Text(stringResource(R.string.dsh_priv_danger_reset))
+                Text(stringResource(CoreR.string.dsh_priv_danger_reset))
             }
             Spacer(Modifier.height(20.dp))
         }

@@ -17,6 +17,7 @@ import com.ramcosta.composedestinations.generated.destinations.HomeScreenDestina
 import com.ramcosta.composedestinations.generated.destinations.SettingScreenDestination
 import com.ramcosta.composedestinations.spec.DirectionDestinationSpec
 import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * DSH-Folk 底栏：四页——主页 / 终端 / 插件 / 设置。
@@ -45,14 +46,14 @@ enum class BottomBarDestination(
     ),
     Terminal(
         DshTerminalScreenDestination,
-        R.string.dsh_terminal,
+        CoreR.string.dsh_terminal,
         Icons.Filled.Terminal,
         Icons.Outlined.Terminal,
         "SuperUser",
     ),
     Plugin(
         DshPluginScreenDestination,
-        R.string.dsh_plugins,
+        CoreR.string.dsh_plugins,
         Icons.Filled.Extension,
         Icons.Outlined.Extension,
         "AModule",

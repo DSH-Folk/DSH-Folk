@@ -72,6 +72,7 @@ import me.bmax.apatch.dsh.PrivPolicy
 import me.bmax.apatch.ui.component.A11yRecoveryCard
 import me.bmax.apatch.dsh.DisplayMirror
 import me.bmax.apatch.util.PermissionUtils
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 原生能力的分组页。
@@ -159,18 +160,18 @@ private fun nativeCapsAccessLabelRes(
     cap: DshNativeBridge.Cap,
     access: DshNativeBridge.Access,
 ): Int = when (access) {
-    DshNativeBridge.Access.OFF -> R.string.dsh_native_access_off
-    DshNativeBridge.Access.CONTROL -> R.string.dsh_native_access_control
+    DshNativeBridge.Access.OFF -> CoreR.string.dsh_native_access_off
+    DshNativeBridge.Access.CONTROL -> CoreR.string.dsh_native_access_control
     else -> accessLabelRes(cap, access)
 }
 
 /** 档位 → 弹层里的副文案：说明这一档到底放行了什么。 */
 private fun nativeCapsAccessDescRes(access: DshNativeBridge.Access): Int = when (access) {
-    DshNativeBridge.Access.OFF -> R.string.dsh_perm_access_off_desc
-    DshNativeBridge.Access.READ -> R.string.dsh_perm_access_read_desc
-    DshNativeBridge.Access.WRITE -> R.string.dsh_perm_access_write_desc
-    DshNativeBridge.Access.READ_WRITE -> R.string.dsh_perm_access_rw_desc
-    DshNativeBridge.Access.CONTROL -> R.string.dsh_perm_access_control_desc
+    DshNativeBridge.Access.OFF -> CoreR.string.dsh_perm_access_off_desc
+    DshNativeBridge.Access.READ -> CoreR.string.dsh_perm_access_read_desc
+    DshNativeBridge.Access.WRITE -> CoreR.string.dsh_perm_access_write_desc
+    DshNativeBridge.Access.READ_WRITE -> CoreR.string.dsh_perm_access_rw_desc
+    DshNativeBridge.Access.CONTROL -> CoreR.string.dsh_perm_access_control_desc
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -402,14 +403,14 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
         ) {
             item {
                 Text(
-                    text = stringResource(R.string.dsh_native_section),
+                    text = stringResource(CoreR.string.dsh_native_section),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
             item {
                 Text(
-                    text = stringResource(R.string.dsh_perm_caps_count, group.caps.size),
+                    text = stringResource(CoreR.string.dsh_perm_caps_count, group.caps.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -423,9 +424,9 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
                     }
                     Text(
                         text = if (activeCount > 0) {
-                            stringResource(R.string.dsh_native_off_hint_kept, activeCount)
+                            stringResource(CoreR.string.dsh_native_off_hint_kept, activeCount)
                         } else {
-                            stringResource(R.string.dsh_native_off_hint)
+                            stringResource(CoreR.string.dsh_native_off_hint)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
@@ -480,8 +481,8 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
     if (pendingFullControl != null) {
         AlertDialog(
             onDismissRequest = { pendingFullControl = null },
-            title = { Text(stringResource(R.string.dsh_native_full_control_warning_title)) },
-            text = { Text(stringResource(R.string.dsh_native_full_control_warning_message)) },
+            title = { Text(stringResource(CoreR.string.dsh_native_full_control_warning_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_native_full_control_warning_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     val cap = pendingFullControl ?: return@TextButton
@@ -494,7 +495,7 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
                     DshHostPrompt.writeFacts(context.applicationContext)
                     pendingFullControl = null
                     requestCapPermission(cap)
-                }) { Text(stringResource(R.string.dsh_native_full_control_continue)) }
+                }) { Text(stringResource(CoreR.string.dsh_native_full_control_continue)) }
             },
             dismissButton = {
                 TextButton(onClick = { pendingFullControl = null }) {
@@ -516,7 +517,7 @@ private fun NativeCapsPage(navigator: DestinationsNavigator, group: CapGroup) {
                     .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_perm_access_sheet_title),
+                    text = stringResource(CoreR.string.dsh_perm_access_sheet_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -644,7 +645,7 @@ private fun SafBridgeSheet(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.dsh_saf_sheet_intro),
+                text = stringResource(CoreR.string.dsh_saf_sheet_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -652,7 +653,7 @@ private fun SafBridgeSheet(
             // ── 档位（关 / 只读 / 读写）──
             Spacer(Modifier.height(16.dp))
             Text(
-                text = stringResource(R.string.dsh_saf_sheet_access_header),
+                text = stringResource(CoreR.string.dsh_saf_sheet_access_header),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -696,18 +697,18 @@ private fun SafBridgeSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_saf_sheet_sources_header),
+                    text = stringResource(CoreR.string.dsh_saf_sheet_sources_header),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = onRequestGrant) {
-                    Text(stringResource(R.string.dsh_saf_sheet_grant))
+                    Text(stringResource(CoreR.string.dsh_saf_sheet_grant))
                 }
             }
             if (sources.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_saf_sheet_empty),
+                    text = stringResource(CoreR.string.dsh_saf_sheet_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -734,7 +735,7 @@ private fun SafBridgeSheet(
                             }
                         }
                         TextButton(onClick = { onRemoveSource(source.name) }) {
-                            Text(stringResource(R.string.dsh_saf_sheet_remove))
+                            Text(stringResource(CoreR.string.dsh_saf_sheet_remove))
                         }
                         Switch(
                             checked = source.enabled,
@@ -797,12 +798,12 @@ private fun NativeCapCard(
             // 与档位无关地显示：通道不可用时，这一页自己会说明原因，比藏起来更好排障。
             if (cap == DshNativeBridge.Cap.DISPLAY) {
                 TextButton(onClick = onOpenDisplayPreview) {
-                    Text(stringResource(R.string.dsh_display_preview_open))
+                    Text(stringResource(CoreR.string.dsh_display_preview_open))
                 }
                 // 管理与排障入口：预览页看的是"当前会话"，而这里能看到**所有**活着的屏
                 // （agent 改了尺寸就会多一块，旧的不会自己消失）。
                 TextButton(onClick = onOpenDisplayManage) {
-                    Text(stringResource(R.string.dsh_display_manage_open))
+                    Text(stringResource(CoreR.string.dsh_display_manage_open))
                 }
                 // 悬浮小窗：agent 在虚拟屏上操作时，用户抬眼看得到画面，而不是要他自己
                 // 想起来去开预览页 —— 那正是「agent 干了什么用户完全不知道」的来源。
@@ -812,15 +813,15 @@ private fun NativeCapCard(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.dsh_display_float_title),
+                            text = stringResource(CoreR.string.dsh_display_float_title),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
                             // 缺权限时说的必须是「为什么现在看不到」这件事本身，
                             // 而不是一句泛泛的"未开启"—— 用户要找的是那个系统开关。
                             text = stringResource(
-                                if (overlayAllowed) R.string.dsh_display_float_summary
-                                else R.string.dsh_display_float_need_permission
+                                if (overlayAllowed) CoreR.string.dsh_display_float_summary
+                                else CoreR.string.dsh_display_float_need_permission
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (overlayAllowed) MaterialTheme.colorScheme.onSurfaceVariant
@@ -831,7 +832,7 @@ private fun NativeCapCard(
                 }
                 if (!overlayAllowed) {
                     TextButton(onClick = onRequestOverlay) {
-                        Text(stringResource(R.string.dsh_display_float_grant))
+                        Text(stringResource(CoreR.string.dsh_display_float_grant))
                     }
                 }
             }
@@ -852,7 +853,7 @@ private fun NativeCapCard(
             } else if (on && cap == DshNativeBridge.Cap.LOCATION && coarseLocationOnly) {
                 // 大致位置不是缺权限，而是一种需要说明的状态：点了也只会再弹一次同样的框
                 Text(
-                    text = stringResource(R.string.dsh_native_precise_location),
+                    text = stringResource(CoreR.string.dsh_native_precise_location),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -877,11 +878,11 @@ private fun NativeCapCard(
 private fun A11yOwnPicker(mode: String, onPick: (String) -> Unit) {
     Spacer(Modifier.height(10.dp))
     Text(
-        text = stringResource(R.string.dsh_a11y_own_title),
+        text = stringResource(CoreR.string.dsh_a11y_own_title),
         style = MaterialTheme.typography.bodyMedium,
     )
     Text(
-        text = stringResource(R.string.dsh_a11y_own_summary),
+        text = stringResource(CoreR.string.dsh_a11y_own_summary),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -913,7 +914,7 @@ private fun A11yOwnPicker(mode: String, onPick: (String) -> Unit) {
     }
     Spacer(Modifier.height(2.dp))
     Text(
-        text = stringResource(R.string.dsh_a11y_own_note),
+        text = stringResource(CoreR.string.dsh_a11y_own_note),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.tertiary,
     )
@@ -921,16 +922,16 @@ private fun A11yOwnPicker(mode: String, onPick: (String) -> Unit) {
 
 /** 档位 → 名称串。脏值按默认档（agent）显示，和 [A11yOwn.mode] 的读法一致。 */
 private fun a11yOwnLabelRes(mode: String): Int = when (mode) {
-    A11yOwn.MODE_OFF -> R.string.dsh_a11y_own_off
-    A11yOwn.MODE_ALL -> R.string.dsh_a11y_own_all
-    else -> R.string.dsh_a11y_own_agent
+    A11yOwn.MODE_OFF -> CoreR.string.dsh_a11y_own_off
+    A11yOwn.MODE_ALL -> CoreR.string.dsh_a11y_own_all
+    else -> CoreR.string.dsh_a11y_own_agent
 }
 
 /** 档位 → 一句说明。 */
 private fun a11yOwnDescRes(mode: String): Int = when (mode) {
-    A11yOwn.MODE_OFF -> R.string.dsh_a11y_own_off_desc
-    A11yOwn.MODE_ALL -> R.string.dsh_a11y_own_all_desc
-    else -> R.string.dsh_a11y_own_agent_desc
+    A11yOwn.MODE_OFF -> CoreR.string.dsh_a11y_own_off_desc
+    A11yOwn.MODE_ALL -> CoreR.string.dsh_a11y_own_all_desc
+    else -> CoreR.string.dsh_a11y_own_agent_desc
 }
 
 /** 当前范围的彩色胶囊。颜色只区分「关 / 普通档 / 完全控制」三档，文字才是精确含义。 */

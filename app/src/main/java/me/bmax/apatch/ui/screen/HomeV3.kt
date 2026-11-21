@@ -56,6 +56,7 @@ import me.bmax.apatch.util.Version.getManagerVersion
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.showToast
 import kotlinx.coroutines.launch
+import me.bmax.apatch.res.R as CoreR
 
 private val managerVersion = getManagerVersion()
 
@@ -136,7 +137,7 @@ private fun HarnessCard(
     val state = LocalDshHomeState.current
 
     MagiskStyleCard(
-        title = stringResource(R.string.dsh_app_title),
+        title = stringResource(CoreR.string.dsh_app_title),
         icon = Icons.Outlined.Terminal,
         actionText = dshPrimaryActionLabel(state),
         showAction = true,
@@ -147,22 +148,22 @@ private fun HarnessCard(
         cardId = BackgroundConfig.FOCUS_CARD_KERNEL
     ) {
         InfoRow(
-            label = stringResource(R.string.dsh_status),
+            label = stringResource(CoreR.string.dsh_status),
             value = dshPhaseLabel(state)
         )
         state.version?.let {
-            InfoRow(label = stringResource(R.string.dsh_runtime_version), value = it)
+            InfoRow(label = stringResource(CoreR.string.dsh_runtime_version), value = it)
         }
         InfoRow(
-            label = stringResource(R.string.dsh_run_mode),
+            label = stringResource(CoreR.string.dsh_run_mode),
             value = state.runtimeLabel
         )
         if (state.isRunning) {
-            InfoRow(label = stringResource(R.string.dsh_web_port), value = state.port.toString())
+            InfoRow(label = stringResource(CoreR.string.dsh_web_port), value = state.port.toString())
         }
         val detail = dshPhaseDetail(state)
         if (detail.isNotEmpty()) {
-            InfoRow(label = stringResource(R.string.dsh_output), value = detail)
+            InfoRow(label = stringResource(CoreR.string.dsh_output), value = detail)
         }
         if (state.isBusy) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -190,7 +191,7 @@ private fun PermissionCard(
     val state = LocalDshHomeState.current
 
     MagiskStyleCard(
-        title = stringResource(R.string.dsh_permission),
+        title = stringResource(CoreR.string.dsh_permission),
         icon = Icons.Outlined.Security,
         actionText = stringResource(R.string.settings),
         showAction = true,
@@ -200,11 +201,11 @@ private fun PermissionCard(
         cardId = BackgroundConfig.FOCUS_CARD_APP
     ) {
         InfoRow(
-            label = stringResource(R.string.dsh_perm_current),
+            label = stringResource(CoreR.string.dsh_perm_current),
             value = state.permLabel
         )
         InfoRow(
-            label = stringResource(R.string.dsh_adb_paired),
+            label = stringResource(CoreR.string.dsh_adb_paired),
             value = if (state.perm.adbPaired) {
                 stringResource(R.string.home_info_auth_auth)
             } else {

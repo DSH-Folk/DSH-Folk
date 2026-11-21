@@ -26,12 +26,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import me.bmax.apatch.R
 import me.bmax.apatch.util.LocaleCtx
 import me.bmax.apatch.util.UpdateChecker
 import me.bmax.apatch.util.appString
 import org.json.JSONArray
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 运行时的安装/校验/解压：下载（多镜像竞速）→ sha256 → 解压 → 保留数据 → 落盘版本。
@@ -67,7 +67,7 @@ internal fun DshRuntime.elfMachine(f: File): Int? = runCatching {
 internal suspend fun DshRuntime.downloadAndInstall(preserveData: Boolean = true, newest: Boolean = true) {
     this.clearLog()
     // lambda 里的 this 指向 lambda 自身，不是 DshRuntime：文本先算好再传进去。
-    val fetchingMsg = this.str(R.string.dsh_msg_fetching_meta)
+    val fetchingMsg = this.str(CoreR.string.dsh_msg_fetching_meta)
     this.setState { s ->
         s.copy(
             phase = DshPhase.DOWNLOADING,
@@ -79,27 +79,27 @@ internal suspend fun DshRuntime.downloadAndInstall(preserveData: Boolean = true,
     if (DshSource.setting(appContext) == DshSource.SOURCE_AUTO &&
         this.raceEnabled(RACE_RUNTIME)
     ) {
-        this.logInfo(R.string.dsh_log_speedtest_start)
+        this.logInfo(CoreR.string.dsh_log_speedtest_start)
         val results = DshSource.speedTest()
         for (r in results.sortedBy { it.estimatedMs }) {
             val latency = r.latencyMs
             if (latency == null) {
                 // 不可达就说不可达：老实现把哨兵值 Long.MAX_VALUE/4 当延迟打出来，
                 // 用户看到的是「延迟 2305843009213693951ms」。
-                this.logInfo(R.string.dsh_log_speedtest_unreachable, this.sourceName(r.source))
+                this.logInfo(CoreR.string.dsh_log_speedtest_unreachable, this.sourceName(r.source))
                 continue
             }
             val speed = if (r.speedKBps > 0.0) String.format("%.1f MB/s", r.speedKBps / 1024.0)
-            else this.str(R.string.dsh_log_speedtest_untested)
-            this.logInfo(R.string.dsh_log_speedtest_row, this.sourceName(r.source), latency, speed)
+            else this.str(CoreR.string.dsh_log_speedtest_untested)
+            this.logInfo(CoreR.string.dsh_log_speedtest_row, this.sourceName(r.source), latency, speed)
         }
-        this.logInfo(R.string.dsh_log_source_chosen, this.sourceName(DshSource.pickBest(results, appContext)))
+        this.logInfo(CoreR.string.dsh_log_source_chosen, this.sourceName(DshSource.pickBest(results, appContext)))
     }
-    this.logInfo(R.string.dsh_log_fetching_meta)
+    this.logInfo(CoreR.string.dsh_log_fetching_meta)
     // newest=false 只给「重装当前版本」用：那条路要装的必须是已装那一份，不能顺手升级。
     val meta = if (newest) this.fetchNewestMeta() else this.fetchMeta()
     if (meta == null) {
-        this.fail(this.str(R.string.dsh_err_meta_failed))
+        this.fail(this.str(CoreR.string.dsh_err_meta_failed))
         return
     }
     this.installMeta(meta, preserveData)
@@ -123,7 +123,7 @@ internal suspend fun DshRuntime.installMeta(meta: DshMeta, preserveData: Boolean
     // 不走转译层，执行 arm64 的 ld.so 直接 SIGILL（1.7.6 真机上就是这么炸的）。
     val want = DshSource.runtimeArch()
     if (meta.arch.isNotEmpty() && meta.arch != want) {
-        this.fail(this.str(R.string.dsh_err_arch_mismatch, meta.arch, want))
+        this.fail(this.str(CoreR.string.dsh_err_arch_mismatch, meta.arch, want))
         return
     }
     // 最低 App 版本闸门：在下载之前拦住（同 startServer 里那道闸门）。置位
@@ -132,7 +132,7 @@ internal suspend fun DshRuntime.installMeta(meta: DshMeta, preserveData: Boolean
         this.setState { s ->
             s.copy(appUpdateRequired = true, requiredAppVersion = meta.minAppVersion)
         }
-        this.fail(this.str(R.string.dsh_runtime_min_app_required, meta.minAppVersion))
+        this.fail(this.str(CoreR.string.dsh_runtime_min_app_required, meta.minAppVersion))
         return
     }
     // 空间检查放在下载之前：rootfs 解压后约为压缩包的 3 倍，加上压缩包自身
@@ -141,34 +141,34 @@ internal suspend fun DshRuntime.installMeta(meta: DshMeta, preserveData: Boolean
         val free = this.availableSpace(appContext.filesDir)
         val need = meta.sizeBytes * 4
         if (free in 1..need) {
-            this.fail(this.str(R.string.dsh_err_no_space, free / 1024 / 1024, need / 1024 / 1024))
+            this.fail(this.str(CoreR.string.dsh_err_no_space, free / 1024 / 1024, need / 1024 / 1024))
             return
         }
     }
     val tarball = DshEnv.downloadZip(appContext)
-    this.logInfo(R.string.dsh_log_download_start, meta.version, meta.nodeVersion, meta.dsh)
+    this.logInfo(CoreR.string.dsh_log_download_start, meta.version, meta.nodeVersion, meta.dsh)
     if (!this.downloadWithFallback(meta, tarball)) {
-        this.fail(this.str(R.string.dsh_err_download_failed))
+        this.fail(this.str(CoreR.string.dsh_err_download_failed))
         return
     }
-    this.logInfo(R.string.dsh_log_download_done, tarball.length() / 1024 / 1024)
+    this.logInfo(CoreR.string.dsh_log_download_done, tarball.length() / 1024 / 1024)
     if (!this.verifySha256(tarball, meta.sha256)) {
         // 校验失败说明这份文件本身是坏的（续传时拼错、镜像给了旧包）——
         // 必须删掉，否则下次续传会一直基于这份坏数据往后接，永远校验不过。
         runCatching { tarball.delete() }
-        this.fail(this.str(R.string.dsh_err_sha_mismatch))
+        this.fail(this.str(CoreR.string.dsh_err_sha_mismatch))
         return
     }
     // 二次确认：metadata 里的 sizeBytes 可能与实际有偏差，用真实体积再算一次
     val free = this.availableSpace(appContext.filesDir)
     val need = (tarball.length() * 3.0).toLong()
     if (free in 1..need) {
-        this.fail(this.str(R.string.dsh_err_no_space, free / 1024 / 1024, need / 1024 / 1024))
+        this.fail(this.str(CoreR.string.dsh_err_no_space, free / 1024 / 1024, need / 1024 / 1024))
         return
     }
-    this.logInfo(R.string.dsh_log_sha_ok)
+    this.logInfo(CoreR.string.dsh_log_sha_ok)
     // 注意：lambda 里的 this 指向 lambda 自身，不是 DshRuntime —— 文本先取出来再传进去。
-    val extractingMsg = this.str(R.string.dsh_msg_installing)
+    val extractingMsg = this.str(CoreR.string.dsh_msg_installing)
     this.setState { s ->
         s.copy(phase = DshPhase.EXTRACTING, progress = 0f, message = extractingMsg)
     }
@@ -177,10 +177,10 @@ internal suspend fun DshRuntime.installMeta(meta: DshMeta, preserveData: Boolean
     val ok = withContext(Dispatchers.IO) { self.installRuntimeArchive(tarball, preserveData) }
     tarball.delete()
     if (!ok) {
-        this.fail(this.str(R.string.dsh_err_extract_failed))
+        this.fail(this.str(CoreR.string.dsh_err_extract_failed))
         return
     }
-    this.logInfo(R.string.dsh_log_install_done)
+    this.logInfo(CoreR.string.dsh_log_install_done)
     // 要求与版本一起落盘：下一次 attach() 才能离线判断「这份运行时需不需要
     // 更新的 App」。App 升级后 compareVersions 重算，满足即自动放行。
     this.prefs().edit()
@@ -190,7 +190,7 @@ internal suspend fun DshRuntime.installMeta(meta: DshMeta, preserveData: Boolean
     // phase 必须回 NOT_READY，不能直接置 STARTING：[bootstrap] 下一步就调
     // [startServer]，而它的防重入守卫会把 STARTING 当成「已经在启动了」直接
     // return——首次安装后服务永远起不来就是这个自我拦截造成的。
-    val readyMsg = this.str(R.string.dsh_msg_runtime_ready)
+    val readyMsg = this.str(CoreR.string.dsh_msg_runtime_ready)
     this.setState { s ->
         s.copy(
             phase = DshPhase.NOT_READY,
@@ -258,16 +258,16 @@ internal fun DshRuntime.downloadWithFallback(meta: DshMeta, target: File): Boole
         (preferred + listOf(meta.url) + meta.mirrors).distinct()
     }
     for ((i, url) in candidates.withIndex()) {
-        this.logInfo(R.string.dsh_log_source_try, i + 1, candidates.size, url)
-        val downloadingMsg = this.str(R.string.dsh_msg_downloading, meta.version)
+        this.logInfo(CoreR.string.dsh_log_source_try, i + 1, candidates.size, url)
+        val downloadingMsg = this.str(CoreR.string.dsh_msg_downloading, meta.version)
         this.setState { s ->
             s.copy(message = downloadingMsg, speedBytesPerSec = 0L)
         }
         if (this.downloadFile(url, target, meta.sizeBytes)) {
-            this.logInfo(R.string.dsh_log_source_ok, i + 1)
+            this.logInfo(CoreR.string.dsh_log_source_ok, i + 1)
             return true
         }
-        this.logWarn(R.string.dsh_log_source_fail, i + 1)
+        this.logWarn(CoreR.string.dsh_log_source_fail, i + 1)
     }
     return false
 }
@@ -291,9 +291,9 @@ internal fun DshRuntime.downloadFile(url: String, target: File, sizeBytes: Long)
             // 日志每 5% 一行就够了，否则 400 行上限很快被下载进度占满
             if (pctInt / 5 > lastLoggedBucket) {
                 lastLoggedBucket = pctInt / 5
-                this.logInfo(R.string.dsh_log_downloading, pctInt, this.formatSpeed(p.speedBytesPerSec))
+                this.logInfo(CoreR.string.dsh_log_downloading, pctInt, this.formatSpeed(p.speedBytesPerSec))
             }
-            val pctMsg = this.str(R.string.dsh_msg_downloading_pct, pctInt, this.formatSpeed(p.speedBytesPerSec))
+            val pctMsg = this.str(CoreR.string.dsh_msg_downloading_pct, pctInt, this.formatSpeed(p.speedBytesPerSec))
             this.setState { s ->
                 s.copy(
                     progress = p.fraction,
@@ -407,7 +407,7 @@ internal fun DshRuntime.installRuntimeArchive(tarball: File, preserveData: Boole
     //
     // 节流到 1% 才更新一次状态：解压要写几万个文件，每个都 setState 会把主线程刷爆。
     val extractingPhase = DshPhase.EXTRACTING
-    val extractingText = this.str(R.string.dsh_msg_installing)
+    val extractingText = this.str(CoreR.string.dsh_msg_installing)
     val totalForProgress = tarball.length().coerceAtLeast(1L)
     var lastPct = -1
     TarGzipExtractor.setProgressListener { extracted, total ->
@@ -488,7 +488,7 @@ internal fun DshRuntime.installRuntimeArchive(tarball: File, preserveData: Boole
     this.clearInstallDiag()
     true
 }.getOrElse {
-    this.logWarn(R.string.dsh_log_extract_failed, "${it.javaClass.simpleName}: ${it.message}")
+    this.logWarn(CoreR.string.dsh_log_extract_failed, "${it.javaClass.simpleName}: ${it.message}")
     this.appendLog("! [安装] 抛出异常：${it.javaClass.simpleName}: ${it.message}")
     this.recoverInterruptedRuntimeInstall()
     false
@@ -506,7 +506,7 @@ internal fun DshRuntime.stashPreservedData(root: File): Boolean {
         // 复用安装主流程那套回退：子树里符号链接很多（pnpm 存储尤甚），
         // 整目录 renameTo 失败时靠复制兜住，否则用户数据会被静默丢弃。
         if (!renameOrCopy(src, dst) { line -> android.util.Log.w("DSH-Folk", "保留数据: $line") }) {
-            this.logWarn(R.string.dsh_log_preserve_failed, rel)
+            this.logWarn(CoreR.string.dsh_log_preserve_failed, rel)
             DshEnv.recoverPreserved(appContext)
             return false
         }
@@ -523,7 +523,7 @@ internal fun DshRuntime.restorePreservedData(root: File): Boolean {
         dst.parentFile?.mkdirs()
         if (dst.exists()) dst.deleteRecursively()
         if (!renameOrCopy(src, dst) { line -> android.util.Log.w("DSH-Folk", "恢复数据: $line") }) {
-            this.logWarn(R.string.dsh_log_restore_failed, rel, stash.name)
+            this.logWarn(CoreR.string.dsh_log_restore_failed, rel, stash.name)
             return false
         }
     }
@@ -552,7 +552,7 @@ internal fun DshRuntime.validateRuntimeRoot(root: File): Boolean {
     )
     val missing = required.filterNot { File(root, it.first).exists() }
     if (missing.isNotEmpty()) {
-        this.logWarn(R.string.dsh_log_missing_after_extract, this.joinForLog(missing.map { it.second }))
+        this.logWarn(CoreR.string.dsh_log_missing_after_extract, this.joinForLog(missing.map { it.second }))
         // 只说「缺了什么」不足以定位 —— Issue #12 的用户就卡在这里：
         //   「是下载坏了？解压跳过了？还是解出来但大小/权限不对？」
         // 所以补两份实测证据：解压时的跳过计数，以及每个必需文件的实际大小与可执行位。
@@ -562,12 +562,12 @@ internal fun DshRuntime.validateRuntimeRoot(root: File): Boolean {
     val machine = this.elfMachine(File(root, "usr/local/bin/node"))
     val want = if (DshSource.runtimeArch() == "arm64-v8a") ELF_MACHINE_AARCH64 else ELF_MACHINE_X86_64
     if (machine != null && machine != want) {
-        this.logWarn(R.string.dsh_log_node_machine, machine, want)
+        this.logWarn(CoreR.string.dsh_log_node_machine, machine, want)
         this.logExtractDiagnostics(root, required)
         return false
     }
-    if (!File(root, "usr/bin/python3").exists()) this.logWarn(R.string.dsh_log_missing_python)
-    if (!File(root, "usr/local/bin/pnpm").exists()) this.logWarn(R.string.dsh_log_missing_pnpm)
+    if (!File(root, "usr/bin/python3").exists()) this.logWarn(CoreR.string.dsh_log_missing_python)
+    if (!File(root, "usr/local/bin/pnpm").exists()) this.logWarn(CoreR.string.dsh_log_missing_pnpm)
     return true
 }
 

@@ -37,6 +37,7 @@ import me.bmax.apatch.util.*
 import me.bmax.apatch.util.ui.APDialogBlurBehindUtils
 import me.bmax.apatch.util.ui.showToast
 import java.io.File
+import me.bmax.apatch.res.R as CoreR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,7 +223,7 @@ fun AppTitleChooseDialog(showDialog: MutableState<Boolean>, onTitleChanged: (Str
     val titles = listOf(
         AppTitle.DEFAULT to stringResource(R.string.app_title_dsh),
         AppTitle.CUSTOM to stringResource(R.string.app_title_custom),
-        AppTitle.DEEPSEEK_HARNESS to stringResource(R.string.dsh_app_title),
+        AppTitle.DEEPSEEK_HARNESS to stringResource(CoreR.string.dsh_app_title),
         // 这两个是社区用法里最常见的两个简称，纯名字替换、不改任何行为。
         AppTitle.DEEPDROID to stringResource(R.string.app_title_deepdroid),
         AppTitle.DSHD to stringResource(R.string.app_title_dshd),

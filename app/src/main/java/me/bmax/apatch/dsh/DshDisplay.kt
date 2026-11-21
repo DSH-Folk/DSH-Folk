@@ -2,11 +2,11 @@ package me.bmax.apatch.dsh
 
 import android.content.Context
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.display.IDisplayService
 import org.json.JSONObject
 import java.io.File
 import java.util.Locale
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 虚拟屏能力的工具面（`/native/display/…`），接进 [DshNativeBridge] 既有的能力档、
@@ -78,7 +78,7 @@ object DshDisplay {
         method == "POST" && path == "/native/display/launch" -> launch(ctx, params)
         method == "POST" && path == "/native/display/stop" -> stop(ctx)
         else -> 404 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, R.string.dsh_native_err_unknown_endpoint, method, path),
+            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_unknown_endpoint, method, path),
             "unknown_endpoint",
         )
     }
@@ -133,12 +133,12 @@ object DshDisplay {
         return runCatching {
             val png = svc.requestScreenshot(display)
                 ?: return@runCatching 500 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, R.string.dsh_native_err_display_no_frame),
+                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_frame),
                     "no_frame",
                 )
             if (png.isEmpty()) {
                 return@runCatching 500 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, R.string.dsh_native_err_display_no_frame),
+                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_frame),
                     "no_frame",
                 )
             }
@@ -195,7 +195,7 @@ object DshDisplay {
         if (raw.isEmpty()) return badParam(ctx, "key")
         val code = raw.toIntOrNull() ?: KEY_NAMES[raw.lowercase(Locale.ROOT)]
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_display_bad_key, raw),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_key, raw),
                 "bad_key",
             )
         return runCatching {
@@ -212,7 +212,7 @@ object DshDisplay {
         if (pkg.isEmpty()) return badParam(ctx, "package")
         if (!pkg.matches(Regex("[A-Za-z0-9_.]+"))) {
             return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_display_bad_package, pkg),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_package, pkg),
                 "bad_package",
             )
         }
@@ -248,7 +248,7 @@ object DshDisplay {
             // 服务端对已销毁的 id 不报错（输入注入直接落空），所以这个判断必须由我们做。
             if (DisplayServer.terminatedByUser(id)) {
                 return 0 to (409 to DshNativeBridge.err(
-                    DshNativeBridge.str(ctx, R.string.dsh_native_err_display_terminated),
+                    DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_terminated),
                     "display_terminated_by_user",
                 ))
             }
@@ -259,7 +259,7 @@ object DshDisplay {
             // 以前这里回落到 0，而 0 是**真实屏幕** —— 会话没了之后再点一下，就变成点用户自己的
             // 手机屏幕了，还没有任何提示。没有会话时必须报错，让 agent 去建屏或显式写 --display 0。
             return 0 to (409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_display_no_session),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_no_session),
                 "no_session",
             ))
         }
@@ -285,21 +285,21 @@ object DshDisplay {
         }
         // 带上传入的细节（服务端起不来时它才是那句真正有用的话：推送失败第几块、解密失败、
         // 或"进程没起来"）；能力可用性给的是"该怎么补救"，两者拼起来才是完整的一句话。
-        val base = DshNativeBridge.str(ctx, R.string.dsh_native_err_display_unavailable)
+        val base = DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_unavailable)
         val msg = if (detail.isNullOrBlank()) base else "$base（$detail）"
         return 503 to DshNativeBridge.err(msg, reason)
     }
 
     private fun badParam(ctx: Context, name: String): Pair<Int, String> =
         400 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, R.string.dsh_native_err_display_bad_param, name),
+            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_bad_param, name),
             "bad_param",
         )
 
     private fun failure(ctx: Context, e: Throwable, reason: String): Pair<Int, String> {
         Log.w(TAG, "虚拟屏操作失败($reason): ${e.message}")
         return 500 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, R.string.dsh_native_err_display_failed, e.message ?: ""),
+            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_display_failed, e.message ?: ""),
             reason,
         )
     }

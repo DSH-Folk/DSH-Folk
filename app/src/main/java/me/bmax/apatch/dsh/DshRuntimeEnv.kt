@@ -3,9 +3,9 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import java.io.File
 import java.nio.charset.StandardCharsets
-import me.bmax.apatch.R
 import me.bmax.apatch.util.LocaleCtx
 import me.bmax.apatch.util.appString
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 抽出来的落地件要打日志时用它：DshRuntime 实现这一层，避免把整个单例拖进辅助文件。
@@ -222,7 +222,7 @@ internal object DshRuntimeEnv {
                 if (needsNewline) w.write("\n")
                 w.write(add.toString())
             }
-            log.info(R.string.dsh_log_groups_added, joinForLog(add.toString().trim().lines()))
+            log.info(CoreR.string.dsh_log_groups_added, joinForLog(add.toString().trim().lines()))
         }.onFailure { android.util.Log.w(TAG, "补 /etc/group 失败: ${it.message}") }
     }
 
@@ -305,13 +305,13 @@ internal object DshRuntimeEnv {
             }
             ws.writeText(lines.joinToString("\n").trimEnd() + "\n", StandardCharsets.UTF_8)
             android.util.Log.i(TAG, "已放行构建脚本: ${todo.joinToString(", ")}")
-            onLine("[DSH-Folk] " + ctx.appString(R.string.dsh_log_builds_allowed, joinForLog(todo)))
+            onLine("[DSH-Folk] " + ctx.appString(CoreR.string.dsh_log_builds_allowed, joinForLog(todo)))
             todo
         }.getOrElse {
             android.util.Log.e(TAG, "写 allowBuilds 失败", it)
             onLine(
                 "[DSH-Folk] " + ctx.appString(
-                    R.string.dsh_log_builds_allow_failed,
+                    CoreR.string.dsh_log_builds_allow_failed,
                     it.message ?: it.javaClass.simpleName,
                 ),
             )

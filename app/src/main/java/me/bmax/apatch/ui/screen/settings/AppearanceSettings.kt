@@ -97,6 +97,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+import me.bmax.apatch.res.R as CoreR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -754,7 +755,7 @@ fun AppearanceSettingsContent(
                     Column(modifier = Modifier.padding(start = 16.dp, top = 8.dp)) {
                         me.bmax.apatch.ui.component.CheckboxItem(
                             icon = null,
-                            title = stringResource(id = R.string.dsh_plugins),
+                            title = stringResource(id = CoreR.string.dsh_plugins),
                             summary = null,
                             checked = showNavPlugin,
                             onCheckedChange = {
@@ -764,7 +765,7 @@ fun AppearanceSettingsContent(
                         )
                         me.bmax.apatch.ui.component.CheckboxItem(
                             icon = null,
-                            title = stringResource(id = R.string.dsh_terminal),
+                            title = stringResource(id = CoreR.string.dsh_terminal),
                             summary = null,
                             checked = showNavTerminal,
                             onCheckedChange = {
@@ -1106,7 +1107,7 @@ fun AppearanceSettingsContent(
             item(key = "appearance_terminal_bg_alpha") {
                 SliderSettingCard(
                     flat = flat,
-                    title = stringResource(id = R.string.settings_terminal_bg_alpha),
+                    title = stringResource(id = CoreR.string.settings_terminal_bg_alpha),
                     value = BackgroundConfig.terminalBgAlpha,
                     valueRange = 0.5f..1f,
                     steps = 9,

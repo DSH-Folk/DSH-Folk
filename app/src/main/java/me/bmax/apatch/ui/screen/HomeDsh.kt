@@ -72,7 +72,6 @@ import com.ramcosta.composedestinations.generated.destinations.SecuritySettingsS
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshPhase
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.HarnessService
@@ -81,6 +80,7 @@ import me.bmax.apatch.dsh.PermissionManager
 import me.bmax.apatch.dsh.PortConflictAction
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * DSH-Folk 默认首页。
@@ -154,19 +154,19 @@ fun HomeScreenDsh(
         if (showInstallConfirm) {
             AlertDialog(
                 onDismissRequest = { showInstallConfirm = false },
-                title = { Text(stringResource(R.string.dsh_install_confirm_title)) },
-                text = { Text(stringResource(R.string.dsh_install_confirm_body)) },
+                title = { Text(stringResource(CoreR.string.dsh_install_confirm_title)) },
+                text = { Text(stringResource(CoreR.string.dsh_install_confirm_body)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showInstallConfirm = false
                         installPending = true
                         // autoStart = false：装完**不**自动启动，交给下面的完成弹窗问一句。
                         DshRuntime.updateRuntime(preserveData = true, autoStart = false)
-                    }) { Text(stringResource(R.string.dsh_install_confirm_go)) }
+                    }) { Text(stringResource(CoreR.string.dsh_install_confirm_go)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { showInstallConfirm = false }) {
-                        Text(stringResource(R.string.dsh_install_confirm_cancel))
+                        Text(stringResource(CoreR.string.dsh_install_confirm_cancel))
                     }
                 },
             )
@@ -186,17 +186,17 @@ fun HomeScreenDsh(
         if (showInstalledPrompt) {
             AlertDialog(
                 onDismissRequest = { showInstalledPrompt = false },
-                title = { Text(stringResource(R.string.dsh_installed_done_title)) },
-                text = { Text(stringResource(R.string.dsh_installed_done_body)) },
+                title = { Text(stringResource(CoreR.string.dsh_installed_done_title)) },
+                text = { Text(stringResource(CoreR.string.dsh_installed_done_body)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showInstalledPrompt = false
                         HarnessService.start(context)
-                    }) { Text(stringResource(R.string.dsh_installed_done_start)) }
+                    }) { Text(stringResource(CoreR.string.dsh_installed_done_start)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { showInstalledPrompt = false }) {
-                        Text(stringResource(R.string.dsh_installed_done_later))
+                        Text(stringResource(CoreR.string.dsh_installed_done_later))
                     }
                 },
             )
@@ -209,17 +209,17 @@ fun HomeScreenDsh(
         if (showRestartConfirm) {
             AlertDialog(
                 onDismissRequest = { showRestartConfirm = false },
-                title = { Text(stringResource(R.string.dsh_restart_confirm_title)) },
-                text = { Text(stringResource(R.string.dsh_restart_confirm_body)) },
+                title = { Text(stringResource(CoreR.string.dsh_restart_confirm_title)) },
+                text = { Text(stringResource(CoreR.string.dsh_restart_confirm_body)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showRestartConfirm = false
                         DshRuntime.restart()
-                    }) { Text(stringResource(R.string.dsh_restart_confirm_go)) }
+                    }) { Text(stringResource(CoreR.string.dsh_restart_confirm_go)) }
                 },
                 dismissButton = {
                     TextButton(onClick = { showRestartConfirm = false }) {
-                        Text(stringResource(R.string.dsh_install_confirm_cancel))
+                        Text(stringResource(CoreR.string.dsh_install_confirm_cancel))
                     }
                 },
             )
@@ -246,18 +246,18 @@ fun HomeScreenDsh(
             DshSmallCard(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 icon = Icons.Outlined.Layers,
-                title = stringResource(R.string.dsh_run_mode),
+                title = stringResource(CoreR.string.dsh_run_mode),
                 value = runModeId,
                 subtitle = stringResource(
-                    if (runModeId == "proroot") R.string.dsh_mode_proroot_desc
-                    else R.string.dsh_mode_proot_desc
+                    if (runModeId == "proroot") CoreR.string.dsh_mode_proroot_desc
+                    else CoreR.string.dsh_mode_proot_desc
                 ),
                 onClick = { navigator.navigate(FunctionSettingsScreenDestination(null)) { launchSingleTop = true } },
             )
             DshSmallCard(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 icon = Icons.Outlined.Security,
-                title = stringResource(R.string.dsh_permission),
+                title = stringResource(CoreR.string.dsh_permission),
                 value = perm.label(context),
                 subtitle = permHint(perm),
                 onClick = { navigator.navigate(SecuritySettingsScreenDestination(null)) { launchSingleTop = true } },
@@ -298,10 +298,10 @@ private fun PortConflictDialog(
 
     AlertDialog(
         onDismissRequest = { /* 必须显式选择，禁止点外/返回键关闭 */ },
-        title = { Text(stringResource(R.string.dsh_port_conflict_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_port_conflict_title)) },
         text = {
             Column {
-                Text(stringResource(R.string.dsh_port_conflict_message, port))
+                Text(stringResource(CoreR.string.dsh_port_conflict_message, port))
                 if (showInput) {
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
@@ -310,10 +310,10 @@ private fun PortConflictDialog(
                             input = it.filter(Char::isDigit)
                             inputError = false
                         },
-                        label = { Text(stringResource(R.string.dsh_port_input_hint)) },
+                        label = { Text(stringResource(CoreR.string.dsh_port_input_hint)) },
                         isError = inputError,
                         supportingText = if (inputError) {
-                            { Text(stringResource(R.string.dsh_port_invalid)) }
+                            { Text(stringResource(CoreR.string.dsh_port_invalid)) }
                         } else {
                             null
                         },
@@ -334,29 +334,29 @@ private fun PortConflictDialog(
                             onManual(p)
                         }
                     },
-                ) { Text(stringResource(R.string.dsh_port_confirm)) }
+                ) { Text(stringResource(CoreR.string.dsh_port_confirm)) }
             } else {
-                TextButton(onClick = onAuto) { Text(stringResource(R.string.dsh_port_change_auto)) }
-                TextButton(onClick = { showInput = true }) { Text(stringResource(R.string.dsh_port_change_manual)) }
+                TextButton(onClick = onAuto) { Text(stringResource(CoreR.string.dsh_port_change_auto)) }
+                TextButton(onClick = { showInput = true }) { Text(stringResource(CoreR.string.dsh_port_change_manual)) }
             }
         },
         dismissButton = {
-            TextButton(onClick = onForce) { Text(stringResource(R.string.dsh_port_force)) }
+            TextButton(onClick = onForce) { Text(stringResource(CoreR.string.dsh_port_force)) }
         },
     )
 }
 
 @Composable
 private fun permHint(s: PermissionManager.Status): String = when (s.channel) {
-    PermissionManager.Channel.ROOT -> stringResource(R.string.dsh_perm_hint_root)
-    PermissionManager.Channel.SHIZUKU -> stringResource(R.string.dsh_perm_hint_shizuku)
-    PermissionManager.Channel.ADB -> stringResource(R.string.dsh_perm_hint_adb)
+    PermissionManager.Channel.ROOT -> stringResource(CoreR.string.dsh_perm_hint_root)
+    PermissionManager.Channel.SHIZUKU -> stringResource(CoreR.string.dsh_perm_hint_shizuku)
+    PermissionManager.Channel.ADB -> stringResource(CoreR.string.dsh_perm_hint_adb)
     PermissionManager.Channel.NONE -> when {
         // 特权未启用是**默认状态**，得先说这件事：否则装了 Shizuku 的用户会看到
         // 「Shizuku 在运行但未授权」，跑去授权 Shizuku 也不会有任何变化
-        !s.elevationEnabled -> stringResource(R.string.dsh_perm_hint_disabled)
-        s.shizukuRunning -> stringResource(R.string.dsh_perm_hint_shizuku_ungranted)
-        else -> stringResource(R.string.dsh_perm_hint_none)
+        !s.elevationEnabled -> stringResource(CoreR.string.dsh_perm_hint_disabled)
+        s.shizukuRunning -> stringResource(CoreR.string.dsh_perm_hint_shizuku_ungranted)
+        else -> stringResource(CoreR.string.dsh_perm_hint_none)
     }
 }
 
@@ -430,7 +430,7 @@ private fun DshHeroCard(
         Box(Modifier.fillMaxWidth().background(gradient)) {
             Column(Modifier.fillMaxWidth().padding(24.dp)) {
                 Text(
-                    text = stringResource(R.string.dsh_app_title),
+                    text = stringResource(CoreR.string.dsh_app_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = content,
@@ -474,17 +474,17 @@ private fun DshHeroCard(
                         ) {
                             Icon(Icons.Outlined.OpenInBrowser, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.dsh_open_webui))
+                            Text(stringResource(CoreR.string.dsh_open_webui))
                         }
                         OutlinedButton(onClick = onRestartRequested) {
                             Icon(Icons.Outlined.RestartAlt, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.dsh_restart))
+                            Text(stringResource(CoreR.string.dsh_restart))
                         }
                         OutlinedButton(onClick = onStop) {
                             Icon(Icons.Outlined.Stop, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.dsh_stop))
+                            Text(stringResource(CoreR.string.dsh_stop))
                         }
                     } else {
                         // 未运行时的主按钮分两种：**没装**说「安装」，**装了**说「启动」。
@@ -509,7 +509,7 @@ private fun DshHeroCard(
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(
-                                    if (installed) R.string.dsh_start else R.string.dsh_install
+                                    if (installed) CoreR.string.dsh_start else CoreR.string.dsh_install
                                 )
                             )
                         }

@@ -74,6 +74,7 @@ import com.ramcosta.composedestinations.generated.destinations.ModuleSettingsScr
 import com.ramcosta.composedestinations.generated.destinations.FunctionSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.MultimediaSettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.SettingsSearchScreenDestination
+import me.bmax.apatch.res.R as CoreR
 
 @Destination<RootGraph>
 @Composable
@@ -169,8 +170,8 @@ fun SettingScreen(navigator: DestinationsNavigator) {
                     item {
                         SplicedSettingsItem(
                             icon = Icons.Filled.Extension,
-                            title = stringResource(R.string.dsh_plugins),
-                            summary = stringResource(R.string.dsh_plugin_settings_summary),
+                            title = stringResource(CoreR.string.dsh_plugins),
+                            summary = stringResource(CoreR.string.dsh_plugin_settings_summary),
                             onClick = { navigator.navigate(ModuleSettingsScreenDestination(null)) { launchSingleTop = true } },
                         )
                     }
@@ -246,7 +247,7 @@ fun DeveloperInfo(
     onDismissRequest: () -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
-    val githubUrl = stringResource(R.string.dsh_dev_url)
+    val githubUrl = stringResource(CoreR.string.dsh_dev_url)
 
     if (showDialog) {
         ModalBottomSheet(
@@ -295,7 +296,7 @@ fun DeveloperInfo(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = stringResource(R.string.dsh_dev_motto),
+                    text = stringResource(CoreR.string.dsh_dev_motto),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),

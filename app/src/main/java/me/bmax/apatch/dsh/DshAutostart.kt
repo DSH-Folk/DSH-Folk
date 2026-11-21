@@ -4,11 +4,11 @@ import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.createRootShellStrict
 import me.bmax.apatch.util.shellForResult
 import java.io.File
 import java.nio.charset.StandardCharsets
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 开机自启：三条路径 + 「要不要同时拉起容器」。
@@ -217,10 +217,10 @@ object DshAutostart {
      * 而 `cat >` 创建的新文件继承目录的 `adb_data_file`，才是 root 管理器执行得动的那种。
      */
     fun installScript(ctx: Context): ScriptResult {
-        val body = renderScript(ctx) ?: return ScriptResult(false, R.string.dsh_autostart_script_asset_failed)
+        val body = renderScript(ctx) ?: return ScriptResult(false, CoreR.string.dsh_autostart_script_asset_failed)
         val staged = File(ctx.filesDir, SCRIPT_NAME)
         runCatching { staged.writeText(body, StandardCharsets.UTF_8) }
-            .onFailure { return ScriptResult(false, R.string.dsh_autostart_script_stage_failed, it.message ?: "") }
+            .onFailure { return ScriptResult(false, CoreR.string.dsh_autostart_script_stage_failed, it.message ?: "") }
 
         val r = runCatching {
             rootExec(
@@ -232,7 +232,7 @@ object DshAutostart {
                 "test -x ${scriptPath()} && echo ok",
             )
         }.getOrElse {
-            return ScriptResult(false, R.string.dsh_autostart_script_no_root, it.message ?: "")
+            return ScriptResult(false, CoreR.string.dsh_autostart_script_no_root, it.message ?: "")
         }
         // 顺手删掉暂存件：它是一份可执行脚本的副本，留在 filesDir 里没有用处。
         runCatching { staged.delete() }
@@ -240,9 +240,9 @@ object DshAutostart {
         val ok = r.out.any { it.trim() == "ok" }
         if (!ok) {
             val why = (r.err + r.out).joinToString("; ").take(300)
-            return ScriptResult(false, R.string.dsh_autostart_script_install_failed, why)
+            return ScriptResult(false, CoreR.string.dsh_autostart_script_install_failed, why)
         }
-        return ScriptResult(true, R.string.dsh_autostart_script_installed)
+        return ScriptResult(true, CoreR.string.dsh_autostart_script_installed)
     }
 
     /** 删脚本。用户切走模式时也会调它 —— 脚本的存在本身就是那条路的开关。 */
@@ -250,11 +250,11 @@ object DshAutostart {
         val r = runCatching {
             rootExec(ctx, "rm -f ${scriptPath()}", "test -f ${scriptPath()} || echo gone")
         }.getOrElse {
-            return ScriptResult(false, R.string.dsh_autostart_script_no_root, it.message ?: "")
+            return ScriptResult(false, CoreR.string.dsh_autostart_script_no_root, it.message ?: "")
         }
         val gone = r.out.any { it.trim() == "gone" }
-        return if (gone) ScriptResult(true, R.string.dsh_autostart_script_removed)
-        else ScriptResult(false, R.string.dsh_autostart_script_remove_failed, r.err.joinToString("; ").take(300))
+        return if (gone) ScriptResult(true, CoreR.string.dsh_autostart_script_removed)
+        else ScriptResult(false, CoreR.string.dsh_autostart_script_remove_failed, r.err.joinToString("; ").take(300))
     }
 
     /**

@@ -82,10 +82,10 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 虚拟屏的**悬浮小窗**。
@@ -885,13 +885,13 @@ object DisplayMirror {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.dsh_display_float_terminate_title),
+                text = stringResource(CoreR.string.dsh_display_float_terminate_title),
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(Modifier.size(6.dp))
             Text(
-                text = stringResource(R.string.dsh_display_float_terminate_summary),
+                text = stringResource(CoreR.string.dsh_display_float_terminate_summary),
                 color = Color.White.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -901,11 +901,11 @@ object DisplayMirror {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(onClick = { cancelTerminate() }) {
-                    Text(stringResource(R.string.dsh_display_float_terminate_cancel), color = Color.White)
+                    Text(stringResource(CoreR.string.dsh_display_float_terminate_cancel), color = Color.White)
                 }
                 TextButton(onClick = { terminateCurrent() }) {
                     Text(
-                        text = stringResource(R.string.dsh_display_float_terminate_ok),
+                        text = stringResource(CoreR.string.dsh_display_float_terminate_ok),
                         color = Color(0xFFFF8A80),
                     )
                 }
@@ -953,17 +953,17 @@ object DisplayMirror {
         ) {
             PillButton(
                 icon = Icons.Outlined.Minimize,
-                a11y = R.string.dsh_display_float_a11y_minimize,
+                a11y = CoreR.string.dsh_display_float_a11y_minimize,
                 onClick = { collapse() },
             )
             PillButton(
                 icon = Icons.Filled.FullscreenExit,
-                a11y = R.string.dsh_display_float_a11y_exit_fullscreen,
+                a11y = CoreR.string.dsh_display_float_a11y_exit_fullscreen,
                 onClick = { toggleFullscreen() },
             )
             PillButton(
                 icon = Icons.Filled.Close,
-                a11y = R.string.dsh_display_float_a11y_close,
+                a11y = CoreR.string.dsh_display_float_a11y_close,
                 onClick = { dismiss() },
             )
         }
@@ -1045,7 +1045,7 @@ object DisplayMirror {
                     // weight(1f, fill = false)：文字最多占满剩余宽度，**不**把图标挤出去
                     // （不然 208dp 里塞 文案 + 图标 + 箭头时，可能把图标量成 0 宽）
                     Text(
-                        text = stringResource(R.string.dsh_display_float_hint),
+                        text = stringResource(CoreR.string.dsh_display_float_hint),
                         color = Color.White,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
@@ -1067,7 +1067,7 @@ object DisplayMirror {
                 }
                 Icon(
                     imageVector = if (right) Icons.Filled.ChevronLeft else Icons.Filled.ChevronRight,
-                    contentDescription = stringResource(R.string.dsh_display_float_a11y_expand),
+                    contentDescription = stringResource(CoreR.string.dsh_display_float_a11y_expand),
                     tint = Color.White,
                 )
             }
@@ -1098,7 +1098,7 @@ object DisplayMirror {
             IconButton(onClick = { collapse() }) {
                 Icon(
                     imageVector = Icons.Outlined.Minimize,
-                    contentDescription = stringResource(R.string.dsh_display_float_a11y_minimize),
+                    contentDescription = stringResource(CoreR.string.dsh_display_float_a11y_minimize),
                     tint = Color.White,
                 )
             }
@@ -1106,8 +1106,8 @@ object DisplayMirror {
                 Icon(
                     imageVector = if (fullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                     contentDescription = stringResource(
-                        if (fullscreen) R.string.dsh_display_float_a11y_exit_fullscreen
-                        else R.string.dsh_display_float_a11y_fullscreen
+                        if (fullscreen) CoreR.string.dsh_display_float_a11y_exit_fullscreen
+                        else CoreR.string.dsh_display_float_a11y_fullscreen
                     ),
                     tint = Color.White,
                 )
@@ -1115,7 +1115,7 @@ object DisplayMirror {
             IconButton(onClick = { dismiss() }) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.dsh_display_float_a11y_close),
+                    contentDescription = stringResource(CoreR.string.dsh_display_float_a11y_close),
                     tint = Color.White,
                 )
             }

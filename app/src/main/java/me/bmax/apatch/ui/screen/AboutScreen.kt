@@ -56,6 +56,7 @@ import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.component.SplicedColumnGroup
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 一位赞助者。
@@ -98,8 +99,8 @@ private val SPONSORS = listOf(
 @Composable
 fun AboutScreen(navigator: DestinationsNavigator) {
     val uriHandler = LocalUriHandler.current
-    val repoUrl = stringResource(R.string.dsh_about_repo)
-    val qqGroupUrl = stringResource(R.string.dsh_qq_group_url)
+    val repoUrl = stringResource(CoreR.string.dsh_about_repo)
+    val qqGroupUrl = stringResource(CoreR.string.dsh_qq_group_url)
 
     Scaffold(
         topBar = {
@@ -146,7 +147,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
             Text(
                 text = stringResource(
                     id = R.string.about_powered_by,
-                    stringResource(R.string.dsh_about_powered_by)
+                    stringResource(CoreR.string.dsh_about_powered_by)
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -183,7 +184,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = stringResource(id = R.string.dsh_about_desc),
+                        text = stringResource(id = CoreR.string.dsh_about_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -218,8 +219,8 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                                 modifier = Modifier.size(20.dp)
                             )
                         },
-                        title = stringResource(R.string.dsh_qq_group) + " " +
-                            stringResource(R.string.dsh_qq_group_id),
+                        title = stringResource(CoreR.string.dsh_qq_group) + " " +
+                            stringResource(CoreR.string.dsh_qq_group_id),
                         onClick = { uriHandler.openUri(qqGroupUrl) }
                     )
                 }
@@ -252,7 +253,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = stringResource(R.string.dsh_sponsors, SPONSORS.size),
+                            text = stringResource(CoreR.string.dsh_sponsors, SPONSORS.size),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
@@ -325,7 +326,7 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                                 }
                             }
                             Text(
-                                text = stringResource(R.string.dsh_sponsors_hint),
+                                text = stringResource(CoreR.string.dsh_sponsors_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -357,18 +358,18 @@ fun AboutScreen(navigator: DestinationsNavigator) {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = stringResource(R.string.dsh_acknowledgements),
+                            text = stringResource(CoreR.string.dsh_acknowledgements),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     val credits = listOf(
-                        R.string.dsh_ack_dsh,
-                        R.string.dsh_ack_dsha,
-                        R.string.dsh_ack_dshm,
-                        R.string.dsh_ack_folkpatch,
-                        R.string.dsh_ack_termux,
+                        CoreR.string.dsh_ack_dsh,
+                        CoreR.string.dsh_ack_dsha,
+                        CoreR.string.dsh_ack_dshm,
+                        CoreR.string.dsh_ack_folkpatch,
+                        CoreR.string.dsh_ack_termux,
                     )
                     for (id in credits) {
                         Text(

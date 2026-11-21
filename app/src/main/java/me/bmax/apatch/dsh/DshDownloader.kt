@@ -1,7 +1,6 @@
 package me.bmax.apatch.dsh
 
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
 import java.io.BufferedOutputStream
 import java.io.File
@@ -11,6 +10,7 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 带断点续传的单文件下载器。
@@ -82,8 +82,8 @@ object DshDownloader {
             if (conn.responseCode !in 200..299) return false
             // 206 才是真的续传；服务端忽略 Range 返回 200 时必须从头写
             val resumed = have > 0 && conn.responseCode == 206
-            if (have > 0 && !resumed) onLog("> " + str(R.string.dsh_log_resume_unsupported))
-            if (resumed) onLog("> " + str(R.string.dsh_log_resume, have / 1024 / 1024))
+            if (have > 0 && !resumed) onLog("> " + str(CoreR.string.dsh_log_resume_unsupported))
+            if (resumed) onLog("> " + str(CoreR.string.dsh_log_resume, have / 1024 / 1024))
             val contentLength = if (expectedSize > 0) expectedSize
                 else conn.contentLengthLong.let { if (it > 0 && resumed) it + have else it }
             target.parentFile?.mkdirs()
@@ -117,7 +117,7 @@ object DshDownloader {
                 // 超出预期大小：文件已经错了，删掉再报失败 —— 留着的话下次续传会
                 // 从一个比目标还长的偏移接着请求，服务端只会回 416。
                 if (contentLength > 0 && total > contentLength) {
-                    onLog("! " + str(R.string.dsh_log_download_oversize, total, contentLength))
+                    onLog("! " + str(CoreR.string.dsh_log_download_oversize, total, contentLength))
                     // 先关流再删：否则 finally 里的 close 会把缓冲区刷回一个刚被删掉的路径
                     runCatching { stream.close() }
                     out = null
@@ -126,7 +126,7 @@ object DshDownloader {
                 }
             }
             if (contentLength > 0 && total != contentLength) {
-                onLog("! " + str(R.string.dsh_log_download_incomplete, contentLength, total))
+                onLog("! " + str(CoreR.string.dsh_log_download_incomplete, contentLength, total))
                 return false
             }
             ok = true
@@ -134,7 +134,7 @@ object DshDownloader {
         } catch (e: Exception) {
             onLog(
                 "! " + str(
-                    R.string.dsh_log_download_error,
+                    CoreR.string.dsh_log_download_error,
                     "${e.javaClass.simpleName}: ${e.message}",
                 )
             )

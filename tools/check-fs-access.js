@@ -73,7 +73,7 @@ must(enumSites === guardedSites,
 must(/private const val MAX_CONNECTIONS = \d+/.test(src), '缺并发连接上限常量');
 must(/private val connSlots = Semaphore\(MAX_CONNECTIONS\)/.test(src), '缺并发连接配额（Semaphore）');
 must(/if \(!connSlots\.tryAcquire\(\)\)/.test(src), 'acceptLoop 没有先取配额就起线程');
-must(/respondJson\(socket, 503, errorJson\(str\(R\.string\.dsh_fs_err_busy\), "bridge_busy"\)\)/.test(src),
+must(/respondJson\(socket, 503, errorJson\(str\((?:Core)?R\.string\.dsh_fs_err_busy\), "bridge_busy"\)\)/.test(src),
   '过载时没有回 503 bridge_busy（调用方会以为「没数据」而不是「忙」）');
 must(/\} finally \{\s*\n\s*connSlots\.release\(\)/.test(src), '处理完没有释放配额（几次过载之后桥就永久拒绝服务了）');
 

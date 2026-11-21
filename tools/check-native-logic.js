@@ -1192,19 +1192,19 @@ const capsSrc = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/Permis
 
   // 总开关曾经和列表画在同一张卡片里，整块搬走时最容易把它一起搬丢 —— 而它丢了，
   // 用户就再也没有办法开关原生能力（参数还在、也还在传，所以编译不会报错）。
-  ok(/DshNativeBridge\.setEnabled\(/.test(hubSrc) && /R\.string\.dsh_native_enable\b/.test(hubSrc),
+  ok(/DshNativeBridge\.setEnabled\(/.test(hubSrc) && /(?:Core)?R\.string\.dsh_native_enable\b/.test(hubSrc),
     "原生能力总开关搬到了权限管理页（只搬列表会把开关留在够不着的地方）");
 
   // 状态要在可见层
   ok(/DshNativeBridge\.enabled\(context\)/.test(hubSrc), "权限管理页读总开关状态");
   ok(/DshNativeBridge\.Access\.OFF/.test(hubSrc), "并且数出「档位不是关」的能力项数");
-  ok(/R\.string\.dsh_native_off_hint_kept, activeCaps/.test(hubSrc) &&
-    /R\.string\.dsh_native_off_hint\b/.test(hubSrc),
+  ok(/(?:Core)?R\.string\.dsh_native_off_hint_kept, activeCaps/.test(hubSrc) &&
+    /(?:Core)?R\.string\.dsh_native_off_hint\b/.test(hubSrc),
     "两种收尾说明都在权限管理页上：有档位残留时报数，没有时只说「都不通」");
 
   // 进到分类页里也仍要知道桥是关着的
   ok(/if \(!nativeBridgeEnabled\)/.test(capsSrc), "分类页里也保留了「桥关着」的说明");
-  ok(/R\.string\.dsh_native_off_hint_kept, activeCount/.test(capsSrc), "分类页里同样报残留条数");
+  ok(/(?:Core)?R\.string\.dsh_native_off_hint_kept, activeCount/.test(capsSrc), "分类页里同样报残留条数");
 
   // CLI 提示跟着能力列表走，而且只在桥开着时出现
   ok(/dsh_native_cli_hint/.test(hubSrc), "CLI 提示跟着能力列表搬走了");
@@ -1524,7 +1524,7 @@ console.log("── 限制模式页与弹窗 ──");
   // 枚举项是「名字 / key / 标题 / 说明 / 图标」五行一组：说明必须是 <标题>_summary，图标必须给 ——
   // 少写一个副标题，入口层上就是一行只有标题的空行。
   const groups = [...settings.matchAll(
-    /^ {4}([A-Z]+)\(\n {8}"([a-z]+)",\n {8}R\.string\.(dsh_function_group_[a-z]+),\n {8}R\.string\.(\3_summary),\n {8}Icons\./gm,
+    /^ {4}([A-Z]+)\(\n {8}"([a-z]+)",\n {8}(?:Core)?R\.string\.(dsh_function_group_[a-z]+),\n {8}(?:Core)?R\.string\.(\3_summary),\n {8}Icons\./gm,
   )].map((m) => [m[1], m[2], m[3]]);
   ok(JSON.stringify(groups) === JSON.stringify(want),
     "功能页 5 个分类的名字/顺序/标题/说明齐全（实际 " + (groups.map((g) => g[0]).join(",") || "无") + "）");

@@ -42,8 +42,8 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DisplayServer
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 虚拟屏管理：把服务端进程里**所有**活着的虚拟屏列出来，能逐个预览、逐个终止。
@@ -84,7 +84,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                 error = null
             }.onFailure {
                 infos = emptyList()
-                error = it.message ?: context.getString(R.string.dsh_display_manage_failed)
+                error = it.message ?: context.getString(CoreR.string.dsh_display_manage_failed)
             }
         }
     }
@@ -95,7 +95,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_display_manage_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_display_manage_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -103,7 +103,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                 },
                 actions = {
                     TextButton(onClick = { refresh() }) {
-                        Text(stringResource(R.string.dsh_display_manage_refresh))
+                        Text(stringResource(CoreR.string.dsh_display_manage_refresh))
                     }
                 },
             )
@@ -117,7 +117,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                text = stringResource(R.string.dsh_display_manage_hint),
+                text = stringResource(CoreR.string.dsh_display_manage_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 8.dp),
@@ -142,7 +142,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                 }
             } else if (list.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_display_manage_empty),
+                    text = stringResource(CoreR.string.dsh_display_manage_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 16.dp),
                 )
@@ -152,12 +152,12 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                 Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Column(Modifier.padding(14.dp)) {
                         Text(
-                            text = stringResource(R.string.dsh_display_manage_id, info.id),
+                            text = stringResource(CoreR.string.dsh_display_manage_id, info.id),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
                             text = stringResource(
-                                R.string.dsh_display_manage_size,
+                                CoreR.string.dsh_display_manage_size,
                                 info.width,
                                 info.height,
                                 info.dpi,
@@ -169,17 +169,17 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                             // 「有人在看」是**画面上有人收帧**，不是"agent 正在操作"：没有 sink
                             // 往往正是用户想知道的那些屏（预览页关掉后就变成这样，画面不再编码）。
                             text = stringResource(
-                                if (info.hasSink) R.string.dsh_display_manage_watching
-                                else R.string.dsh_display_manage_unwatched
+                                if (info.hasSink) CoreR.string.dsh_display_manage_watching
+                                else CoreR.string.dsh_display_manage_unwatched
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = if (info.packageName.isBlank()) {
-                                stringResource(R.string.dsh_display_manage_pkg_unknown)
+                                stringResource(CoreR.string.dsh_display_manage_pkg_unknown)
                             } else {
-                                stringResource(R.string.dsh_display_manage_pkg, info.packageName)
+                                stringResource(CoreR.string.dsh_display_manage_pkg, info.packageName)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -193,7 +193,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                                     }
                                 },
                             ) {
-                                Text(stringResource(R.string.dsh_display_manage_preview))
+                                Text(stringResource(CoreR.string.dsh_display_manage_preview))
                             }
                             TextButton(
                                 onClick = {
@@ -206,7 +206,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                                     }
                                 },
                             ) {
-                                Text(stringResource(R.string.dsh_display_manage_stop_one))
+                                Text(stringResource(CoreR.string.dsh_display_manage_stop_one))
                             }
                         }
                     }
@@ -216,7 +216,7 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
             if (!list.isNullOrEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 TextButton(onClick = { confirmStopAll = true }) {
-                    Text(stringResource(R.string.dsh_display_manage_stop_all))
+                    Text(stringResource(CoreR.string.dsh_display_manage_stop_all))
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -226,8 +226,8 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
     if (confirmStopAll) {
         AlertDialog(
             onDismissRequest = { confirmStopAll = false },
-            title = { Text(stringResource(R.string.dsh_display_manage_stop_all_title)) },
-            text = { Text(stringResource(R.string.dsh_display_manage_stop_all_body)) },
+            title = { Text(stringResource(CoreR.string.dsh_display_manage_stop_all_title)) },
+            text = { Text(stringResource(CoreR.string.dsh_display_manage_stop_all_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -238,12 +238,12 @@ fun DisplayManageScreen(navigator: DestinationsNavigator) {
                         }
                     },
                 ) {
-                    Text(stringResource(R.string.dsh_display_manage_stop_all_ok))
+                    Text(stringResource(CoreR.string.dsh_display_manage_stop_all_ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmStopAll = false }) {
-                    Text(stringResource(R.string.dsh_display_manage_cancel))
+                    Text(stringResource(CoreR.string.dsh_display_manage_cancel))
                 }
             },
         )

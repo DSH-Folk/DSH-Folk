@@ -61,7 +61,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshPlugin
 import me.bmax.apatch.dsh.DshPluginRepo
@@ -72,6 +71,7 @@ import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.viewmodel.DshPluginViewModel
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 插件商店。
@@ -142,7 +142,7 @@ fun DshPluginStoreScreen(navigator: DestinationsNavigator) {
         scope.launch {
             val guest = withContext(Dispatchers.IO) { DshPluginRepo.stageTarball(context, uri) }
             if (guest == null) {
-                snackBarHost.showSnackbar(context.getString(R.string.dsh_plugin_local_read_failed))
+                snackBarHost.showSnackbar(context.getString(CoreR.string.dsh_plugin_local_read_failed))
                 return@launch
             }
             viewModel.installLocal(guest)
@@ -152,7 +152,7 @@ fun DshPluginStoreScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.dsh_plugin_store)) },
+                title = { Text(stringResource(CoreR.string.dsh_plugin_store)) },
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
                 onClearClick = { viewModel.search = "" },
@@ -181,7 +181,7 @@ fun DshPluginStoreScreen(navigator: DestinationsNavigator) {
             ) {
                 Icon(
                     Icons.Outlined.FolderOpen,
-                    contentDescription = stringResource(R.string.dsh_local_install),
+                    contentDescription = stringResource(CoreR.string.dsh_local_install),
                 )
             }
         },
@@ -224,10 +224,10 @@ private fun StoreStatusLine(viewModel: DshPluginViewModel) {
     Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         Text(
             text = if (shown == total) {
-                stringResource(R.string.dsh_plugin_total, formatCount(total.toLong()))
+                stringResource(CoreR.string.dsh_plugin_total, formatCount(total.toLong()))
             } else {
                 stringResource(
-                    R.string.dsh_plugin_shown_of_total,
+                    CoreR.string.dsh_plugin_shown_of_total,
                     formatCount(shown.toLong()),
                     formatCount(total.toLong()),
                 )
@@ -238,7 +238,7 @@ private fun StoreStatusLine(viewModel: DshPluginViewModel) {
         if (viewModel.storeOffline) {
             Text(
                 text = stringResource(
-                    R.string.dsh_plugin_catalog_offline,
+                    CoreR.string.dsh_plugin_catalog_offline,
                     viewModel.storeUpdated.ifEmpty { "?" },
                 ),
                 style = MaterialTheme.typography.labelSmall,
@@ -263,7 +263,7 @@ private fun CategoryRow(viewModel: DshPluginViewModel) {
         FilterChip(
             selected = viewModel.storeCategory.isBlank(),
             onClick = { viewModel.selectStoreCategory("") },
-            label = { Text(stringResource(R.string.dsh_plugin_category_all)) },
+            label = { Text(stringResource(CoreR.string.dsh_plugin_category_all)) },
             colors = chipColors,
         )
         DshPluginRepo.categories().forEach { cat ->
@@ -312,10 +312,10 @@ private fun StoreGrid(
                 Text(
                     text = when {
                         viewModel.storeRefreshing ->
-                            stringResource(R.string.dsh_plugin_catalog_loading)
+                            stringResource(CoreR.string.dsh_plugin_catalog_loading)
                         query.isNotBlank() ->
-                            stringResource(R.string.dsh_plugin_no_match, query)
-                        else -> stringResource(R.string.dsh_plugin_catalog_failed)
+                            stringResource(CoreR.string.dsh_plugin_no_match, query)
+                        else -> stringResource(CoreR.string.dsh_plugin_catalog_failed)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -402,9 +402,9 @@ private fun StorePluginTile(
                         },
                         contentDescription = stringResource(
                             when {
-                                !plugin.installable -> R.string.dsh_plugin_open_repo
-                                installed -> R.string.dsh_plugin_installed
-                                else -> R.string.dsh_plugin_install
+                                !plugin.installable -> CoreR.string.dsh_plugin_open_repo
+                                installed -> CoreR.string.dsh_plugin_installed
+                                else -> CoreR.string.dsh_plugin_install
                             }
                         ),
                     )
@@ -435,7 +435,7 @@ private fun StorePluginTile(
                 // 只是事实披露、非认证；点进详情看原文。
                 if (plugin.redLines.isNotEmpty()) {
                     ModuleLabel(
-                        text = "⚠ " + stringResource(R.string.dsh_plugin_redline_badge, plugin.redLines.size),
+                        text = "⚠ " + stringResource(CoreR.string.dsh_plugin_redline_badge, plugin.redLines.size),
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     )

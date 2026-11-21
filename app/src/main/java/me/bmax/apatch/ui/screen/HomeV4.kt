@@ -93,6 +93,7 @@ import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.SystemInfoCollector
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * Dashboard Pro 风格首页布局。
@@ -280,7 +281,7 @@ private fun HeroStatusCard() {
                             Spacer(Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = stringResource(R.string.dsh_app_title),
+                                    text = stringResource(CoreR.string.dsh_app_title),
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -302,7 +303,7 @@ private fun HeroStatusCard() {
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.OpenInBrowser,
-                                    contentDescription = stringResource(R.string.dsh_open_webui),
+                                    contentDescription = stringResource(CoreR.string.dsh_open_webui),
                                 )
                             }
                             OutlinedButton(
@@ -316,7 +317,7 @@ private fun HeroStatusCard() {
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Stop,
-                                    contentDescription = stringResource(R.string.dsh_stop),
+                                    contentDescription = stringResource(CoreR.string.dsh_stop),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -333,17 +334,17 @@ private fun HeroStatusCard() {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         VersionInfoColumn(
                             modifier = Modifier.weight(1f),
-                            label = stringResource(R.string.dsh_runtime_version),
+                            label = stringResource(CoreR.string.dsh_runtime_version),
                             value = state.version ?: "-"
                         )
                         VersionInfoColumn(
                             modifier = Modifier.weight(1f),
-                            label = stringResource(R.string.dsh_web_port),
+                            label = stringResource(CoreR.string.dsh_web_port),
                             value = state.port.toString()
                         )
                         VersionInfoColumn(
                             modifier = Modifier.weight(1f),
-                            label = stringResource(R.string.dsh_permission),
+                            label = stringResource(CoreR.string.dsh_permission),
                             value = state.permLabel
                         )
                     }
@@ -688,7 +689,7 @@ private fun DshSystemInfoCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_status),
+                    text = stringResource(CoreR.string.dsh_status),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )

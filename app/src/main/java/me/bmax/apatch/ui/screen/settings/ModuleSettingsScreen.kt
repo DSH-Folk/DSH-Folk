@@ -24,10 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import me.bmax.apatch.R
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
+import me.bmax.apatch.res.R as CoreR
 
 @Destination<RootGraph>
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +39,7 @@ fun ModuleSettingsScreen(navigator: DestinationsNavigator, highlightKey: String?
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_plugins), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(CoreR.string.dsh_plugins), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")

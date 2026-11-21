@@ -3,6 +3,7 @@ package me.bmax.apatch.ui.screen.settings
 import androidx.annotation.StringRes
 import android.content.res.Resources
 import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 enum class SettingCategory(
     val key: String,
@@ -13,7 +14,7 @@ enum class SettingCategory(
     BEHAVIOR("behavior", R.string.settings_category_behavior),
     SECURITY("security", R.string.settings_category_security),
     BACKUP("backup", R.string.settings_category_backup),
-    MODULE("module", R.string.dsh_plugins),
+    MODULE("module", CoreR.string.dsh_plugins),
     MULTIMEDIA("multimedia", R.string.settings_category_multimedia),
     FUNCTION("function", R.string.settings_category_function),
 }
@@ -109,7 +110,7 @@ object SettingsRegistry {
             add(SettingEntry("appearance_theme_store_mode", R.string.settings_theme_mode, R.string.settings_theme_mode_summary, SettingCategory.APPEARANCE))
             add(SettingEntry("appearance_save_theme", R.string.settings_save_theme, category = SettingCategory.APPEARANCE, directTarget = SettingsTarget.THEME_STORE))
             add(SettingEntry("appearance_import_theme", R.string.settings_import_theme, category = SettingCategory.APPEARANCE, directTarget = SettingsTarget.THEME_STORE))
-            add(SettingEntry("appearance_terminal_bg_alpha", R.string.settings_terminal_bg_alpha, R.string.settings_terminal_bg_alpha_summary, SettingCategory.APPEARANCE))
+            add(SettingEntry("appearance_terminal_bg_alpha", CoreR.string.settings_terminal_bg_alpha, CoreR.string.settings_terminal_bg_alpha_summary, SettingCategory.APPEARANCE))
             add(SettingEntry("appearance_reset_theme", R.string.settings_reset_theme, category = SettingCategory.APPEARANCE))
 
             // === Behavior ===
@@ -123,16 +124,16 @@ object SettingsRegistry {
             add(SettingEntry("security_strong_biometric", R.string.settings_strong_biometric, R.string.settings_strong_biometric_summary, SettingCategory.SECURITY))
 
             // === Backup ===
-            add(SettingEntry("backup_dsh_config", R.string.dsh_backup_section, R.string.dsh_backup_summary, SettingCategory.BACKUP))
-            add(SettingEntry("backup_rescue_cli", R.string.dsh_backup_rescue_section, R.string.dsh_backup_rescue_cmds_title, SettingCategory.BACKUP))
+            add(SettingEntry("backup_dsh_config", CoreR.string.dsh_backup_section, CoreR.string.dsh_backup_summary, SettingCategory.BACKUP))
+            add(SettingEntry("backup_rescue_cli", CoreR.string.dsh_backup_rescue_section, CoreR.string.dsh_backup_rescue_cmds_title, SettingCategory.BACKUP))
             // 云备份现在是一整块卡片（item key = backup_cloud），只在检测到 dsh-folk-cloud
             // 插件时显示；WebDAV 配置是卡片里的一个按钮，不再是独立可滚动项，故不再单列搜索项。
-            add(SettingEntry("backup_cloud", R.string.dsh_bk_cloud_title, R.string.dsh_bk_cloud_desc, SettingCategory.BACKUP))
+            add(SettingEntry("backup_cloud", CoreR.string.dsh_bk_cloud_title, CoreR.string.dsh_bk_cloud_desc, SettingCategory.BACKUP))
 
             // === Plugin ===
-            add(SettingEntry("module_disable_update", R.string.dsh_plugin_disable_update_check, R.string.dsh_plugin_disable_update_check_summary, SettingCategory.MODULE))
-            add(SettingEntry("module_more_info", R.string.dsh_plugin_more_info, R.string.dsh_plugin_more_info_summary, SettingCategory.MODULE))
-            add(SettingEntry("module_sort_opt", R.string.dsh_plugin_sort_updatable_first, R.string.dsh_plugin_sort_updatable_first_summary, SettingCategory.MODULE))
+            add(SettingEntry("module_disable_update", CoreR.string.dsh_plugin_disable_update_check, CoreR.string.dsh_plugin_disable_update_check_summary, SettingCategory.MODULE))
+            add(SettingEntry("module_more_info", CoreR.string.dsh_plugin_more_info, CoreR.string.dsh_plugin_more_info_summary, SettingCategory.MODULE))
+            add(SettingEntry("module_sort_opt", CoreR.string.dsh_plugin_sort_updatable_first, CoreR.string.dsh_plugin_sort_updatable_first_summary, SettingCategory.MODULE))
 
             // === Multimedia ===
             add(SettingEntry("multimedia_bg_music", R.string.settings_background_music, R.string.settings_background_music_summary, SettingCategory.MULTIMEDIA))
@@ -144,37 +145,37 @@ object SettingsRegistry {
             add(SettingEntry("multimedia_vibration", R.string.settings_vibration, R.string.settings_vibration_summary, SettingCategory.MULTIMEDIA))
 
             // === Function ===
-            add(SettingEntry("function_run_mode", R.string.dsh_run_mode, R.string.dsh_run_mode_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_autostart", R.string.dsh_autostart, R.string.dsh_autostart_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_auto_start_service", R.string.dsh_auto_start_service, R.string.dsh_auto_start_service_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_auto_open_webui", R.string.dsh_auto_open_webui, R.string.dsh_auto_open_webui_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_webui_pip", R.string.dsh_webui_pip_main, R.string.dsh_webui_pip_main_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_webui_pip_auto", R.string.dsh_webui_pip_auto, R.string.dsh_webui_pip_auto_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_webui_browser_mode", R.string.dsh_webui_browser_mode_switch, R.string.dsh_webui_browser_mode_switch_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_port", R.string.dsh_port_title, R.string.dsh_port_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_lan", R.string.dsh_lan_title, R.string.dsh_lan_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_gh_mirror", R.string.dsh_race_title, R.string.dsh_race_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_webui_mode", R.string.dsh_webui_mode, R.string.dsh_webui_mode_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_run_mode", CoreR.string.dsh_run_mode, CoreR.string.dsh_run_mode_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_autostart", CoreR.string.dsh_autostart, CoreR.string.dsh_autostart_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_auto_start_service", CoreR.string.dsh_auto_start_service, CoreR.string.dsh_auto_start_service_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_auto_open_webui", CoreR.string.dsh_auto_open_webui, CoreR.string.dsh_auto_open_webui_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_webui_pip", CoreR.string.dsh_webui_pip_main, CoreR.string.dsh_webui_pip_main_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_webui_pip_auto", CoreR.string.dsh_webui_pip_auto, CoreR.string.dsh_webui_pip_auto_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_webui_browser_mode", CoreR.string.dsh_webui_browser_mode_switch, CoreR.string.dsh_webui_browser_mode_switch_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_port", CoreR.string.dsh_port_title, CoreR.string.dsh_port_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_lan", CoreR.string.dsh_lan_title, CoreR.string.dsh_lan_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_gh_mirror", CoreR.string.dsh_race_title, CoreR.string.dsh_race_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_webui_mode", CoreR.string.dsh_webui_mode, CoreR.string.dsh_webui_mode_summary, SettingCategory.FUNCTION))
             add(
                 SettingEntry(
                     "module_userscripts",
-                    R.string.dsh_userscripts_entry,
-                    R.string.dsh_userscripts_entry_summary,
+                    CoreR.string.dsh_userscripts_entry,
+                    CoreR.string.dsh_userscripts_entry_summary,
                     SettingCategory.MODULE,
                     directTarget = SettingsTarget.USERSCRIPTS,
                 ),
             )
-            add(SettingEntry("function_runtime", R.string.dsh_runtime_section, R.string.dsh_runtime_management_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_repair_plugins", R.string.dsh_plugin_repair, R.string.dsh_plugin_repair_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_verify_install", R.string.dsh_verify_after_install, R.string.dsh_verify_after_install_summary, SettingCategory.FUNCTION))
-            add(SettingEntry("function_docs_access", R.string.dsh_docs_access_title, R.string.dsh_docs_access_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_runtime", CoreR.string.dsh_runtime_section, CoreR.string.dsh_runtime_management_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_repair_plugins", CoreR.string.dsh_plugin_repair, CoreR.string.dsh_plugin_repair_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_verify_install", CoreR.string.dsh_verify_after_install, CoreR.string.dsh_verify_after_install_summary, SettingCategory.FUNCTION))
+            add(SettingEntry("function_docs_access", CoreR.string.dsh_docs_access_title, CoreR.string.dsh_docs_access_summary, SettingCategory.FUNCTION))
             add(SettingEntry("function_clean_storage", R.string.settings_clean_storage, R.string.settings_clean_storage_summary, SettingCategory.FUNCTION))
             // 深度清理：入口不在分类页上（是上面那张卡的**长按**），所以走 directTarget 直接开页
             add(
                 SettingEntry(
                     "function_deep_clean",
-                    R.string.dsh_clean_title,
-                    R.string.dsh_clean_registry_summary,
+                    CoreR.string.dsh_clean_title,
+                    CoreR.string.dsh_clean_registry_summary,
                     SettingCategory.FUNCTION,
                     directTarget = SettingsTarget.DEEP_CLEAN,
                 ),
@@ -184,11 +185,11 @@ object SettingsRegistry {
             // 通道、配对与原生能力现在都收在「权限管理」这一个入口后面，安全页上只剩那一张卡片。
             // 所以下面四条**都指向同一个 item key**：全局搜索命中哪一条都落到那张卡片上，
             // 再用页内的搜索框找到具体那一项 —— 这样"搜到却跳不过去"至少不会发生。
-            add(SettingEntry("function_permission", R.string.dsh_perm_hub_title, R.string.dsh_perm_hub_summary, SettingCategory.SECURITY))
+            add(SettingEntry("function_permission", CoreR.string.dsh_perm_hub_title, CoreR.string.dsh_perm_hub_summary, SettingCategory.SECURITY))
             // 严格程度就在特权通道那一页里，但用户会按「严格」「宽松」这些词去搜 —— 单列一条
-            add(SettingEntry("function_permission", R.string.dsh_priv_restrict_title, R.string.dsh_priv_restrict_summary, SettingCategory.SECURITY))
-            add(SettingEntry("function_permission", R.string.dsh_native_section, R.string.dsh_native_summary, SettingCategory.SECURITY))
-            add(SettingEntry("function_permission", R.string.dsh_adb_section, R.string.dsh_adb_summary, SettingCategory.SECURITY))
+            add(SettingEntry("function_permission", CoreR.string.dsh_priv_restrict_title, CoreR.string.dsh_priv_restrict_summary, SettingCategory.SECURITY))
+            add(SettingEntry("function_permission", CoreR.string.dsh_native_section, CoreR.string.dsh_native_summary, SettingCategory.SECURITY))
+            add(SettingEntry("function_permission", CoreR.string.dsh_adb_section, CoreR.string.dsh_adb_summary, SettingCategory.SECURITY))
             // 无障碍自动恢复。
             //
             // **标题必须用卡片标题（dsh_a11y_fix_title =「无障碍服务保持开启」），
@@ -198,9 +199,9 @@ object SettingsRegistry {
             //
             // 摘要用卡片摘要（它解释了"只在应用内开关仍开着时才恢复"这个前提），
             // 而不是开关那句"关掉之后就不会再改回来" —— 后者是子选项的细节。
-            add(SettingEntry("function_a11y_recovery", R.string.dsh_a11y_fix_title, R.string.dsh_a11y_fix_summary, SettingCategory.SECURITY, directTarget = SettingsTarget.PERMISSION_HUB))
+            add(SettingEntry("function_a11y_recovery", CoreR.string.dsh_a11y_fix_title, CoreR.string.dsh_a11y_fix_summary, SettingCategory.SECURITY, directTarget = SettingsTarget.PERMISSION_HUB))
             // 共享存储挂在安全页上单独一张卡（不属于原生能力，见 FunctionSettings.kt 的说明）
-            add(SettingEntry("function_storage_mount", R.string.dsh_storage_cap_title, R.string.dsh_storage_mount_hint, SettingCategory.SECURITY))
+            add(SettingEntry("function_storage_mount", CoreR.string.dsh_storage_cap_title, CoreR.string.dsh_storage_mount_hint, SettingCategory.SECURITY))
         }
     }
 

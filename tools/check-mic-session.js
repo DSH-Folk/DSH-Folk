@@ -102,7 +102,7 @@ console.log("\n── stop 的三种回答 ──");
   ok(/bad_session/.test(stop), "id 对不上（另有会话在录）→ 409 bad_session");
   ok(/micLast\?\.takeIf \{ it\.first == id \}/.test(stop) && /late\.second\.toString\(\)/.test(stop),
     "来晚一步（看门狗已收尾）→ 把**那一次**的结果再给一遍（录到的不该白录）");
-  ok(/else 409 to err\(str\(ctx, R\.string\.dsh_native_err_mic_no_session\), "no_session"\)/.test(stop),
+  ok(/else 409 to err\(str\(ctx, (?:Core)?R\.string\.dsh_native_err_mic_no_session\), "no_session"\)/.test(stop),
     "既没在录、也没有这个 id 的结果 → 409 no_session");
 }
 

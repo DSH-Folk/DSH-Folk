@@ -17,6 +17,7 @@ import me.bmax.apatch.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.PrivilegedShell
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 虚拟屏现在有没有那条它需要的提权通道。
@@ -71,18 +72,18 @@ fun DisplayChannelGuideDialog(
         reason = withContext(Dispatchers.IO) { PrivilegedShell.reach(context)?.reason }
     }
     val bodyRes = when (reason) {
-        PrivilegedShell.REASON_ROOT_UNVERIFIED -> R.string.dsh_display_guide_root
-        PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED -> R.string.dsh_display_guide_shizuku
-        PrivilegedShell.REASON_ADB_UNPAIRED -> R.string.dsh_display_guide_adb
-        else -> R.string.dsh_display_guide_no_channel
+        PrivilegedShell.REASON_ROOT_UNVERIFIED -> CoreR.string.dsh_display_guide_root
+        PrivilegedShell.REASON_SHIZUKU_UNAUTHORIZED -> CoreR.string.dsh_display_guide_shizuku
+        PrivilegedShell.REASON_ADB_UNPAIRED -> CoreR.string.dsh_display_guide_adb
+        else -> CoreR.string.dsh_display_guide_no_channel
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_display_guide_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_display_guide_title)) },
         text = { Text(stringResource(bodyRes)) },
         confirmButton = {
             TextButton(onClick = onOpenChannel) {
-                Text(stringResource(R.string.dsh_display_guide_open_channel))
+                Text(stringResource(CoreR.string.dsh_display_guide_open_channel))
             }
         },
         dismissButton = {
@@ -90,7 +91,7 @@ fun DisplayChannelGuideDialog(
                 // 「重新检测」不是重复那句说明：用户可能刚在系统里授了 Shizuku / 配好了 ADB 再回来，
                 // 那一下要能立刻重判，否则只能退出去再点一次。
                 TextButton(onClick = onRecheck) {
-                    Text(stringResource(R.string.dsh_display_guide_recheck))
+                    Text(stringResource(CoreR.string.dsh_display_guide_recheck))
                 }
                 // 「取消」= 关掉弹窗并返回上级（调用方负责 navigateUp）：
                 TextButton(onClick = onCancel) {

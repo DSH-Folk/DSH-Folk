@@ -35,8 +35,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshA11yRecovery
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「无障碍服务被系统关掉后自动恢复」的设置卡。
@@ -72,13 +72,13 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                 Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_a11y_fix_title),
+                    text = stringResource(CoreR.string.dsh_a11y_fix_title),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.dsh_a11y_fix_summary),
+                text = stringResource(CoreR.string.dsh_a11y_fix_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -90,12 +90,12 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.dsh_a11y_fix_auto_title),
+                        text = stringResource(CoreR.string.dsh_a11y_fix_auto_title),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.dsh_a11y_fix_auto_summary),
+                        text = stringResource(CoreR.string.dsh_a11y_fix_auto_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -114,7 +114,7 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(
-                    if (granted) R.string.dsh_a11y_fix_granted else R.string.dsh_a11y_fix_need_permission,
+                    if (granted) CoreR.string.dsh_a11y_fix_granted else CoreR.string.dsh_a11y_fix_need_permission,
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (granted) MaterialTheme.colorScheme.onSurfaceVariant
@@ -136,14 +136,14 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                     OutlinedButton(onClick = {
                         val cm = context.getSystemService(android.content.ClipboardManager::class.java)
                         cm?.setPrimaryClip(android.content.ClipData.newPlainText("pm grant", command))
-                        Toast.makeText(context, R.string.dsh_a11y_fix_copied, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, CoreR.string.dsh_a11y_fix_copied, Toast.LENGTH_SHORT).show()
                     }) {
-                        Text(stringResource(R.string.dsh_a11y_fix_copy))
+                        Text(stringResource(CoreR.string.dsh_a11y_fix_copy))
                     }
                     TextButton(onClick = {
                         granted = DshA11yRecovery.secureSettingsGranted(context)
                     }) {
-                        Text(stringResource(R.string.dsh_a11y_fix_check))
+                        Text(stringResource(CoreR.string.dsh_a11y_fix_check))
                     }
                 } else {
                     TextButton(
@@ -160,13 +160,13 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                             }
                         },
                     ) {
-                        Text(stringResource(R.string.dsh_a11y_fix_repair))
+                        Text(stringResource(CoreR.string.dsh_a11y_fix_repair))
                     }
                 }
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.dsh_a11y_fix_best_effort),
+                text = stringResource(CoreR.string.dsh_a11y_fix_best_effort),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

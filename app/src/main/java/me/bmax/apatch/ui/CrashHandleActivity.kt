@@ -55,6 +55,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import kotlin.system.exitProcess
+import me.bmax.apatch.res.R as CoreR
 
 class CrashHandleActivity : ComponentActivity() {
 
@@ -183,7 +184,7 @@ private fun CrashHandleScreen(
                     contentColor = MaterialTheme.colorScheme.error,
                 ),
             ) {
-                Text(stringResource(R.string.dsh_ext_crash_disable_all))
+                Text(stringResource(CoreR.string.dsh_ext_crash_disable_all))
             }
             Spacer(Modifier.height(4.dp))
             SelectionContainer(

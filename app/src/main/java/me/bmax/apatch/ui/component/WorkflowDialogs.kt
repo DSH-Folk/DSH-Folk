@@ -70,7 +70,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.WorkflowActionType
@@ -86,6 +85,7 @@ import me.bmax.apatch.dsh.WorkflowValidator
 import me.bmax.apatch.dsh.definitionFromJson
 import me.bmax.apatch.dsh.toJson
 import me.bmax.apatch.dsh.workflowDiff
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 工作流的两个弹窗 + 编辑页。
@@ -117,7 +117,7 @@ fun WorkflowDialogHosts() {
             if (initial != null) {
                 WorkflowEditorDialog(
                     initial = initial,
-                    title = stringResource(R.string.dsh_workflow_editor_title),
+                    title = stringResource(CoreR.string.dsh_workflow_editor_title),
                     onSave = { edited ->
                         WorkflowApprovals.stopEditing(request.id, edited.toJson().toString())
                     },
@@ -183,7 +183,7 @@ private fun WorkflowApprovalDialog(
         title = {
             Text(
                 stringResource(
-                    if (creating) R.string.dsh_workflow_dialog_create_title else R.string.dsh_workflow_dialog_run_title,
+                    if (creating) CoreR.string.dsh_workflow_dialog_create_title else CoreR.string.dsh_workflow_dialog_run_title,
                     request.workflowName,
                 ),
                 color = accent,
@@ -193,13 +193,13 @@ private fun WorkflowApprovalDialog(
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 Text(
                     stringResource(
-                        if (creating) R.string.dsh_workflow_dialog_create_body else R.string.dsh_workflow_dialog_run_body,
+                        if (creating) CoreR.string.dsh_workflow_dialog_create_body else CoreR.string.dsh_workflow_dialog_run_body,
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_dialog_reason, request.reason),
+                    stringResource(CoreR.string.dsh_workflow_dialog_reason, request.reason),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -208,7 +208,7 @@ private fun WorkflowApprovalDialog(
                 if (definition != null) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        stringResource(R.string.dsh_workflow_dialog_preview),
+                        stringResource(CoreR.string.dsh_workflow_dialog_preview),
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Spacer(Modifier.height(6.dp))
@@ -219,14 +219,14 @@ private fun WorkflowApprovalDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = allowDangerous, onCheckedChange = { allowDangerous = it })
                         Text(
-                            stringResource(R.string.dsh_workflow_dialog_allow_dangerous),
+                            stringResource(CoreR.string.dsh_workflow_dialog_allow_dangerous),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_dialog_timeout, (remaining / 1000).toInt()),
+                    stringResource(CoreR.string.dsh_workflow_dialog_timeout, (remaining / 1000).toInt()),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (remaining < 10_000) accent else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -236,7 +236,7 @@ private fun WorkflowApprovalDialog(
             Button(onClick = { onApprove(allowDangerous) }) {
                 Text(
                     stringResource(
-                        if (creating) R.string.dsh_workflow_action_save else R.string.dsh_workflow_action_run,
+                        if (creating) CoreR.string.dsh_workflow_action_save else CoreR.string.dsh_workflow_action_run,
                     ),
                 )
             }
@@ -246,10 +246,10 @@ private fun WorkflowApprovalDialog(
                 TextButton(onClick = onEdit) {
                     Icon(Icons.Filled.Edit, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.dsh_workflow_action_edit))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_edit))
                 }
                 TextButton(onClick = { rejectOpen = true }) {
-                    Text(stringResource(R.string.dsh_workflow_action_reject))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_reject))
                 }
             }
         },
@@ -258,11 +258,11 @@ private fun WorkflowApprovalDialog(
     if (rejectOpen) {
         AlertDialog(
             onDismissRequest = { rejectOpen = false },
-            title = { Text(stringResource(R.string.dsh_workflow_reject_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_workflow_reject_title)) },
             text = {
                 Column {
                     Text(
-                        stringResource(R.string.dsh_workflow_reject_hint),
+                        stringResource(CoreR.string.dsh_workflow_reject_hint),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -278,11 +278,11 @@ private fun WorkflowApprovalDialog(
                 Button(onClick = {
                     rejectOpen = false
                     onReject(reason)
-                }) { Text(stringResource(R.string.dsh_workflow_action_reject_send)) }
+                }) { Text(stringResource(CoreR.string.dsh_workflow_action_reject_send)) }
             },
             dismissButton = {
                 TextButton(onClick = { rejectOpen = false }) {
-                    Text(stringResource(R.string.dsh_workflow_action_cancel))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_cancel))
                 }
             },
         )
@@ -312,17 +312,17 @@ private fun WorkflowPermissionDialog(
 
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(stringResource(R.string.dsh_workflow_perm_title, request.workflowName)) },
+        title = { Text(stringResource(CoreR.string.dsh_workflow_perm_title, request.workflowName)) },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    stringResource(R.string.dsh_workflow_perm_body),
+                    stringResource(CoreR.string.dsh_workflow_perm_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(10.dp))
                 if (missing.isEmpty()) {
                     Text(
-                        stringResource(R.string.dsh_workflow_perm_all_granted),
+                        stringResource(CoreR.string.dsh_workflow_perm_all_granted),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -344,20 +344,20 @@ private fun WorkflowPermissionDialog(
                                     onOpen(item)
                                 }
                             }) {
-                                Text(stringResource(R.string.dsh_workflow_perm_grant))
+                                Text(stringResource(CoreR.string.dsh_workflow_perm_grant))
                             }
                         }
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        stringResource(R.string.dsh_workflow_perm_still_missing),
+                        stringResource(CoreR.string.dsh_workflow_perm_still_missing),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_perm_recheck_hint),
+                    stringResource(CoreR.string.dsh_workflow_perm_recheck_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -365,16 +365,16 @@ private fun WorkflowPermissionDialog(
         },
         confirmButton = {
             Button(onClick = onStart, enabled = missing.isEmpty()) {
-                Text(stringResource(R.string.dsh_workflow_action_start))
+                Text(stringResource(CoreR.string.dsh_workflow_action_start))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = { missing = check() }) {
-                    Text(stringResource(R.string.dsh_workflow_perm_recheck))
+                    Text(stringResource(CoreR.string.dsh_workflow_perm_recheck))
                 }
                 TextButton(onClick = onCancel) {
-                    Text(stringResource(R.string.dsh_workflow_action_cancel))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_cancel))
                 }
             }
         },
@@ -502,7 +502,7 @@ private fun NodeEditor(
                 modifier = Modifier.weight(1f),
             )
             if (canLink) {
-                TextButton(onClick = onLink) { Text(stringResource(R.string.dsh_workflow_editor_link)) }
+                TextButton(onClick = onLink) { Text(stringResource(CoreR.string.dsh_workflow_editor_link)) }
             }
             Icon(Icons.Filled.Delete, null, Modifier.size(18.dp).clickable { onDelete() })
         }
@@ -527,7 +527,7 @@ private fun NodeEditor(
         OutlinedTextField(
             value = node.name,
             onValueChange = { onChange(node.copy(name = it)) },
-            label = { Text(stringResource(R.string.dsh_workflow_editor_name)) },
+            label = { Text(stringResource(CoreR.string.dsh_workflow_editor_name)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -550,16 +550,16 @@ private data class NodeKind(val type: WorkflowNodeType, val labelRes: Int, val d
 
 /** 能新增的节点类型（覆盖全部六类；缺哪一类都意味着有一类流程用户画不出来）。 */
 private val NODE_CATALOG = listOf(
-    NodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_shell, configForAction(WorkflowActionType.SHELL)),
-    NodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_dsh, configForAction(WorkflowActionType.DSH)),
-    NodeKind(WorkflowNodeType.EXECUTE, R.string.dsh_workflow_kind_notify, configForAction(WorkflowActionType.NOTIFY)),
+    NodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_shell, configForAction(WorkflowActionType.SHELL)),
+    NodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_dsh, configForAction(WorkflowActionType.DSH)),
+    NodeKind(WorkflowNodeType.EXECUTE, CoreR.string.dsh_workflow_kind_notify, configForAction(WorkflowActionType.NOTIFY)),
     NodeKind(
-        WorkflowNodeType.CONDITION, R.string.dsh_workflow_kind_condition,
+        WorkflowNodeType.CONDITION, CoreR.string.dsh_workflow_kind_condition,
         mapOf("source" to "exitCode", "op" to "equals", "value" to "0"),
     ),
-    NodeKind(WorkflowNodeType.EXTRACT, R.string.dsh_workflow_kind_extract, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value")),
-    NodeKind(WorkflowNodeType.WAIT, R.string.dsh_workflow_kind_wait, mapOf("ms" to "1000")),
-    NodeKind(WorkflowNodeType.LOGIC, R.string.dsh_workflow_kind_logic, mapOf("op" to "and", "sources" to "")),
+    NodeKind(WorkflowNodeType.EXTRACT, CoreR.string.dsh_workflow_kind_extract, mapOf("source" to "lastOutput", "mode" to "text", "var" to "value")),
+    NodeKind(WorkflowNodeType.WAIT, CoreR.string.dsh_workflow_kind_wait, mapOf("ms" to "1000")),
+    NodeKind(WorkflowNodeType.LOGIC, CoreR.string.dsh_workflow_kind_logic, mapOf("op" to "and", "sources" to "")),
 )
 
 /** 某个动作的默认 config（切入这个动作时整份替换，避免留下另一个动作的垃圾键）。 */
@@ -575,11 +575,11 @@ private fun configForAction(action: WorkflowActionType): Map<String, String> = w
 }
 
 private fun actionLabelRes(action: WorkflowActionType): Int = when (action) {
-    WorkflowActionType.SHELL -> R.string.dsh_workflow_kind_shell
-    WorkflowActionType.DSH -> R.string.dsh_workflow_kind_dsh
-    WorkflowActionType.NOTIFY -> R.string.dsh_workflow_kind_notify
-    WorkflowActionType.NATIVE -> R.string.dsh_wf_field_bridge
-    WorkflowActionType.COMPUTE -> R.string.dsh_wf_cat_number
+    WorkflowActionType.SHELL -> CoreR.string.dsh_workflow_kind_shell
+    WorkflowActionType.DSH -> CoreR.string.dsh_workflow_kind_dsh
+    WorkflowActionType.NOTIFY -> CoreR.string.dsh_workflow_kind_notify
+    WorkflowActionType.NATIVE -> CoreR.string.dsh_wf_field_bridge
+    WorkflowActionType.COMPUTE -> CoreR.string.dsh_wf_cat_number
 }
 
 /** 这个类型允许编辑的 config 键（与 [WorkflowValidator] 认的键一致）。 */
@@ -675,11 +675,11 @@ internal fun WorkflowVariablesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_wf_top_vars)) },
+        title = { Text(stringResource(CoreR.string.dsh_wf_top_vars)) },
         text = {
             Column(Modifier.fillMaxWidth()) {
                 Text(
-                    stringResource(R.string.dsh_wf_vars_hint),
+                    stringResource(CoreR.string.dsh_wf_vars_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -697,7 +697,7 @@ internal fun WorkflowVariablesDialog(
                             modifier = Modifier.weight(1f),
                             singleLine = true,
                             isError = row.first in badNames || row.first in dupNames,
-                            label = { Text(stringResource(R.string.dsh_wf_vars_name)) },
+                            label = { Text(stringResource(CoreR.string.dsh_wf_vars_name)) },
                         )
                         Spacer(Modifier.width(6.dp))
                         OutlinedTextField(
@@ -707,34 +707,34 @@ internal fun WorkflowVariablesDialog(
                             },
                             modifier = Modifier.weight(1.4f),
                             singleLine = true,
-                            label = { Text(stringResource(R.string.dsh_wf_vars_value)) },
+                            label = { Text(stringResource(CoreR.string.dsh_wf_vars_value)) },
                         )
                         IconButton(onClick = {
                             rows = rows.toMutableList().also { it.removeAt(idx) }
                         }) {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = stringResource(R.string.dsh_workflow_action_delete),
+                                contentDescription = stringResource(CoreR.string.dsh_workflow_action_delete),
                             )
                         }
                     }
                 }
                 if (rows.any { it.first in badNames }) {
                     Text(
-                        stringResource(R.string.dsh_wf_vars_bad),
+                        stringResource(CoreR.string.dsh_wf_vars_bad),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 if (dupNames.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.dsh_wf_vars_dup),
+                        stringResource(CoreR.string.dsh_wf_vars_dup),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
                 TextButton(onClick = { rows = rows + ("" to "") }) {
-                    Text(stringResource(R.string.dsh_wf_vars_add))
+                    Text(stringResource(CoreR.string.dsh_wf_vars_add))
                 }
             }
         },
@@ -745,10 +745,10 @@ internal fun WorkflowVariablesDialog(
                     onCommit(rows.filter { it.first.isNotBlank() }.toMap())
                     onDismiss()
                 },
-            ) { Text(stringResource(R.string.dsh_workflow_action_save)) }
+            ) { Text(stringResource(CoreR.string.dsh_workflow_action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_workflow_action_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_workflow_action_cancel)) }
         },
     )
 }

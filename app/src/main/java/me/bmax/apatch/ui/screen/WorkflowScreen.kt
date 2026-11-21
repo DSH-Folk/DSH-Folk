@@ -78,6 +78,7 @@ import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
 import me.bmax.apatch.ui.component.WorkflowDetailDialog
 import me.bmax.apatch.ui.component.WorkflowGraphPreview
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 设置 → 功能 → 自动化工作流。
@@ -132,7 +133,7 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.dsh_workflow_title)) },
+                title = { Text(stringResource(CoreR.string.dsh_workflow_title)) },
                 navigationIcon = {
                     IconButton(onClick = { navigator.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
@@ -150,9 +151,9 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.dsh_workflow_switch), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(CoreR.string.dsh_workflow_switch), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        stringResource(R.string.dsh_workflow_switch_summary),
+                        stringResource(CoreR.string.dsh_workflow_switch_summary),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -170,7 +171,7 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
             if (!enabled) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_disabled_hint),
+                    stringResource(CoreR.string.dsh_workflow_disabled_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -178,18 +179,18 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
             Spacer(Modifier.height(12.dp))
             val tool = readToolStatus(ctx)
             Text(
-                stringResource(R.string.dsh_workflow_tools_status, tool.state),
+                stringResource(CoreR.string.dsh_workflow_tools_status, tool.state),
                 style = MaterialTheme.typography.bodySmall,
             )
             if (tool.state != "ok") {
                 Text(
-                    stringResource(R.string.dsh_workflow_tools_restart),
+                    stringResource(CoreR.string.dsh_workflow_tools_restart),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.height(6.dp))
-            Text(stringResource(R.string.dsh_workflow_selfcheck), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(CoreR.string.dsh_workflow_selfcheck), style = MaterialTheme.typography.labelLarge)
             for (c in checks) {
                 Text(
                     (if (c.ok) "\u2713 " else if (c.warn) "\u26a0 " else "\u2717 ") + stringResource(c.labelRes) +
@@ -206,26 +207,26 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
                         withContext(Dispatchers.IO) { DshRuntime.refreshContainerCli() }
                         listKey++
                     }
-                }) { Text(stringResource(R.string.dsh_workflow_fix_assets)) }
+                }) { Text(stringResource(CoreR.string.dsh_workflow_fix_assets)) }
             }
             TextButton(onClick = { restartOpen = true }, enabled = enabled) {
-                Text(stringResource(R.string.dsh_workflow_restart_dsh))
+                Text(stringResource(CoreR.string.dsh_workflow_restart_dsh))
             }
             Spacer(Modifier.height(12.dp))
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    stringResource(R.string.dsh_workflow_list_title),
+                    stringResource(CoreR.string.dsh_workflow_list_title),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { nameDialog = true }, enabled = enabled) {
-                    Text(stringResource(R.string.dsh_workflow_new))
+                    Text(stringResource(CoreR.string.dsh_workflow_new))
                 }
             }
             if (workflows.isEmpty()) {
                 Text(
-                    stringResource(R.string.dsh_workflow_empty),
+                    stringResource(CoreR.string.dsh_workflow_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -332,7 +333,7 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
 
             if (runs.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.dsh_workflow_runs_title), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(CoreR.string.dsh_workflow_runs_title), style = MaterialTheme.typography.titleSmall)
                 for (run in runs) {
                     Spacer(Modifier.height(8.dp))
                     Surface(
@@ -348,7 +349,7 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
                                 Text(run.workflowName, style = MaterialTheme.typography.bodyMedium)
                                 Text(
                                     stringResource(
-                                        R.string.dsh_workflow_run_summary,
+                                        CoreR.string.dsh_workflow_run_summary,
                                         run.state.id,
                                         run.steps.size,
                                         run.runId,
@@ -369,12 +370,12 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
                                 TextButton(onClick = {
                                     WorkflowEngine.cancel(ctx, run.runId, "canceled by user")
                                     listKey++
-                                }) { Text(stringResource(R.string.dsh_workflow_action_cancel)) }
+                                }) { Text(stringResource(CoreR.string.dsh_workflow_action_cancel)) }
                             } else {
                                 // 详情走弹窗：里面给**当时那一版定义**与逐步结果 —— 用户要看的正是
                                 // 「它当时到底跑了什么、结果是什么」，而不是列表里挤出来的几行。
                                 TextButton(onClick = { detailRun = run }) {
-                                    Text(stringResource(R.string.dsh_workflow_detail))
+                                    Text(stringResource(CoreR.string.dsh_workflow_detail))
                                 }
                             }
                         }
@@ -392,10 +393,10 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
     if (restartOpen) {
         AlertDialog(
             onDismissRequest = { restartOpen = false },
-            title = { Text(stringResource(R.string.dsh_workflow_restart_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_workflow_restart_title)) },
             text = {
                 Text(
-                    stringResource(R.string.dsh_workflow_restart_body),
+                    stringResource(CoreR.string.dsh_workflow_restart_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
@@ -407,11 +408,11 @@ fun WorkflowScreen(navigator: DestinationsNavigator) {
                         DshRuntime.restart()
                         listKey++
                     }
-                }) { Text(stringResource(R.string.dsh_workflow_restart_now)) }
+                }) { Text(stringResource(CoreR.string.dsh_workflow_restart_now)) }
             },
             dismissButton = {
                 TextButton(onClick = { restartOpen = false }) {
-                    Text(stringResource(R.string.dsh_workflow_action_cancel))
+                    Text(stringResource(CoreR.string.dsh_workflow_action_cancel))
                 }
             },
         )
@@ -497,24 +498,24 @@ private fun WorkflowRow(
             ) {
                 Text(def.name, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    stringResource(R.string.dsh_workflow_row_summary, def.nodes.size, def.edges.size) +
+                    stringResource(CoreR.string.dsh_workflow_row_summary, def.nodes.size, def.edges.size) +
                         (lastState?.let { " · " + it.id } ?: ""),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Button(onClick = onRun, enabled = enabled && valid) { Text(stringResource(R.string.dsh_workflow_action_run)) }
+            Button(onClick = onRun, enabled = enabled && valid) { Text(stringResource(CoreR.string.dsh_workflow_action_run)) }
         }
         // 旧格式单独给一条明确的横幅：这不是"参数没填对"，而是整份定义作废了。
         // 两者的补救办法完全不同（前者改参数，后者只能重建），混在一起说会误导。
         if (def.isStaleFormat()) {
             Text(
-                stringResource(R.string.dsh_wf_stale_title),
+                stringResource(CoreR.string.dsh_wf_stale_title),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error,
             )
             Text(
-                stringResource(R.string.dsh_wf_stale_body),
+                stringResource(CoreR.string.dsh_wf_stale_body),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -522,7 +523,7 @@ private fun WorkflowRow(
         // 不合法时把原因摆在行下面：运行按钮是灰的，不说为什么等同于坏的。
         if (!valid) {
             Text(
-                stringResource(R.string.dsh_workflow_invalid_run) + " " + errors.size,
+                stringResource(CoreR.string.dsh_workflow_invalid_run) + " " + errors.size,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -561,17 +562,17 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
     val logs = remember(run.runId) { WorkflowStore.readLog(ctx, run.runId, fromLine = 1, maxLines = 200).first }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_workflow_detail_title, run.workflowName)) },
+        title = { Text(stringResource(CoreR.string.dsh_workflow_detail_title, run.workflowName)) },
         text = {
             Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
                 Text(
-                    stringResource(R.string.dsh_workflow_run_summary, run.state.id, run.steps.size, run.runId),
+                    stringResource(CoreR.string.dsh_workflow_run_summary, run.state.id, run.steps.size, run.runId),
                     style = MaterialTheme.typography.labelMedium,
                 )
                 val def = run.definition
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_detail_definition),
+                    stringResource(CoreR.string.dsh_workflow_detail_definition),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 if (def != null) {
@@ -583,12 +584,12 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = { zoom = (zoom - 0.25f).coerceAtLeast(0.75f) }) { Text("-") }
                         Text(
-                            stringResource(R.string.dsh_workflow_zoom, (zoom * 100).toInt()),
+                            stringResource(CoreR.string.dsh_workflow_zoom, (zoom * 100).toInt()),
                             style = MaterialTheme.typography.labelSmall,
                         )
                         TextButton(onClick = { zoom = (zoom + 0.25f).coerceAtMost(2.5f) }) { Text("+") }
                         TextButton(onClick = { zoom = 1f }) {
-                            Text(stringResource(R.string.dsh_workflow_zoom_reset))
+                            Text(stringResource(CoreR.string.dsh_workflow_zoom_reset))
                         }
                     }
                     Box(
@@ -617,8 +618,8 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
                     TextButton(onClick = { showJson = !showJson }) {
                         Text(
                             stringResource(
-                                if (showJson) R.string.dsh_workflow_detail_json_hide
-                                else R.string.dsh_workflow_detail_json_show,
+                                if (showJson) CoreR.string.dsh_workflow_detail_json_hide
+                                else CoreR.string.dsh_workflow_detail_json_show,
                             ),
                         )
                     }
@@ -631,14 +632,14 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
                     }
                 } else {
                     Text(
-                        stringResource(R.string.dsh_workflow_detail_no_definition),
+                        stringResource(CoreR.string.dsh_workflow_detail_no_definition),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    stringResource(R.string.dsh_workflow_detail_result),
+                    stringResource(CoreR.string.dsh_workflow_detail_result),
                     style = MaterialTheme.typography.labelLarge,
                 )
                 for (st in run.steps) {
@@ -660,7 +661,7 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
                 if (run.diff.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        stringResource(R.string.dsh_workflow_run_diff),
+                        stringResource(CoreR.string.dsh_workflow_run_diff),
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Text(
@@ -671,7 +672,7 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
                 if (logs.isNotEmpty()) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        stringResource(R.string.dsh_workflow_detail_logs),
+                        stringResource(CoreR.string.dsh_workflow_detail_logs),
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Text(
@@ -683,7 +684,7 @@ private fun RunDetailDialog(run: WorkflowRun, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_workflow_action_close)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_workflow_action_close)) }
         },
     )
 }
@@ -718,15 +719,15 @@ private fun containerChecks(ctx: android.content.Context): List<ContainerCheck> 
         .getOrDefault(false)
     val tool = readToolStatus(ctx)
     return listOf(
-        ContainerCheck(R.string.dsh_workflow_selfcheck_cli, cli.isFile && cli.length() > 0L),
-        ContainerCheck(R.string.dsh_workflow_selfcheck_guide, guide.isFile && guide.length() > 0L, "${guide.length()} B"),
-        ContainerCheck(R.string.dsh_workflow_selfcheck_samples, sampleCount > 0, "$sampleCount"),
-        ContainerCheck(R.string.dsh_workflow_selfcheck_plugin, plugin.isFile && plugin.length() > 0L, "${plugin.length()} B"),
-        ContainerCheck(R.string.dsh_workflow_selfcheck_patch, patchHasEntry),
+        ContainerCheck(CoreR.string.dsh_workflow_selfcheck_cli, cli.isFile && cli.length() > 0L),
+        ContainerCheck(CoreR.string.dsh_workflow_selfcheck_guide, guide.isFile && guide.length() > 0L, "${guide.length()} B"),
+        ContainerCheck(CoreR.string.dsh_workflow_selfcheck_samples, sampleCount > 0, "$sampleCount"),
+        ContainerCheck(CoreR.string.dsh_workflow_selfcheck_plugin, plugin.isFile && plugin.length() > 0L, "${plugin.length()} B"),
+        ContainerCheck(CoreR.string.dsh_workflow_selfcheck_patch, patchHasEntry),
         // 工具注册：只有「红」的条件是**两条路都不通**（没有 CLI 也没有工具）。只差工具那一条
         // 时算黄：agent 照样能用 dsh-workflow 干活，用户没必要为此去修什么。
         ContainerCheck(
-            R.string.dsh_workflow_selfcheck_tools,
+            CoreR.string.dsh_workflow_selfcheck_tools,
             ok = tool.state == "ok",
             detail = if (tool.reason.isBlank()) tool.state else tool.state + " — " + tool.reason.take(120),
             warn = tool.state != "ok" && cli.isFile && cli.length() > 0L,
@@ -769,11 +770,11 @@ private fun EntryPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_workflow_pick_entry_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_workflow_pick_entry_title)) },
         text = {
             Column {
                 Text(
-                    text = stringResource(R.string.dsh_workflow_pick_entry_hint, def.triggers.size),
+                    text = stringResource(CoreR.string.dsh_workflow_pick_entry_hint, def.triggers.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

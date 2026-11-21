@@ -37,10 +37,10 @@ must(/actionKind: PluginActionKind = PluginActionKind\.Install,/.test(detail),
   '进度对话框缺 actionKind 参数');
 must(/if \(actionKind == PluginActionKind\.Uninstall\) \{/.test(detail),
   '停止按钮没有按 actionKind 分支（只写了文案不算，判据必须真的用上）');
-must(/R\.string\.dsh_plugin_stop_uninstall/.test(detail), '停止按钮没有卸载专用文案');
-must(/R\.string\.dsh_plugin_stop_update/.test(detail), '停止按钮丢了更新文案');
+must(/(?:Core)?R\.string\.dsh_plugin_stop_uninstall/.test(detail), '停止按钮没有卸载专用文案');
+must(/(?:Core)?R\.string\.dsh_plugin_stop_update/.test(detail), '停止按钮丢了更新文案');
 must(/stopping: Boolean = false/.test(detail), '对话框缺 stopping 状态');
-must(/running && stopping -> stringResource\(R\.string\.dsh_plugin_stopping\)/.test(detail),
+must(/running && stopping -> stringResource\((?:Core)?R\.string\.dsh_plugin_stopping\)/.test(detail),
   '点了停止之后标题没有换成「正在停止…」（用户会以为按钮没反应）');
 must(/onStop, enabled = !stopping/.test(detail), '停止按钮在停止中应禁用，避免连点');
 must(/stopping = viewModel\.installStopped && viewModel\.installing/.test(screen),
@@ -78,7 +78,7 @@ must(/if \(!failed\) installStopped = false/.test(vm),
 // ---- 5. 卡片上的「移除」：两段式 ----
 must(/uninstallArmed: Boolean/.test(screen), 'DshPluginItem 缺 uninstallArmed 参数');
 must(/onUninstallClick: \(\) -> Unit/.test(screen), 'DshPluginItem 缺 onUninstallClick 参数（第一/第二下无法区分）');
-must(/R\.string\.dsh_plugin_confirm_remove/.test(screen), '确认态没有「确认移除」文案');
+must(/(?:Core)?R\.string\.dsh_plugin_confirm_remove/.test(screen), '确认态没有「确认移除」文案');
 must(/ButtonDefaults\.textButtonColors\(/.test(screen)
   && /contentColor = if \(uninstallArmed\)/.test(screen)
   && /MaterialTheme\.colorScheme\.error/.test(screen),

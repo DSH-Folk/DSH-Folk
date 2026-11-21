@@ -12,13 +12,13 @@ import android.os.Handler
 import android.os.Looper
 import android.telephony.TelephonyManager
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「读设备与环境状态」这一类能力：传感器、电话状态、网络。
@@ -73,7 +73,7 @@ internal object DshDeviceSense {
     fun sensorList(ctx: Context): Pair<Int, String> {
         val sm = ctx.getSystemService(SensorManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "SensorManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "SensorManager"),
                 "no_service",
             )
         val out = JSONArray()
@@ -115,32 +115,32 @@ internal object DshDeviceSense {
     fun sensorRead(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val id = params["id"] ?: params["sensor"]
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "id"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "id"),
                 "missing_id",
             )
         val spec = SENSORS.firstOrNull { it.id == id }
             ?: return 400 to DshNativeBridge.err(
                 DshNativeBridge.str(
                     ctx,
-                    R.string.dsh_native_err_bad_sensor,
+                    CoreR.string.dsh_native_err_bad_sensor,
                     SENSORS.joinToString(", ") { it.id },
                 ),
                 "bad_sensor",
             )
         if (!permitted(ctx, spec)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sensor_denied, spec.id),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sensor_denied, spec.id),
                 if (spec.needsBody) "no_body_sensors_permission" else "no_activity_permission",
             )
         }
         val sm = ctx.getSystemService(SensorManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "SensorManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "SensorManager"),
                 "no_service",
             )
         val sensor = runCatching { sm.getDefaultSensor(spec.type) }.getOrNull()
             ?: return 404 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sensor_absent, spec.id),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sensor_absent, spec.id),
                 "sensor_absent",
             )
 
@@ -170,7 +170,7 @@ internal object DshDeviceSense {
         }.getOrDefault(false)
         if (!registered) {
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sensor_read, spec.id),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sensor_read, spec.id),
                 "register_failed",
             )
         }
@@ -179,7 +179,7 @@ internal object DshDeviceSense {
 
         if (!got.get()) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_sensor_timeout, spec.id),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_sensor_timeout, spec.id),
                 "read_timeout",
             )
         }
@@ -211,13 +211,13 @@ internal object DshDeviceSense {
     fun phoneInfo(ctx: Context): Pair<Int, String> {
         if (!PermissionUtils.hasPhoneStatePermission(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_phone_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_phone_denied),
                 "no_phone_permission",
             )
         }
         val tm = ctx.getSystemService(TelephonyManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "TelephonyManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "TelephonyManager"),
                 "no_service",
             )
         val json = JSONObject().put("ok", true)
@@ -302,7 +302,7 @@ internal object DshDeviceSense {
     fun networkInfo(ctx: Context): Pair<Int, String> {
         val cm = ctx.getSystemService(ConnectivityManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "ConnectivityManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "ConnectivityManager"),
                 "no_service",
             )
         val json = JSONObject().put("ok", true)

@@ -8,9 +8,9 @@ import android.media.AudioManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「改手机设置」这一类能力：系统设置（亮度 / 休眠 / 自动旋转）与音量。
@@ -94,7 +94,7 @@ internal object DshSystemCtl {
 
         val percent = params["percent"]?.toIntOrNull()
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "percent"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "percent"),
                 "missing_percent",
             )
         val before = readSetting(ctx, Settings.System.SCREEN_BRIGHTNESS, -1)
@@ -120,7 +120,7 @@ internal object DshSystemCtl {
         if (denied != null) return denied
         val ms = params["ms"]?.toIntOrNull()
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "ms"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "ms"),
                 "missing_ms",
             )
         val before = readSetting(ctx, Settings.System.SCREEN_OFF_TIMEOUT, -1)
@@ -138,7 +138,7 @@ internal object DshSystemCtl {
         if (denied != null) return denied
         val on = params["on"]
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "on"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "on"),
                 "missing_on",
             )
         val before = readSetting(ctx, Settings.System.ACCELEROMETER_ROTATION, 0)
@@ -155,14 +155,14 @@ internal object DshSystemCtl {
             null
         } else {
             403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_write_settings_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_write_settings_denied),
                 "no_write_settings",
             )
         }
 
     private fun writeFailed(ctx: Context, key: String): Pair<Int, String> =
         500 to DshNativeBridge.err(
-            DshNativeBridge.str(ctx, R.string.dsh_native_err_setting_write, key),
+            DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_setting_write, key),
             "write_failed",
         )
 
@@ -193,7 +193,7 @@ internal object DshSystemCtl {
     fun volumeGet(ctx: Context): Pair<Int, String> {
         val am = ctx.getSystemService(AudioManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "AudioManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "AudioManager"),
                 "no_service",
             )
         val streams = JSONObject()
@@ -225,7 +225,7 @@ internal object DshSystemCtl {
     fun volumeSet(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val am = ctx.getSystemService(AudioManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "AudioManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "AudioManager"),
                 "no_service",
             )
         val id = params["stream"] ?: "music"
@@ -233,28 +233,28 @@ internal object DshSystemCtl {
             ?: return 400 to DshNativeBridge.err(
                 DshNativeBridge.str(
                     ctx,
-                    R.string.dsh_native_err_bad_stream,
+                    CoreR.string.dsh_native_err_bad_stream,
                     STREAMS.keys.joinToString(", "),
                 ),
                 "bad_stream",
             )
         val percent = params["percent"]?.toIntOrNull()
             ?: return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_missing_param, "percent"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_missing_param, "percent"),
                 "missing_percent",
             )
         // 勿扰开着时改音量需要策略授权，否则 setStreamVolume 静默无效 ——
         // 「看起来成功了但没变」比直接报错糟得多
         if (dndActive(ctx) && !PermissionUtils.hasNotificationPolicyAccess(ctx)) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_dnd_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_dnd_denied),
                 "no_dnd_access",
             )
         }
         val max = runCatching { am.getStreamMaxVolume(stream) }.getOrDefault(0)
         if (max <= 0) {
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_volume_unavailable, id),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_volume_unavailable, id),
                 "stream_unavailable",
             )
         }
@@ -270,7 +270,7 @@ internal object DshSystemCtl {
         }
         if (!ok) {
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_volume_set),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_volume_set),
                 "set_failed",
             )
         }
@@ -294,7 +294,7 @@ internal object DshSystemCtl {
     fun ringerSet(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val am = ctx.getSystemService(AudioManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "AudioManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "AudioManager"),
                 "no_service",
             )
         val want = when (params["mode"]) {
@@ -304,7 +304,7 @@ internal object DshSystemCtl {
             else -> return 400 to DshNativeBridge.err(
                 DshNativeBridge.str(
                     ctx,
-                    R.string.dsh_native_err_bad_ringer,
+                    CoreR.string.dsh_native_err_bad_ringer,
                     "normal, vibrate, silent",
                 ),
                 "bad_mode",
@@ -314,7 +314,7 @@ internal object DshSystemCtl {
             !PermissionUtils.hasNotificationPolicyAccess(ctx)
         ) {
             return 403 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_dnd_denied),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_dnd_denied),
                 "no_dnd_access",
             )
         }
@@ -325,7 +325,7 @@ internal object DshSystemCtl {
         }
         if (!ok) {
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_ringer_set),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_ringer_set),
                 "set_failed",
             )
         }
@@ -362,13 +362,13 @@ internal object DshSystemCtl {
             "on", "1", "true" -> true
             "off", "0", "false" -> false
             else -> return 400 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_bad_torch_state),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_bad_torch_state),
                 "bad_state",
             )
         }
         val mgr = ctx.getSystemService(CameraManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "CameraManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "CameraManager"),
                 "no_service",
             )
         val camId = runCatching {
@@ -377,7 +377,7 @@ internal object DshSystemCtl {
             }
         }.getOrNull()
             ?: return 404 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_torch_no_flash),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_torch_no_flash),
                 "no_torch",
             )
         return runCatching {
@@ -386,7 +386,7 @@ internal object DshSystemCtl {
         }.getOrElse { e ->
             Log.w(TAG, "切换手电筒失败: ${e.message}")
             500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_torch_failed, e.message ?: ""),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_torch_failed, e.message ?: ""),
                 "torch_failed",
             )
         }

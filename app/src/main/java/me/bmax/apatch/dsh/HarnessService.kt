@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
 import me.bmax.apatch.ui.MainActivity
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * DSH 前台服务：让 `dsh web` 常驻，通知条显示状态并提供「停止」。
@@ -100,22 +101,22 @@ class HarnessService : Service() {
      */
     private fun statusText(phase: DshPhase): String = when (phase) {
         DshPhase.RUNNING -> appString(
-            R.string.dsh_notif_running,
+            CoreR.string.dsh_notif_running,
             "http://127.0.0.1:${DshRuntime.state.value.port}",
         )
-        DshPhase.STARTING -> appString(R.string.dsh_notif_starting)
-        DshPhase.DOWNLOADING, DshPhase.EXTRACTING -> appString(R.string.dsh_notif_installing)
-        DshPhase.ERROR -> appString(R.string.dsh_notif_error)
-        DshPhase.NOT_READY -> appString(R.string.dsh_notif_stopped)
+        DshPhase.STARTING -> appString(CoreR.string.dsh_notif_starting)
+        DshPhase.DOWNLOADING, DshPhase.EXTRACTING -> appString(CoreR.string.dsh_notif_installing)
+        DshPhase.ERROR -> appString(CoreR.string.dsh_notif_error)
+        DshPhase.NOT_READY -> appString(CoreR.string.dsh_notif_stopped)
     }
 
     private fun createChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            appString(R.string.dsh_notif_channel_name),
+            appString(CoreR.string.dsh_notif_channel_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = appString(R.string.dsh_notif_channel_desc)
+            description = appString(CoreR.string.dsh_notif_channel_desc)
             setShowBadge(false)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -137,7 +138,7 @@ class HarnessService : Service() {
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, appString(R.string.dsh_notif_stop_action), stopIntent)
+            .addAction(0, appString(CoreR.string.dsh_notif_stop_action), stopIntent)
             .build()
     }
 

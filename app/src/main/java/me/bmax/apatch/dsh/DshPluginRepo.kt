@@ -15,10 +15,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
 import org.json.JSONArray
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /** 一个 DSH 插件条目。 */
 data class DshPlugin(
@@ -530,29 +530,29 @@ object DshPluginRepo {
      * `categories[slug]` 文案，不必改 App。
      */
     fun categories(): List<PluginCategory> = listOf(
-        PluginCategory("agi", R.string.dsh_plugin_cat_agi),
-        PluginCategory("ui", R.string.dsh_plugin_cat_ui),
-        PluginCategory("usage", R.string.dsh_plugin_cat_usage),
-        PluginCategory("theme", R.string.dsh_plugin_cat_theme),
-        PluginCategory("model", R.string.dsh_plugin_cat_model),
-        PluginCategory("identity", R.string.dsh_plugin_cat_identity),
-        PluginCategory("session", R.string.dsh_plugin_cat_session),
-        PluginCategory("memory", R.string.dsh_plugin_cat_memory),
-        PluginCategory("tools", R.string.dsh_plugin_cat_tools),
-        PluginCategory("wsl", R.string.dsh_plugin_cat_wsl),
-        PluginCategory("browser", R.string.dsh_plugin_cat_browser),
-        PluginCategory("vision", R.string.dsh_plugin_cat_vision),
-        PluginCategory("voice", R.string.dsh_plugin_cat_voice),
-        PluginCategory("docs", R.string.dsh_plugin_cat_docs),
-        PluginCategory("skill", R.string.dsh_plugin_cat_skill),
-        PluginCategory("workflow", R.string.dsh_plugin_cat_workflow),
-        PluginCategory("git", R.string.dsh_plugin_cat_git),
-        PluginCategory("notify", R.string.dsh_plugin_cat_notify),
-        PluginCategory("dev", R.string.dsh_plugin_cat_dev),
-        PluginCategory("security", R.string.dsh_plugin_cat_security),
-        PluginCategory("remote", R.string.dsh_plugin_cat_remote),
-        PluginCategory("market", R.string.dsh_plugin_cat_market),
-        PluginCategory("fun", R.string.dsh_plugin_cat_fun),
+        PluginCategory("agi", CoreR.string.dsh_plugin_cat_agi),
+        PluginCategory("ui", CoreR.string.dsh_plugin_cat_ui),
+        PluginCategory("usage", CoreR.string.dsh_plugin_cat_usage),
+        PluginCategory("theme", CoreR.string.dsh_plugin_cat_theme),
+        PluginCategory("model", CoreR.string.dsh_plugin_cat_model),
+        PluginCategory("identity", CoreR.string.dsh_plugin_cat_identity),
+        PluginCategory("session", CoreR.string.dsh_plugin_cat_session),
+        PluginCategory("memory", CoreR.string.dsh_plugin_cat_memory),
+        PluginCategory("tools", CoreR.string.dsh_plugin_cat_tools),
+        PluginCategory("wsl", CoreR.string.dsh_plugin_cat_wsl),
+        PluginCategory("browser", CoreR.string.dsh_plugin_cat_browser),
+        PluginCategory("vision", CoreR.string.dsh_plugin_cat_vision),
+        PluginCategory("voice", CoreR.string.dsh_plugin_cat_voice),
+        PluginCategory("docs", CoreR.string.dsh_plugin_cat_docs),
+        PluginCategory("skill", CoreR.string.dsh_plugin_cat_skill),
+        PluginCategory("workflow", CoreR.string.dsh_plugin_cat_workflow),
+        PluginCategory("git", CoreR.string.dsh_plugin_cat_git),
+        PluginCategory("notify", CoreR.string.dsh_plugin_cat_notify),
+        PluginCategory("dev", CoreR.string.dsh_plugin_cat_dev),
+        PluginCategory("security", CoreR.string.dsh_plugin_cat_security),
+        PluginCategory("remote", CoreR.string.dsh_plugin_cat_remote),
+        PluginCategory("market", CoreR.string.dsh_plugin_cat_market),
+        PluginCategory("fun", CoreR.string.dsh_plugin_cat_fun),
     )
 
     /**
@@ -980,7 +980,7 @@ object DshPluginRepo {
         onLine: (String) -> Unit = {},
     ): Boolean = withContext(Dispatchers.IO) {
         if (pkg.isBlank()) {
-            line(onLine, R.string.dsh_plug_log_no_pkg_toggle)
+            line(onLine, CoreR.string.dsh_plug_log_no_pkg_toggle)
             return@withContext false
         }
         val flag = if (disabled) "1" else "0"
@@ -1091,7 +1091,7 @@ object DshPluginRepo {
         allowBuilds: List<String> = emptyList(),
         fallbackTgz: String? = null,
     ): String = withContext(Dispatchers.IO) {
-        if (pkg.isBlank()) return@withContext str(R.string.dsh_plug_log_no_pkg_install)
+        if (pkg.isBlank()) return@withContext str(CoreR.string.dsh_plug_log_no_pkg_install)
         // 扩展拦截点：插件**安装/更新之前**的统一入口。
         //
         // around 返回 false = 扩展拒绝这次安装（例如企业场景下的插件白名单）。
@@ -1103,7 +1103,7 @@ object DshPluginRepo {
         if (ExtensionHookRegistry.has(ExtensionHookRegistry.Point.PLUGIN_UPDATE)) {
             val payload = mutableMapOf<String, Any?>("pkg" to pkg, "version" to version)
             if (!ExtensionHookRegistry.runAround(ExtensionHookRegistry.Point.PLUGIN_UPDATE, payload)) {
-                return@withContext str(R.string.dsh_plug_log_no_pkg_install)
+                return@withContext str(CoreR.string.dsh_plug_log_no_pkg_install)
             }
             (payload["pkg"] as? String)?.takeIf { it.isNotBlank() }?.let { pkgIn = it }
         }
@@ -1154,7 +1154,7 @@ object DshPluginRepo {
                 // 用户刚点了「停止」：不再往下试其它源。杀掉当前 pnpm 之后循环本来会接着试
                 // 下一条 —— 真机反馈「停止更新后还会尝试更新」就是这里少了一个判断。
                 if (DshRuntime.pluginStopRequested()) return last
-                line(onLine, R.string.dsh_plug_log_npm_registry_try, registry)
+                line(onLine, CoreR.string.dsh_plug_log_npm_registry_try, registry)
                 last = dshPlugin(
                     "add ${importFlag()}--registry ${shellQuoted(registry)} ${shellQuoted(spec)}",
                     900_000,
@@ -1203,8 +1203,8 @@ object DshPluginRepo {
             // 与 npm 那条链同一个道理：被叫停就别再试下一条线路
             if (DshRuntime.pluginStopRequested()) { clearGitRewrite(); return last }
             applyGitRewrite(prefix)
-            if (prefix.isNotEmpty()) line(onLine, R.string.dsh_plug_log_gh_mirror_try, prefix)
-            else line(onLine, R.string.dsh_plug_log_gh_direct_try)
+            if (prefix.isNotEmpty()) line(onLine, CoreR.string.dsh_plug_log_gh_mirror_try, prefix)
+            else line(onLine, CoreR.string.dsh_plug_log_gh_direct_try)
             last = dshPlugin("add ${importFlag()}${shellQuoted(spec)}", 900_000, onLine)
             if (exitOk(last)) { clearGitRewrite(); return last }
         }
@@ -1215,7 +1215,7 @@ object DshPluginRepo {
                 // 上面已经 clearGitRewrite() 过，这里直接返回
                 if (DshRuntime.pluginStopRequested()) return last
                 val url = prefix + fallbackTgz
-                line(onLine, R.string.dsh_plug_log_gh_tgz_try, url)
+                line(onLine, CoreR.string.dsh_plug_log_gh_tgz_try, url)
                 last = dshPlugin("add ${importFlag()}${shellQuoted(url)}", 900_000, onLine)
                 if (exitOk(last)) return last
             }
@@ -1255,7 +1255,7 @@ object DshPluginRepo {
             "node -e \"$js\" '$GIT_CA_FILE' && echo DSH_CA_GENERATED; fi; " +
             "git config --global http.sslCAInfo '$GIT_CA_FILE'"
         val out = DshRuntime.execRootfsForOutput(cmd, 60_000)
-        if (out.contains("DSH_CA_GENERATED")) line(onLine, R.string.dsh_plug_log_git_ca)
+        if (out.contains("DSH_CA_GENERATED")) line(onLine, CoreR.string.dsh_plug_log_git_ca)
     }
 
     /**
@@ -1382,7 +1382,7 @@ object DshPluginRepo {
     private fun ensureGit(onLine: (String) -> Unit) {
         if (probeGit().ok) return
 
-        line(onLine, R.string.dsh_plug_log_git_repair)
+        line(onLine, CoreR.string.dsh_plug_log_git_repair)
         // git 缺失 → 装 git；git 在但加载失败 → 缺的是 libcurl 一族，
         // --reinstall 让 apt 自己把依赖补齐（比手写包名可靠）
         DshRuntime.execRootfsStreaming(
@@ -1397,9 +1397,9 @@ object DshPluginRepo {
 
         val after = probeGit()
         if (after.ok) {
-            line(onLine, R.string.dsh_plug_log_git_fixed)
+            line(onLine, CoreR.string.dsh_plug_log_git_fixed)
         } else {
-            line(onLine, R.string.dsh_plug_log_git_still_broken, after.reason)
+            line(onLine, CoreR.string.dsh_plug_log_git_still_broken, after.reason)
         }
     }
 
@@ -1419,10 +1419,10 @@ object DshPluginRepo {
                 "git ls-remote https://127.0.0.1:1/probe.git 2>&1 | tail -5",
             120_000,
         )
-        if (out.contains("MARKED")) return GitProbe(true, str(R.string.dsh_plug_git_verified))
-        if (out.contains("NO_GIT")) return GitProbe(false, str(R.string.dsh_plug_git_absent))
+        if (out.contains("MARKED")) return GitProbe(true, str(CoreR.string.dsh_plug_git_verified))
+        if (out.contains("NO_GIT")) return GitProbe(false, str(CoreR.string.dsh_plug_git_absent))
         val ldso = LDSO_FAILURE_MARKS.firstOrNull { out.contains(it, ignoreCase = true) }
-        if (ldso != null) return GitProbe(false, str(R.string.dsh_plug_git_missing_lib, ldso))
+        if (ldso != null) return GitProbe(false, str(CoreR.string.dsh_plug_git_missing_lib, ldso))
         // 走到这里说明 git-remote-https 成功加载并真的尝试了连接（然后被拒）
         runCatching {
             DshRuntime.execRootfsForOutput(
@@ -1430,7 +1430,7 @@ object DshPluginRepo {
                 30_000,
             )
         }
-        return GitProbe(true, str(R.string.dsh_plug_git_ok))
+        return GitProbe(true, str(CoreR.string.dsh_plug_git_ok))
     }
 
     /**
@@ -1465,7 +1465,7 @@ object DshPluginRepo {
         }.getOrDefault("")
         specCache[ownerName] = resolved
         if (resolved.isEmpty()) return spec
-        line(onLine, R.string.dsh_plug_log_npm_instead_of_git, name, ownerName)
+        line(onLine, CoreR.string.dsh_plug_log_npm_instead_of_git, name, ownerName)
         return resolved
     }
 
@@ -1477,7 +1477,7 @@ object DshPluginRepo {
         pkg: String,
         onLine: (String) -> Unit = {},
     ): String = withContext(Dispatchers.IO) {
-        if (pkg.isBlank()) return@withContext str(R.string.dsh_plug_log_no_pkg_remove)
+        if (pkg.isBlank()) return@withContext str(CoreR.string.dsh_plug_log_no_pkg_remove)
         // remove 不从 store 导入文件，不需要 importFlag
         dshPlugin("remove ${shellQuoted(pkg)}", 600_000, onLine)
     }
@@ -1519,7 +1519,7 @@ object DshPluginRepo {
     private suspend fun repairIfLinkageBroken(onLine: (String) -> Unit): String {
         if (!DshRuntime.linkBecomesSymlink()) return ""
         if (!storeLinkageBroken()) return ""
-        line(onLine, R.string.dsh_plug_log_relink_repair)
+        line(onLine, CoreR.string.dsh_plug_log_relink_repair)
         return "\n" + repairStore(onLine)
     }
 
@@ -1572,10 +1572,10 @@ object DshPluginRepo {
             30_000,
         )
         if (!probe.contains("OK")) {
-            line(onLine, R.string.dsh_plug_log_profile_missing, PROFILE_DIR)
-            return@withContext str(R.string.dsh_plug_log_profile_missing_short)
+            line(onLine, CoreR.string.dsh_plug_log_profile_missing, PROFILE_DIR)
+            return@withContext str(CoreR.string.dsh_plug_log_profile_missing_short)
         }
-        line(onLine, R.string.dsh_plug_log_clearing_modules)
+        line(onLine, CoreR.string.dsh_plug_log_clearing_modules)
         DshRuntime.execRootfsForOutput("rm -rf '$PROFILE_DIR/node_modules'", 120_000)
         dshPlugin("install ${importFlag()}".trimEnd(), 900_000, onLine)
     }
@@ -1593,13 +1593,13 @@ object DshPluginRepo {
      * 走 npm 而不是 [dshPlugin]：这是全局命令，不属于任何 profile。
      */
     suspend fun installRescueCli(onLine: (String) -> Unit = {}): String = withContext(Dispatchers.IO) {
-        line(onLine, R.string.dsh_plug_log_installing_rescue_cli)
+        line(onLine, CoreR.string.dsh_plug_log_installing_rescue_cli)
         DshRuntime.execRootfsStreaming(
             "npm install -g dsh-config-manager@latest --omit=peer --registry=$NPM_REGISTRY 2>&1; " +
                 "echo \"$EXIT_MARKER \$?\"; " +
                 "command -v dsh-config-manager >/dev/null 2>&1 && " +
-                "echo " + shellQuoted(LOG_PREFIX + str(R.string.dsh_plug_log_cli_ready)) + " || " +
-                "echo " + shellQuoted(LOG_PREFIX + str(R.string.dsh_plug_log_cli_missing)),
+                "echo " + shellQuoted(LOG_PREFIX + str(CoreR.string.dsh_plug_log_cli_ready)) + " || " +
+                "echo " + shellQuoted(LOG_PREFIX + str(CoreR.string.dsh_plug_log_cli_missing)),
             900_000,
             onLine,
         )
@@ -1728,7 +1728,7 @@ object DshPluginRepo {
      * 显式 kill 掉它。这样 bash 自己掌握 node 的生命周期，命中即退出。
      */
     suspend fun verifyBoot(onLine: (String) -> Unit): String? = withContext(Dispatchers.IO) {
-        line(onLine, R.string.dsh_plug_log_verifying)
+        line(onLine, CoreR.string.dsh_plug_log_verifying)
         val script = buildString {
             append("export DSH_HOME=/root/.dsh; export BROWSER=true; ")
             append("mkdir -p /root/workspace /root/.dsh 2>/dev/null; cd /root/workspace; ")
@@ -1760,7 +1760,7 @@ object DshPluginRepo {
         val key = out.lineSequence().firstOrNull { l ->
             VERIFY_FAILURE_MARKS.any { l.contains(it, ignoreCase = true) }
         }
-        key ?: str(R.string.dsh_plug_verify_timeout)
+        key ?: str(CoreR.string.dsh_plug_verify_timeout)
     }
 
     /**
@@ -1772,12 +1772,12 @@ object DshPluginRepo {
     suspend fun rollback(pkg: String, onLine: (String) -> Unit): Boolean =
         withContext(Dispatchers.IO) {
             if (pkg.isBlank()) return@withContext false
-            line(onLine, R.string.dsh_plug_log_rollback, pkg)
+            line(onLine, CoreR.string.dsh_plug_log_rollback, pkg)
             val out = dshPlugin("remove ${shellQuoted(pkg)}", 600_000, onLine)
             val marker = out.lineSequence().lastOrNull { it.startsWith(EXIT_MARKER) }
             val code = marker?.removePrefix(EXIT_MARKER)?.trim()?.toIntOrNull()
             val ok = code == 0
-            if (!ok) line(onLine, R.string.dsh_plug_log_rollback_failed, pkg)
+            if (!ok) line(onLine, CoreR.string.dsh_plug_log_rollback_failed, pkg)
             ok
         }
 
@@ -1851,9 +1851,9 @@ object DshPluginRepo {
         val out = DshRuntime.execRootfsStreaming(
             "export DSH_HOME=/root/.dsh; cd /root; " +
                 "if ! command -v dsh >/dev/null 2>&1; then echo " +
-                shellQuoted(LOG_PREFIX + str(R.string.dsh_plug_log_no_dsh)) + "; exit 1; fi; " +
+                shellQuoted(LOG_PREFIX + str(CoreR.string.dsh_plug_log_no_dsh)) + "; exit 1; fi; " +
                 "if ! command -v pnpm >/dev/null 2>&1; then echo " +
-                shellQuoted(LOG_PREFIX + str(R.string.dsh_plug_log_no_pnpm)) + "; exit 1; fi; " +
+                shellQuoted(LOG_PREFIX + str(CoreR.string.dsh_plug_log_no_pnpm)) + "; exit 1; fi; " +
                 "DSH_REAL=\$(readlink -f \"\$(command -v dsh)\" 2>/dev/null || command -v dsh); " +
                 // 不再接 `| tail -30`：输出现在是逐行流式回调的，界面自己保留
                 // 滚动日志；而 tail 会把 pnpm 的输出攒到结束才一次吐出来，正好把
@@ -1866,7 +1866,7 @@ object DshPluginRepo {
         )
         reportFiltered(filter.finish(), onLine)
         reportShellParseFailure(args, out, onLine)
-        return out.ifBlank { str(R.string.dsh_plug_no_output) }
+        return out.ifBlank { str(CoreR.string.dsh_plug_no_output) }
     }
 
     /**
@@ -1885,22 +1885,22 @@ object DshPluginRepo {
      */
     private fun reportShellParseFailure(args: String, out: String, onLine: (String) -> Unit) {
         if (!out.contains("unexpected EOF") && !out.contains("syntax error")) return
-        line(onLine, R.string.dsh_plug_log_cmd_parse_failed, args.take(240))
+        line(onLine, CoreR.string.dsh_plug_log_cmd_parse_failed, args.take(240))
     }
 
     private fun reportFiltered(summary: DshPluginLogFilter.Summary, onLine: (String) -> Unit) {
         if (!summary.hasSomething) return
         if (summary.exitCode != 0) {
-            line(onLine, R.string.dsh_plug_log_exit_code, summary.exitCode)
+            line(onLine, CoreR.string.dsh_plug_log_exit_code, summary.exitCode)
         }
         if (summary.packages.isNotEmpty()) {
             if (summary.duration.isEmpty()) {
-                line(onLine, R.string.dsh_plug_log_summary, summary.packages)
+                line(onLine, CoreR.string.dsh_plug_log_summary, summary.packages)
             } else {
-                line(onLine, R.string.dsh_plug_log_summary_done, summary.packages, summary.duration)
+                line(onLine, CoreR.string.dsh_plug_log_summary_done, summary.packages, summary.duration)
             }
         }
-        if (summary.peerBlockFolded) line(onLine, R.string.dsh_plug_log_peer_note)
+        if (summary.peerBlockFolded) line(onLine, CoreR.string.dsh_plug_log_peer_note)
     }
 
     private fun httpGet(url: String): String? = runCatching {

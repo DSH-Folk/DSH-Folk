@@ -45,11 +45,11 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.util.BiometricUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import me.bmax.apatch.res.R as CoreR
 
 private data class PermissionLogEntry(
     val time: String,
@@ -130,7 +130,7 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
     }
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(stringResource(R.string.dsh_permission_log_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_permission_log_title)) },
             actions = {
                 if (entries.value.any { it.fullCommand != null || it.result != null }) {
                     IconButton(onClick = {
@@ -145,8 +145,8 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                         Icon(
                             if (sensitiveVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                             contentDescription = stringResource(
-                                if (sensitiveVisible) R.string.dsh_permission_log_hide_sensitive
-                                else R.string.dsh_permission_log_show_sensitive
+                                if (sensitiveVisible) CoreR.string.dsh_permission_log_hide_sensitive
+                                else CoreR.string.dsh_permission_log_show_sensitive
                             ),
                         )
                     }
@@ -167,7 +167,7 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
             if (entries.value.isEmpty()) {
                 item {
                     Text(
-                        stringResource(R.string.dsh_permission_log_empty),
+                        stringResource(CoreR.string.dsh_permission_log_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -190,7 +190,7 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                             }) {
                                 Icon(
                                     Icons.Outlined.ContentCopy,
-                                    contentDescription = stringResource(R.string.dsh_permission_log_copy),
+                                    contentDescription = stringResource(CoreR.string.dsh_permission_log_copy),
                                 )
                             }
                         }
@@ -201,12 +201,12 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            stringResource(R.string.dsh_permission_log_reason, entry.reason),
+                            stringResource(CoreR.string.dsh_permission_log_reason, entry.reason),
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text(
                             stringResource(
-                                R.string.dsh_permission_log_details,
+                                CoreR.string.dsh_permission_log_details,
                                 entry.capability,
                                 entry.access,
                                 entry.status,
@@ -220,7 +220,7 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                             val shownResult = if (sensitiveVisible) raw else remember(raw) { maskResultValues(raw) }
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                stringResource(R.string.dsh_permission_log_result),
+                                stringResource(CoreR.string.dsh_permission_log_result),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -233,7 +233,7 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                             }
                             if (!sensitiveVisible) {
                                 Text(
-                                    stringResource(R.string.dsh_permission_log_result_masked),
+                                    stringResource(CoreR.string.dsh_permission_log_result_masked),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

@@ -77,6 +77,7 @@ import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.component.ExpressiveSwitch
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import rikka.shizuku.Shizuku
+import me.bmax.apatch.res.R as CoreR
 
 /*
  * 「权限通道」与「无线 ADB 配对」两块从功能设置页（FunctionSettings.kt）搬出来后的独立页。
@@ -186,7 +187,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
             .onFailure { e ->
                 // 失败必须给一句话：抛异常基本是 binder 断了 / 服务没起来，这时什么都
                 // 不弹，用户看到的就是「按了没反应」——正是要避免的形态。
-                val msg = e.message ?: context.getString(R.string.dsh_perm_request_shizuku_failed)
+                val msg = e.message ?: context.getString(CoreR.string.dsh_perm_request_shizuku_failed)
                 scope.launch { snackBarHost.showSnackbar(msg) }
             }
     }
@@ -232,7 +233,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.dsh_perm_cat_privileged),
+                        stringResource(CoreR.string.dsh_perm_cat_privileged),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -257,14 +258,14 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     SectionHeader(
                         icon = { Icon(Icons.Filled.Security, null, Modifier.size(20.dp)) },
-                        title = stringResource(R.string.dsh_perm_section),
-                        summary = stringResource(R.string.dsh_perm_summary),
+                        title = stringResource(CoreR.string.dsh_perm_section),
+                        summary = stringResource(CoreR.string.dsh_perm_summary),
                     )
                     Spacer(Modifier.height(12.dp))
 
                     Text(
                         text = stringResource(
-                            R.string.dsh_perm_current,
+                            CoreR.string.dsh_perm_current,
                             perm.label(LocalContext.current),
                         ),
                         style = MaterialTheme.typography.bodyLarge,
@@ -273,7 +274,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = stringResource(
-                            R.string.dsh_perm_root_detail,
+                            CoreR.string.dsh_perm_root_detail,
                             yesNo(perm.suPresent),
                             perm.rootProvider.ifEmpty { "-" },
                         ),
@@ -282,13 +283,13 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     )
                     if (perm.shizukuGranted) {
                         val shizukuUidLabel = when (perm.shizukuUid) {
-                            0 -> stringResource(R.string.dsh_perm_shizuku_uid_root)
-                            2000 -> stringResource(R.string.dsh_perm_shizuku_uid_shell)
-                            else -> stringResource(R.string.dsh_perm_shizuku_uid_other, perm.shizukuUid)
+                            0 -> stringResource(CoreR.string.dsh_perm_shizuku_uid_root)
+                            2000 -> stringResource(CoreR.string.dsh_perm_shizuku_uid_shell)
+                            else -> stringResource(CoreR.string.dsh_perm_shizuku_uid_other, perm.shizukuUid)
                         }
                         Text(
                             text = stringResource(
-                                R.string.dsh_perm_shizuku_detail_uid,
+                                CoreR.string.dsh_perm_shizuku_detail_uid,
                                 yesNo(perm.shizukuRunning),
                                 yesNo(perm.shizukuGranted),
                                 shizukuUidLabel,
@@ -304,9 +305,9 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                                 (perm.suPresent || perm.shizukuRunning || perm.adbPaired)
                             ) {
                                 // 有通道可用、只是用户没启用：别让他以为设备不支持
-                                stringResource(R.string.dsh_perm_detected_not_enabled)
+                                stringResource(CoreR.string.dsh_perm_detected_not_enabled)
                             } else {
-                                stringResource(R.string.dsh_perm_none_hint)
+                                stringResource(CoreR.string.dsh_perm_none_hint)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -315,7 +316,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
 
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        text = stringResource(R.string.dsh_perm_prefer),
+                        text = stringResource(CoreR.string.dsh_perm_prefer),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -323,23 +324,23 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     RuntimeOption(
                         selected = permPrefName == PermissionManager.PREF_OFF,
                         enabled = true,
-                        title = stringResource(R.string.dsh_perm_prefer_off),
-                        summary = stringResource(R.string.dsh_perm_prefer_off_desc),
+                        title = stringResource(CoreR.string.dsh_perm_prefer_off),
+                        summary = stringResource(CoreR.string.dsh_perm_prefer_off_desc),
                         onSelect = { onPermPrefChange(PermissionManager.PREF_OFF) },
                     )
                     RuntimeOption(
                         selected = permPrefName == PermissionManager.PREF_AUTO,
                         enabled = true,
-                        title = stringResource(R.string.dsh_perm_prefer_auto),
-                        summary = stringResource(R.string.dsh_perm_prefer_auto_desc),
+                        title = stringResource(CoreR.string.dsh_perm_prefer_auto),
+                        summary = stringResource(CoreR.string.dsh_perm_prefer_auto_desc),
                         onSelect = { onPermPrefChange(PermissionManager.PREF_AUTO) },
                     )
                     RuntimeOption(
                         selected = permPrefName == PermissionManager.PREF_ROOT,
                         enabled = true,
-                        title = stringResource(R.string.dsh_perm_root),
+                        title = stringResource(CoreR.string.dsh_perm_root),
                         summary = channelOptionSummary(
-                            R.string.dsh_perm_prefer_root_desc,
+                            CoreR.string.dsh_perm_prefer_root_desc,
                             readinessOf(PermissionManager.PREF_ROOT, perm),
                         ),
                         onSelect = { onPermPrefChange(PermissionManager.PREF_ROOT) },
@@ -347,9 +348,9 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     RuntimeOption(
                         selected = permPrefName == PermissionManager.PREF_SHIZUKU,
                         enabled = true,
-                        title = stringResource(R.string.dsh_perm_shizuku),
+                        title = stringResource(CoreR.string.dsh_perm_shizuku),
                         summary = channelOptionSummary(
-                            R.string.dsh_perm_prefer_shizuku_desc,
+                            CoreR.string.dsh_perm_prefer_shizuku_desc,
                             readinessOf(PermissionManager.PREF_SHIZUKU, perm),
                         ),
                         onSelect = { onPermPrefChange(PermissionManager.PREF_SHIZUKU) },
@@ -357,9 +358,9 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     RuntimeOption(
                         selected = permPrefName == PermissionManager.PREF_ADB,
                         enabled = true,
-                        title = stringResource(R.string.dsh_perm_adb),
+                        title = stringResource(CoreR.string.dsh_perm_adb),
                         summary = channelOptionSummary(
-                            R.string.dsh_perm_prefer_adb_desc,
+                            CoreR.string.dsh_perm_prefer_adb_desc,
                             readinessOf(PermissionManager.PREF_ADB, perm),
                         ),
                         onSelect = { onPermPrefChange(PermissionManager.PREF_ADB) },
@@ -369,7 +370,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = stringResource(
-                                R.string.dsh_perm_fell_back,
+                                CoreR.string.dsh_perm_fell_back,
                                 perm.label(LocalContext.current),
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -381,7 +382,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                         val fellBackReadiness = readinessOf(permPrefName, perm)
                         if (fellBackReadiness != ChannelReadiness.READY) {
                             TextButton(onClick = { guideReadiness = fellBackReadiness }) {
-                                Text(stringResource(R.string.dsh_perm_fell_back_go))
+                                Text(stringResource(CoreR.string.dsh_perm_fell_back_go))
                             }
                         }
                     }
@@ -391,7 +392,7 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                     // 用户先决定用哪条通道，再决定它有多自由。清单本身在专门的页面里管理
                     // —— 排在这里等于把一张长清单塞进通道卡。
                     Text(
-                        text = stringResource(R.string.dsh_priv_restrict_title),
+                        text = stringResource(CoreR.string.dsh_priv_restrict_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -403,17 +404,17 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(
-                                    if (restrictMode) R.string.dsh_priv_restrict_on
-                                    else R.string.dsh_priv_restrict_off
+                                    if (restrictMode) CoreR.string.dsh_priv_restrict_on
+                                    else CoreR.string.dsh_priv_restrict_off
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
                                 text = stringResource(
-                                    R.string.dsh_priv_restrict_hub_summary,
+                                    CoreR.string.dsh_priv_restrict_hub_summary,
                                     stringResource(
-                                        if (restrictMode) R.string.dsh_priv_restrict_on
-                                        else R.string.dsh_priv_restrict_off
+                                        if (restrictMode) CoreR.string.dsh_priv_restrict_on
+                                        else CoreR.string.dsh_priv_restrict_off
                                     ),
                                     PrivPolicy.restrictedCaps(context).size,
                                 ),
@@ -424,17 +425,17 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
                         ExpressiveSwitch(checked = restrictMode, onCheckedChange = onRestrictModeChange)
                     }
                     TextButton(onClick = { navigator.navigate(RestrictModeScreenDestination) { launchSingleTop = true } }) {
-                        Text(stringResource(R.string.dsh_priv_restrict_manage))
+                        Text(stringResource(CoreR.string.dsh_priv_restrict_manage))
                     }
 
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onRefreshPerm) {
-                            Text(stringResource(R.string.dsh_perm_refresh))
+                            Text(stringResource(CoreR.string.dsh_perm_refresh))
                         }
                         AnimatedVisibility(visible = perm.shizukuRunning && !perm.shizukuGranted) {
                             Button(onClick = onRequestShizuku) {
-                                Text(stringResource(R.string.dsh_perm_request_shizuku))
+                                Text(stringResource(CoreR.string.dsh_perm_request_shizuku))
                             }
                         }
                     }
@@ -467,7 +468,7 @@ private data class ChannelGuideSpec(
     /**
      * 点了要去做的那件事；**为 null 表示这一步只是说明**（例如本机根本没有 root）。
      *
-     * 这时候不能再配一个 [R.string.dsh_chguide_later] 次按钮 —— 两个按钮做同一件事
+     * 这时候不能再配一个 [CoreR.string.dsh_chguide_later] 次按钮 —— 两个按钮做同一件事
      * （都是关掉弹窗），读起来像少了一个选项。
      */
     val action: (() -> Unit)?,
@@ -495,43 +496,43 @@ private fun ChannelGuideDialog(
         ChannelReadiness.ADB_UNCONFIGURED ->
             if (runtimeInstalled) {
                 ChannelGuideSpec(
-                    R.string.dsh_chguide_adb_title,
-                    R.string.dsh_chguide_adb_body,
-                    R.string.dsh_chguide_adb_go_pair,
+                    CoreR.string.dsh_chguide_adb_title,
+                    CoreR.string.dsh_chguide_adb_body,
+                    CoreR.string.dsh_chguide_adb_go_pair,
                 ) { navigator.navigate(WirelessAdbScreenDestination) { launchSingleTop = true } }
             } else {
                 ChannelGuideSpec(
-                    R.string.dsh_chguide_adb_runtime_title,
-                    R.string.dsh_chguide_adb_runtime_body,
-                    R.string.dsh_chguide_adb_go_runtime,
+                    CoreR.string.dsh_chguide_adb_runtime_title,
+                    CoreR.string.dsh_chguide_adb_runtime_body,
+                    CoreR.string.dsh_chguide_adb_go_runtime,
                 ) { navigator.navigate(FunctionSettingsScreenDestination("function_runtime")) { launchSingleTop = true } }
             }
 
         ChannelReadiness.SHIZUKU_UNGRANTED -> ChannelGuideSpec(
-            R.string.dsh_chguide_shizuku_ungranted_title,
-            R.string.dsh_chguide_shizuku_ungranted_body,
-            R.string.dsh_chguide_shizuku_request,
+            CoreR.string.dsh_chguide_shizuku_ungranted_title,
+            CoreR.string.dsh_chguide_shizuku_ungranted_body,
+            CoreR.string.dsh_chguide_shizuku_request,
             onRequestShizuku,
         )
 
         ChannelReadiness.SHIZUKU_ABSENT -> ChannelGuideSpec(
-            R.string.dsh_chguide_shizuku_absent_title,
-            R.string.dsh_chguide_shizuku_absent_body,
-            R.string.dsh_chguide_shizuku_retry,
+            CoreR.string.dsh_chguide_shizuku_absent_title,
+            CoreR.string.dsh_chguide_shizuku_absent_body,
+            CoreR.string.dsh_chguide_shizuku_retry,
             onRefreshPerm,
         )
 
         ChannelReadiness.ROOT_UNVERIFIED -> ChannelGuideSpec(
-            R.string.dsh_chguide_root_unverified_title,
-            R.string.dsh_chguide_root_unverified_body,
-            R.string.dsh_chguide_root_verify,
+            CoreR.string.dsh_chguide_root_unverified_title,
+            CoreR.string.dsh_chguide_root_unverified_body,
+            CoreR.string.dsh_chguide_root_verify,
             onRefreshPerm,
         )
 
         ChannelReadiness.ROOT_ABSENT -> ChannelGuideSpec(
-            R.string.dsh_chguide_root_absent_title,
-            R.string.dsh_chguide_root_absent_body,
-            R.string.dsh_chguide_ok,
+            CoreR.string.dsh_chguide_root_absent_title,
+            CoreR.string.dsh_chguide_root_absent_body,
+            CoreR.string.dsh_chguide_ok,
             // 没有可执行的动作：这台设备就是没有 su，能做的只有说清楚它意味着什么
             null,
         )
@@ -541,13 +542,13 @@ private fun ChannelGuideDialog(
     // 只在真有动作时才给次按钮，理由见 ChannelGuideSpec.action
     val dismissButton: (@Composable () -> Unit)? =
         if (spec.action != null) {
-            { TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_chguide_later)) } }
+            { TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_chguide_later)) } }
         } else {
             null
         }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_chguide_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_chguide_title)) },
         text = {
             Column {
                 Text(
@@ -623,7 +624,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.dsh_perm_cat_wireless_adb),
+                        stringResource(CoreR.string.dsh_perm_cat_wireless_adb),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -647,8 +648,8 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                 Column(Modifier.fillMaxWidth().padding(16.dp)) {
                     SectionHeader(
                         icon = { Icon(Icons.Filled.Wifi, null, Modifier.size(20.dp)) },
-                        title = stringResource(R.string.dsh_adb_section),
-                        summary = stringResource(R.string.dsh_adb_summary),
+                        title = stringResource(CoreR.string.dsh_adb_section),
+                        summary = stringResource(CoreR.string.dsh_adb_summary),
                     )
                     Spacer(Modifier.height(12.dp))
 
@@ -656,8 +657,8 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                         // 与特权通道页那条选项用的是同一套状态词：两处对同一件事说不同的话，
                         // 用户会以为它们不是一回事。
                         text = stringResource(
-                            if (perm.adbPaired) R.string.dsh_adb_paired
-                            else R.string.dsh_perm_state_adb_unconfigured
+                            if (perm.adbPaired) CoreR.string.dsh_adb_paired
+                            else CoreR.string.dsh_perm_state_adb_unconfigured
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
@@ -666,7 +667,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     if (!runtimeInstalled) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = stringResource(R.string.dsh_adb_needs_runtime),
+                            text = stringResource(CoreR.string.dsh_adb_needs_runtime),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -676,7 +677,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     OutlinedTextField(
                         value = adbPairCode,
                         onValueChange = { adbPairCode = it.filter { c -> c.isDigit() }.take(6) },
-                        label = { Text(stringResource(R.string.dsh_adb_pair_code)) },
+                        label = { Text(stringResource(CoreR.string.dsh_adb_pair_code)) },
                         singleLine = true,
                         enabled = runtimeInstalled && !adbBusy,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -687,7 +688,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                         OutlinedTextField(
                             value = adbPairPort,
                             onValueChange = { adbPairPort = it.filter { c -> c.isDigit() }.take(5) },
-                            label = { Text(stringResource(R.string.dsh_adb_pair_port)) },
+                            label = { Text(stringResource(CoreR.string.dsh_adb_pair_port)) },
                             singleLine = true,
                             enabled = runtimeInstalled && !adbBusy,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -696,8 +697,8 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                         OutlinedTextField(
                             value = adbConnectPort,
                             onValueChange = { adbConnectPort = it.filter { c -> c.isDigit() }.take(5) },
-                            label = { Text(stringResource(R.string.dsh_adb_connect_port)) },
-                            placeholder = { Text(stringResource(R.string.dsh_adb_connect_port_hint)) },
+                            label = { Text(stringResource(CoreR.string.dsh_adb_connect_port)) },
+                            placeholder = { Text(stringResource(CoreR.string.dsh_adb_connect_port_hint)) },
                             singleLine = true,
                             enabled = runtimeInstalled && !adbBusy,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -708,7 +709,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     OutlinedTextField(
                         value = adbHost,
                         onValueChange = { adbHost = it.trim() },
-                        label = { Text(stringResource(R.string.dsh_adb_host)) },
+                        label = { Text(stringResource(CoreR.string.dsh_adb_host)) },
                         singleLine = true,
                         enabled = runtimeInstalled && !adbBusy,
                         modifier = Modifier.fillMaxWidth(),
@@ -742,11 +743,11 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                                                 connectPort = found.toString()
                                             } else {
                                                 mdnsHint = "\n" +
-                                                    context.getString(R.string.dsh_adb_mdns_not_found)
+                                                    context.getString(CoreR.string.dsh_adb_mdns_not_found)
                                             }
                                         }
                                         AdbBridge.pair(adbPairCode, adbPairPort, connectPort, adbHost) + mdnsHint
-                                    }.getOrElse { it.message ?: context.getString(R.string.dsh_adb_pair_failed) }
+                                    }.getOrElse { it.message ?: context.getString(CoreR.string.dsh_adb_pair_failed) }
                                     PermissionManager.refresh(context.applicationContext)
                                     withContext(Dispatchers.Main) {
                                         adbOutput = out
@@ -756,14 +757,14 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                             },
                             enabled = runtimeInstalled && !adbBusy && adbPairCode.isNotBlank(),
                         ) {
-                            Text(stringResource(R.string.dsh_adb_pair_with_deps))
+                            Text(stringResource(CoreR.string.dsh_adb_pair_with_deps))
                         }
                         if (perm.adbPaired) {
                             OutlinedButton(
                                 onClick = { disconnectConfirming = true },
                                 enabled = !adbBusy,
                             ) {
-                                Text(stringResource(R.string.dsh_adb_disconnect))
+                                Text(stringResource(CoreR.string.dsh_adb_disconnect))
                             }
                         }
                         TextButton(onClick = {
@@ -774,7 +775,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                                 )
                             }
                         }) {
-                            Text(stringResource(R.string.dsh_adb_open_devsettings))
+                            Text(stringResource(CoreR.string.dsh_adb_open_devsettings))
                         }
                         if (adbBusy) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -783,8 +784,8 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     if (disconnectConfirming) {
                         AlertDialog(
                             onDismissRequest = { disconnectConfirming = false },
-                            title = { Text(stringResource(R.string.dsh_adb_disconnect_confirm_title)) },
-                            text = { Text(stringResource(R.string.dsh_adb_disconnect_confirm_text)) },
+                            title = { Text(stringResource(CoreR.string.dsh_adb_disconnect_confirm_title)) },
+                            text = { Text(stringResource(CoreR.string.dsh_adb_disconnect_confirm_text)) },
                             confirmButton = {
                                 TextButton(onClick = {
                                     disconnectConfirming = false
@@ -796,15 +797,15 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                                         PermissionManager.refresh(context.applicationContext)
                                         withContext(Dispatchers.Main) {
                                             adbOutput = if (out.contains("DISCONNECTED")) {
-                                                context.getString(R.string.dsh_adb_disconnected)
+                                                context.getString(CoreR.string.dsh_adb_disconnected)
                                             } else {
-                                                context.getString(R.string.dsh_adb_disconnect_failed)
+                                                context.getString(CoreR.string.dsh_adb_disconnect_failed)
                                             }
                                             adbBusy = false
                                         }
                                     }
                                 }) {
-                                    Text(stringResource(R.string.dsh_adb_disconnect))
+                                    Text(stringResource(CoreR.string.dsh_adb_disconnect))
                                 }
                             },
                             dismissButton = {
@@ -823,11 +824,11 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.dsh_adb_shell_allow),
+                                text = stringResource(CoreR.string.dsh_adb_shell_allow),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = stringResource(R.string.dsh_adb_shell_allow_summary),
+                                text = stringResource(CoreR.string.dsh_adb_shell_allow_summary),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -851,11 +852,11 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.dsh_adb_root_allow),
+                                text = stringResource(CoreR.string.dsh_adb_root_allow),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = stringResource(R.string.dsh_adb_root_allow_summary),
+                                text = stringResource(CoreR.string.dsh_adb_root_allow_summary),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -874,7 +875,7 @@ fun WirelessAdbScreen(navigator: DestinationsNavigator) {
                     if (adbOutput.isNotBlank()) {
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = stringResource(R.string.dsh_output),
+                            text = stringResource(CoreR.string.dsh_output),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1002,11 +1003,11 @@ private fun channelOptionSummary(baseRes: Int, readiness: ChannelReadiness): Str
     val base = stringResource(baseRes)
     val stateRes = when (readiness) {
         ChannelReadiness.READY -> return base
-        ChannelReadiness.ROOT_UNVERIFIED -> R.string.dsh_perm_state_root_unverified
-        ChannelReadiness.ROOT_ABSENT -> R.string.dsh_perm_state_root_absent
-        ChannelReadiness.SHIZUKU_UNGRANTED -> R.string.dsh_perm_state_shizuku_ungranted
-        ChannelReadiness.SHIZUKU_ABSENT -> R.string.dsh_perm_state_shizuku_absent
-        ChannelReadiness.ADB_UNCONFIGURED -> R.string.dsh_perm_state_adb_unconfigured
+        ChannelReadiness.ROOT_UNVERIFIED -> CoreR.string.dsh_perm_state_root_unverified
+        ChannelReadiness.ROOT_ABSENT -> CoreR.string.dsh_perm_state_root_absent
+        ChannelReadiness.SHIZUKU_UNGRANTED -> CoreR.string.dsh_perm_state_shizuku_ungranted
+        ChannelReadiness.SHIZUKU_ABSENT -> CoreR.string.dsh_perm_state_shizuku_absent
+        ChannelReadiness.ADB_UNCONFIGURED -> CoreR.string.dsh_perm_state_adb_unconfigured
     }
-    return base + "\n" + stringResource(R.string.dsh_perm_state_suffix, stringResource(stateRes))
+    return base + "\n" + stringResource(CoreR.string.dsh_perm_state_suffix, stringResource(stateRes))
 }

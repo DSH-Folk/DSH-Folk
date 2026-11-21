@@ -11,7 +11,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
 import java.util.ArrayDeque
-import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 无障碍服务的**自动恢复**：系统把它关掉之后，尽量再打开一次。
@@ -218,18 +218,18 @@ internal object DshA11yRecovery {
         val app = ctx.applicationContext
         val want = wanted(app)
         if (!want.any) {
-            return Result(true, R.string.dsh_a11y_fix_not_wanted)
+            return Result(true, CoreR.string.dsh_a11y_fix_not_wanted)
         }
         if (!secureSettingsGranted(app)) {
-            return Result(false, R.string.dsh_a11y_fix_no_permission)
+            return Result(false, CoreR.string.dsh_a11y_fix_no_permission)
         }
         if (!manual && !allowAttempt()) {
-            return Result(false, R.string.dsh_a11y_fix_give_up)
+            return Result(false, CoreR.string.dsh_a11y_fix_give_up)
         }
         val gone = missing(app)
         val needMaster = gone.isNotEmpty() && !masterEnabled(app)
         if (gone.isEmpty() && !needMaster) {
-            return Result(true, R.string.dsh_a11y_fix_already)
+            return Result(true, CoreR.string.dsh_a11y_fix_already)
         }
 
         val current = enabledList(app)
@@ -256,13 +256,13 @@ internal object DshA11yRecovery {
         val masterOk = masterEnabled(app)
         return when {
             stillMissing.isEmpty() && masterOk ->
-                Result(true, R.string.dsh_a11y_fix_ok, changed = true)
+                Result(true, CoreR.string.dsh_a11y_fix_ok, changed = true)
             !wroteList || !wroteMaster ->
-                Result(false, R.string.dsh_a11y_fix_write_failed, "write rejected")
+                Result(false, CoreR.string.dsh_a11y_fix_write_failed, "write rejected")
             else ->
                 Result(
                     false,
-                    R.string.dsh_a11y_fix_rejected,
+                    CoreR.string.dsh_a11y_fix_rejected,
                     "still missing: " + stillMissing.joinToString(",") { it.flattenToShortString() },
                 )
         }

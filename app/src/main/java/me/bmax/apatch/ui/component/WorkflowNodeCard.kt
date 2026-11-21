@@ -128,7 +128,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowExpandType
 import me.bmax.apatch.dsh.WorkflowNode
 import me.bmax.apatch.dsh.WorkflowNodeType
@@ -137,6 +136,7 @@ import me.bmax.apatch.dsh.WorkflowPinSpec
 import me.bmax.apatch.dsh.WorkflowPinType
 import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowStepState
+import me.bmax.apatch.res.R as CoreR
 /** 卡片宽度：画布、自动布局、落点换算共用这一个值。 */
 internal val WorkflowNodeCardWidth = 280.dp
 
@@ -502,7 +502,7 @@ internal fun WorkflowNodeCard(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Edit,
-                                        contentDescription = stringResource(R.string.dsh_wf_top_node_detail),
+                                        contentDescription = stringResource(CoreR.string.dsh_wf_top_node_detail),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(24.dp),
                                     )
@@ -556,7 +556,7 @@ internal fun WorkflowNodeCard(
                                         WorkflowExpandType.HALF -> Icons.Filled.Visibility
                                         WorkflowExpandType.FULL -> Icons.Filled.RemoveRedEye
                                     },
-                                    desc = stringResource(R.string.dsh_wf_card_expand),
+                                    desc = stringResource(CoreR.string.dsh_wf_card_expand),
                                     active = node.expandType == WorkflowExpandType.FULL,
                                     onClick = onToggleExpand,
                                 )
@@ -566,7 +566,7 @@ internal fun WorkflowNodeCard(
                             if (onToggleLock != null) {
                                 CardActionIcon(
                                     icon = if (node.locked) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                                    desc = stringResource(R.string.dsh_wf_card_lock),
+                                    desc = stringResource(CoreR.string.dsh_wf_card_lock),
                                     active = node.locked,
                                     onClick = onToggleLock,
                                 )
@@ -574,7 +574,7 @@ internal fun WorkflowNodeCard(
                             if (onCopy != null) {
                                 CardActionIcon(
                                     icon = Icons.Filled.ContentCopy,
-                                    desc = stringResource(R.string.dsh_wf_float_copy),
+                                    desc = stringResource(CoreR.string.dsh_wf_float_copy),
                                     active = false,
                                     onClick = onCopy,
                                 )
@@ -583,9 +583,9 @@ internal fun WorkflowNodeCard(
                                 CardActionIcon(
                                     icon = if (deleteArmed) Icons.Filled.Warning else Icons.Filled.Delete,
                                     desc = if (deleteArmed) {
-                                        stringResource(R.string.dsh_wf_float_delete_confirm)
+                                        stringResource(CoreR.string.dsh_wf_float_delete_confirm)
                                     } else {
-                                        stringResource(R.string.dsh_wf_float_delete)
+                                        stringResource(CoreR.string.dsh_wf_float_delete)
                                     },
                                     active = deleteArmed,
                                     tint = if (deleteArmed) MaterialTheme.colorScheme.error else null,
@@ -656,7 +656,7 @@ internal fun WorkflowNodeCard(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text = stringResource(R.string.dsh_wf_lock),
+                                text = stringResource(CoreR.string.dsh_wf_lock),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 maxLines = 1,
@@ -667,7 +667,7 @@ internal fun WorkflowNodeCard(
                             if (requiredCaps.isNotEmpty()) {
                                 Text(
                                     text = stringResource(
-                                        R.string.dsh_wf_lock_need,
+                                        CoreR.string.dsh_wf_lock_need,
                                         requiredCaps.joinToString("、"),
                                     ),
                                     style = MaterialTheme.typography.labelSmall,
@@ -1256,7 +1256,7 @@ private fun CardParamRow(
             ) {
                 Icon(
                     Icons.Filled.ContentCopy,
-                    contentDescription = stringResource(R.string.dsh_wf_float_copy),
+                    contentDescription = stringResource(CoreR.string.dsh_wf_float_copy),
                     tint = if (paste) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp),
                 )

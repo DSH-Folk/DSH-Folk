@@ -51,7 +51,6 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ScriptMarket
 import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.ui.component.ModuleLabel
@@ -60,6 +59,7 @@ import me.bmax.apatch.ui.component.UserscriptInstallConfirmHost
 import me.bmax.apatch.ui.component.rememberUserscriptPendingInstall
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 脚本市场（GreasyFork 搜索 + 一键安装）。
@@ -241,18 +241,18 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
 
     val failText: String? = fail?.let { f ->
         when (f) {
-            ScriptMarket.Fail.NETWORK -> context.getString(R.string.dsh_userscripts_market_fail_network)
+            ScriptMarket.Fail.NETWORK -> context.getString(CoreR.string.dsh_userscripts_market_fail_network)
             ScriptMarket.Fail.SERVER ->
-                context.getString(R.string.dsh_userscripts_market_fail_server, code)
-            ScriptMarket.Fail.CONTENT -> context.getString(R.string.dsh_userscripts_market_fail_content)
-            ScriptMarket.Fail.SIZE -> context.getString(R.string.dsh_userscripts_market_fail_size)
+                context.getString(CoreR.string.dsh_userscripts_market_fail_server, code)
+            ScriptMarket.Fail.CONTENT -> context.getString(CoreR.string.dsh_userscripts_market_fail_content)
+            ScriptMarket.Fail.SIZE -> context.getString(CoreR.string.dsh_userscripts_market_fail_size)
         }
     }
 
     Scaffold(
         topBar = {
             SearchAppBar(
-                title = { Text(stringResource(R.string.dsh_userscripts_market_section)) },
+                title = { Text(stringResource(CoreR.string.dsh_userscripts_market_section)) },
                 searchText = marketQuery,
                 onSearchTextChange = { marketQuery = it },
                 // 清空只清关键词，已搜到的结果留着：用户多半是想直接点进去看
@@ -274,16 +274,16 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
         ) {
             item(span = StaggeredGridItemSpan.FullLine, key = "market-head") {
                 MarketHead(
-                    hint = stringResource(R.string.dsh_userscripts_market_hint),
-                    queryHint = stringResource(R.string.dsh_userscripts_market_query_hint),
+                    hint = stringResource(CoreR.string.dsh_userscripts_market_hint),
+                    queryHint = stringResource(CoreR.string.dsh_userscripts_market_query_hint),
                     // 加载态与失败态都要有字，不能只留一个转圈（首屏一次请求慢/被墙时，
                     // 「只有一行灰字、底下全空」看起来就和白屏一样）——见用户报的那个 bug。
-                    loadingText = stringResource(R.string.dsh_userscripts_market_loading),
-                    retryText = stringResource(R.string.dsh_userscripts_market_retry),
+                    loadingText = stringResource(CoreR.string.dsh_userscripts_market_loading),
+                    retryText = stringResource(CoreR.string.dsh_userscripts_market_retry),
                     emptyText = stringResource(
                         // 热门空了说「热门暂时没有」，搜索空了才是「没有结果」：两种空态不是一回事
-                        if (retryPopular) R.string.dsh_userscripts_market_empty_popular
-                        else R.string.dsh_userscripts_market_empty
+                        if (retryPopular) CoreR.string.dsh_userscripts_market_empty_popular
+                        else CoreR.string.dsh_userscripts_market_empty
                     ),
                     busy = busy,
                     searched = searched,
@@ -296,7 +296,7 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
                 // **应用内**打开（见 openMirrorPage）：它是"接着刚才那次失败往下看"。
                 if (failText != null) {
                     TextButton(onClick = { openMirrorPage(ScriptMarket.MIRROR_INDEX) }) {
-                        Text(stringResource(R.string.dsh_userscripts_market_mirror))
+                        Text(stringResource(CoreR.string.dsh_userscripts_market_mirror))
                     }
                 }
             }
@@ -305,7 +305,7 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
             if (popular && hits.isNotEmpty()) {
                 item(span = StaggeredGridItemSpan.FullLine, key = "market-popular") {
                     Text(
-                        stringResource(R.string.dsh_userscripts_market_popular),
+                        stringResource(CoreR.string.dsh_userscripts_market_popular),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -331,7 +331,7 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
                             else runSearch(page + 1, reset = false)
                         },
                         enabled = !busy,
-                    ) { Text(stringResource(R.string.dsh_userscripts_market_more)) }
+                    ) { Text(stringResource(CoreR.string.dsh_userscripts_market_more)) }
                 }
             }
             item(span = StaggeredGridItemSpan.FullLine, key = "market-bottom") { HomeBottomSpacer() }
@@ -344,7 +344,7 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
         state = pendingInstall,
         onInstalled = {
             reload()
-            showToast(context, context.getString(R.string.dsh_userscripts_installed))
+            showToast(context, context.getString(CoreR.string.dsh_userscripts_installed))
         },
         onFailed = { fail = ScriptMarket.Fail.CONTENT },
     )
@@ -459,7 +459,7 @@ private fun MarketTile(
                     )
                     if (hit.author.isNotBlank()) {
                         Text(
-                            text = stringResource(R.string.dsh_userscripts_market_by, hit.author),
+                            text = stringResource(CoreR.string.dsh_userscripts_market_by, hit.author),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -470,7 +470,7 @@ private fun MarketTile(
                 IconButton(onClick = onOpen, modifier = Modifier.size(40.dp)) {
                     Icon(
                         Icons.Outlined.OpenInBrowser,
-                        contentDescription = stringResource(R.string.dsh_userscripts_market_page),
+                        contentDescription = stringResource(CoreR.string.dsh_userscripts_market_page),
                     )
                 }
                 if (installed) {
@@ -481,7 +481,7 @@ private fun MarketTile(
                     ) {
                         Icon(
                             Icons.Outlined.Check,
-                            contentDescription = stringResource(R.string.dsh_userscripts_market_installed),
+                            contentDescription = stringResource(CoreR.string.dsh_userscripts_market_installed),
                         )
                     }
                 } else if (installing) {
@@ -500,7 +500,7 @@ private fun MarketTile(
                     ) {
                         Icon(
                             Icons.Outlined.Download,
-                            contentDescription = stringResource(R.string.dsh_userscripts_market_install),
+                            contentDescription = stringResource(CoreR.string.dsh_userscripts_market_install),
                         )
                     }
                 }
@@ -512,7 +512,7 @@ private fun MarketTile(
                 if (hit.installs > 0) {
                     ModuleLabel(
                         text = stringResource(
-                            R.string.dsh_userscripts_market_installs,
+                            CoreR.string.dsh_userscripts_market_installs,
                             formatCount(hit.installs),
                         ),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,

@@ -56,6 +56,7 @@ import me.bmax.apatch.dsh.DshPlugin
 import me.bmax.apatch.dsh.DshSource
 import me.bmax.apatch.ui.screen.formatCount
 import me.bmax.apatch.ui.viewmodel.PluginActionKind
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 插件详情底部弹层。
@@ -114,7 +115,7 @@ fun DshPluginDetailSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (plugin.seeded) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_seeded_label),
+                        text = stringResource(CoreR.string.dsh_plugin_seeded_label),
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -131,7 +132,7 @@ fun DshPluginDetailSheet(
                 )
                 if (plugin.likes >= 0) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_likes, formatCount(plugin.likes)),
+                        text = stringResource(CoreR.string.dsh_plugin_likes, formatCount(plugin.likes)),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
@@ -143,7 +144,7 @@ fun DshPluginDetailSheet(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (plugin.disabled) {
                         ModuleLabel(
-                            text = stringResource(R.string.dsh_plugin_disabled_label),
+                            text = stringResource(CoreR.string.dsh_plugin_disabled_label),
                             containerColor = MaterialTheme.colorScheme.errorContainer,
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         )
@@ -151,8 +152,8 @@ fun DshPluginDetailSheet(
                     }
                     Text(
                         text = stringResource(
-                            if (plugin.disabled) R.string.dsh_plugin_toggle_on
-                            else R.string.dsh_plugin_toggle_off
+                            if (plugin.disabled) CoreR.string.dsh_plugin_toggle_on
+                            else CoreR.string.dsh_plugin_toggle_off
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -166,7 +167,7 @@ fun DshPluginDetailSheet(
                 if (plugin.entryIds.isEmpty()) {
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.dsh_plugin_toggle_unavailable),
+                        text = stringResource(CoreR.string.dsh_plugin_toggle_unavailable),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -217,7 +218,7 @@ fun DshPluginDetailSheet(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = stringResource(R.string.dsh_plugin_caps_title),
+                            text = stringResource(CoreR.string.dsh_plugin_caps_title),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = if (hasRed) MaterialTheme.colorScheme.onErrorContainer
@@ -241,7 +242,7 @@ fun DshPluginDetailSheet(
                         if (plugin.capabilityCheckedAt.isNotEmpty()) {
                             Text(
                                 text = stringResource(
-                                    R.string.dsh_plugin_caps_checked,
+                                    CoreR.string.dsh_plugin_caps_checked,
                                     plugin.capabilityCheckedAt.substringBefore('T'),
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
@@ -250,7 +251,7 @@ fun DshPluginDetailSheet(
                             )
                         }
                         Text(
-                            text = stringResource(R.string.dsh_plugin_caps_disclaimer),
+                            text = stringResource(CoreR.string.dsh_plugin_caps_disclaimer),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (hasRed) MaterialTheme.colorScheme.onErrorContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -260,22 +261,22 @@ fun DshPluginDetailSheet(
             }
 
             Spacer(Modifier.height(2.dp))
-            DetailRow(stringResource(R.string.dsh_plugin_field_pkg), plugin.pkg.ifEmpty { plugin.id })
+            DetailRow(stringResource(CoreR.string.dsh_plugin_field_pkg), plugin.pkg.ifEmpty { plugin.id })
             if (plugin.version.isNotEmpty()) {
-                DetailRow(stringResource(R.string.dsh_plugin_field_latest), plugin.version)
+                DetailRow(stringResource(CoreR.string.dsh_plugin_field_latest), plugin.version)
             }
             if (plugin.installedVersion.isNotEmpty()) {
-                DetailRow(stringResource(R.string.dsh_plugin_field_installed), plugin.installedVersion)
+                DetailRow(stringResource(CoreR.string.dsh_plugin_field_installed), plugin.installedVersion)
             }
             if (plugin.category.isNotEmpty()) {
-                DetailRow(stringResource(R.string.dsh_plugin_field_category), plugin.category)
+                DetailRow(stringResource(CoreR.string.dsh_plugin_field_category), plugin.category)
             }
             // 下载量语境：上游是滚动窗口统计，标出窗口区间与最后核对日期，避免把裸数字当实时值。
             if (plugin.downloadsCheckedAt.isNotEmpty() && plugin.downloadsStart.isNotEmpty()) {
                 DetailRow(
-                    stringResource(R.string.dsh_plugin_field_downloads),
+                    stringResource(CoreR.string.dsh_plugin_field_downloads),
                     stringResource(
-                        R.string.dsh_plugin_downloads_ctx,
+                        CoreR.string.dsh_plugin_downloads_ctx,
                         plugin.downloadsStart,
                         plugin.downloadsEnd,
                         plugin.downloadsCheckedAt,
@@ -284,18 +285,18 @@ fun DshPluginDetailSheet(
             }
             val repo = plugin.homepage.ifEmpty { plugin.repo }
             if (repo.isNotEmpty()) {
-                DetailRow(stringResource(R.string.dsh_plugin_field_repo), repo)
+                DetailRow(stringResource(CoreR.string.dsh_plugin_field_repo), repo)
             }
             if (plugin.installed && !plugin.enabled) {
                 Text(
-                    text = stringResource(R.string.dsh_plugin_inactive_hint),
+                    text = stringResource(CoreR.string.dsh_plugin_inactive_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             if (!plugin.installable) {
                 Text(
-                    text = stringResource(R.string.dsh_plugin_no_npm),
+                    text = stringResource(CoreR.string.dsh_plugin_no_npm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -331,21 +332,21 @@ fun DshPluginDetailSheet(
                         Spacer(Modifier.width(6.dp))
                         Text(
                             stringResource(
-                                if (uninstallArmed) R.string.dsh_plugin_confirm_remove else R.string.apm_remove,
+                                if (uninstallArmed) CoreR.string.dsh_plugin_confirm_remove else R.string.apm_remove,
                             ),
                         )
                     }
                     plugin.installable -> Button(onClick = { onDismiss(); onInstall() }) {
                         Icon(Icons.Outlined.Download, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.dsh_plugin_install))
+                        Text(stringResource(CoreR.string.dsh_plugin_install))
                     }
                 }
                 if (repo.isNotEmpty()) {
                     OutlinedButton(onClick = onOpenRepo) {
                         Icon(Icons.Outlined.OpenInNew, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.dsh_plugin_open_repo))
+                        Text(stringResource(CoreR.string.dsh_plugin_open_repo))
                     }
                 }
             }
@@ -425,11 +426,11 @@ fun DshPluginProgressDialog(
         title = {
             Text(
                 text = when {
-                    running && stopping -> stringResource(R.string.dsh_plugin_stopping)
-                    running -> stringResource(R.string.dsh_plugin_working_on, target)
-                    stopped -> stringResource(R.string.dsh_plugin_stopped_on, target)
-                    failed -> stringResource(R.string.dsh_plugin_failed_on, target)
-                    else -> stringResource(R.string.dsh_plugin_done_on, target)
+                    running && stopping -> stringResource(CoreR.string.dsh_plugin_stopping)
+                    running -> stringResource(CoreR.string.dsh_plugin_working_on, target)
+                    stopped -> stringResource(CoreR.string.dsh_plugin_stopped_on, target)
+                    failed -> stringResource(CoreR.string.dsh_plugin_failed_on, target)
+                    else -> stringResource(CoreR.string.dsh_plugin_done_on, target)
                 },
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -442,7 +443,7 @@ fun DshPluginProgressDialog(
                 } else if (!failed && !stopped && needsRestart) {
                     // dsh 只在启动时组合 profile 的 patch 层，不重启新插件不会加载
                     Text(
-                        text = stringResource(R.string.dsh_plugin_needs_restart),
+                        text = stringResource(CoreR.string.dsh_plugin_needs_restart),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -455,7 +456,7 @@ fun DshPluginProgressDialog(
                 ) {
                     Text(
                         text = lines.joinToString("\n").ifEmpty {
-                            stringResource(R.string.dsh_plugin_waiting_output)
+                            stringResource(CoreR.string.dsh_plugin_waiting_output)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
@@ -469,11 +470,11 @@ fun DshPluginProgressDialog(
                 // 运行中的主操作是「隐藏窗口」：让用户把窗口收走、更新继续跑。
                 // 以前这里只有一颗禁用的「关闭」—— 运行中根本关不掉。
                 running && onHide != null -> TextButton(onClick = onHide) {
-                    Text(stringResource(R.string.dsh_plugin_hide_window))
+                    Text(stringResource(CoreR.string.dsh_plugin_hide_window))
                 }
                 // 装成功后主操作是重启 DSH：不重启新插件不会被加载
                 !running && !failed && !stopped && needsRestart -> TextButton(onClick = { onDismiss(); onRestart() }) {
-                    Text(stringResource(R.string.dsh_plugin_restart_now))
+                    Text(stringResource(CoreR.string.dsh_plugin_restart_now))
                 }
                 else -> TextButton(onClick = onDismiss, enabled = !running) {
                     Text(stringResource(R.string.close))
@@ -488,7 +489,7 @@ fun DshPluginProgressDialog(
                 ) {
                     Icon(
                         Icons.Outlined.ContentCopy,
-                        contentDescription = stringResource(R.string.dsh_copy_log),
+                        contentDescription = stringResource(CoreR.string.dsh_copy_log),
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -498,9 +499,9 @@ fun DshPluginProgressDialog(
                         Text(
                             stringResource(
                                 if (actionKind == PluginActionKind.Uninstall) {
-                                    R.string.dsh_plugin_stop_uninstall
+                                    CoreR.string.dsh_plugin_stop_uninstall
                                 } else {
-                                    R.string.dsh_plugin_stop_update
+                                    CoreR.string.dsh_plugin_stop_update
                                 },
                             ),
                         )

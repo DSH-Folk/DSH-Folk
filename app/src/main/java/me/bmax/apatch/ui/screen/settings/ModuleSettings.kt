@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.bmax.apatch.APApplication
-import me.bmax.apatch.R
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +30,7 @@ import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.component.ExtensionSettingItems
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「插件」设置页。
@@ -63,8 +63,8 @@ fun ModuleSettingsContent(
             ToggleSettingCard(
                 icon = Icons.Filled.Update,
                 flat = flat,
-                title = stringResource(R.string.dsh_plugin_disable_update_check),
-                description = stringResource(R.string.dsh_plugin_disable_update_check_summary),
+                title = stringResource(CoreR.string.dsh_plugin_disable_update_check),
+                description = stringResource(CoreR.string.dsh_plugin_disable_update_check_summary),
                 checked = disableUpdateCheck,
                 onCheckedChange = {
                     disableUpdateCheck = it
@@ -77,8 +77,8 @@ fun ModuleSettingsContent(
             ToggleSettingCard(
                 icon = Icons.Filled.Info,
                 flat = flat,
-                title = stringResource(R.string.dsh_plugin_more_info),
-                description = stringResource(R.string.dsh_plugin_more_info_summary),
+                title = stringResource(CoreR.string.dsh_plugin_more_info),
+                description = stringResource(CoreR.string.dsh_plugin_more_info_summary),
                 checked = showMoreInfo,
                 onCheckedChange = {
                     showMoreInfo = it
@@ -91,8 +91,8 @@ fun ModuleSettingsContent(
             ToggleSettingCard(
                 icon = Icons.Filled.Sort,
                 flat = flat,
-                title = stringResource(R.string.dsh_plugin_sort_updatable_first),
-                description = stringResource(R.string.dsh_plugin_sort_updatable_first_summary),
+                title = stringResource(CoreR.string.dsh_plugin_sort_updatable_first),
+                description = stringResource(CoreR.string.dsh_plugin_sort_updatable_first_summary),
                 checked = sortUpdatableFirst,
                 onCheckedChange = {
                     sortUpdatableFirst = it

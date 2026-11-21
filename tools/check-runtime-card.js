@@ -66,7 +66,7 @@ console.log("\n── 卡片：一张开关卡片，点=检查、长按=菜单 �
   ok(/checked = runtimeAutoCheck/.test(toggle) &&
      /onCheckedChange = onRuntimeAutoCheckChange/.test(toggle),
     "这个开关就是「自动检查更新」（读写都是它）");
-  ok(/description = stringResource\(R\.string\.dsh_runtime_auto_check_summary\)/.test(toggle),
+  ok(/description = stringResource\((?:Core)?R\.string\.dsh_runtime_auto_check_summary\)/.test(toggle),
     "开关的说明讲的是自动检查本身（不是交互提示）");
   // 点一下 = 检查：走 confirmAfterCheck 那条路（查完真有才弹确认框）
   ok(/confirmAfterCheck = true[\s\S]{0,80}onCheckRuntimeUpdateRequested\(\)/.test(toggle),
@@ -84,11 +84,11 @@ console.log("\n── 卡片：一张开关卡片，点=检查、长按=菜单 �
     "长按不要求已装运行时（没装过的人也要能挑一版装上）");
   ok(!/onRuntimeBetaChange|onRuntimeSlimChange/.test(card.slice(0, card.indexOf("RuntimeVersionDialog("))),
     "卡片本体不再直接摆 beta/slim 开关（它们只在菜单的滑块里）");
-  ok(!/R\.string\.dsh_runtime_update_action|R\.string\.dsh_runtime_reinstall\)|R\.string\.dsh_runtime_import\)/.test(
+  ok(!/(?:Core)?R\.string\.dsh_runtime_update_action|(?:Core)?R\.string\.dsh_runtime_reinstall\)|(?:Core)?R\.string\.dsh_runtime_import\)/.test(
     card.slice(0, card.indexOf("RuntimeVersionDialog("))),
     "卡片上不再有 更新/重装/导入 按钮（分别落到 点卡片 / 当前行 / 菜单左下角）");
   // 条件与文案都要在：只查文案的话把 if (checking) 改成 if (false) 照样绿
-  ok(/if \(checking\) \{/.test(card) && /R\.string\.dsh_runtime_checking/.test(card),
+  ok(/if \(checking\) \{/.test(card) && /(?:Core)?R\.string\.dsh_runtime_checking/.test(card),
     "检查进行中要有可见反馈（原来是按钮里的转圈，按钮没了就得自己给）");
 }
 
@@ -103,16 +103,16 @@ console.log("\n── 菜单：两个两档滑块，改了就重拉 ──");
   ok(/RuntimeFlavorSlider\(slim = slim, onSelect = onSlimChange\)/.test(dialog) &&
      /RuntimeChannelSlider\(beta = beta, onSelect = onBetaChange\)/.test(dialog),
     "两个滑块都接上了（一个版本类型、一个更新通道）");
-  ok(/if \(slim\) RuntimeSliderNote\(text = stringResource\(R\.string\.dsh_runtime_slim_summary\)\)/.test(dialog) &&
-     /if \(beta\) RuntimeSliderNote\(text = stringResource\(R\.string\.dsh_runtime_beta_summary\)\)/.test(dialog),
+  ok(/if \(slim\) RuntimeSliderNote\(text = stringResource\((?:Core)?R\.string\.dsh_runtime_slim_summary\)\)/.test(dialog) &&
+     /if \(beta\) RuntimeSliderNote\(text = stringResource\((?:Core)?R\.string\.dsh_runtime_beta_summary\)\)/.test(dialog),
     "选了非默认那一端才解释它是什么（精简版砍了什么 / 测试版可能不稳定）");
   ok(/private fun RuntimeFlavorSlider\(slim: Boolean, onSelect: \(Boolean\) -> Unit\)/.test(SETTINGS) &&
-     /leftLabel = stringResource\(R\.string\.dsh_runtime_flavor_full\)/.test(SETTINGS) &&
-     /rightLabel = stringResource\(R\.string\.dsh_runtime_flavor_slim\)/.test(SETTINGS),
+     /leftLabel = stringResource\((?:Core)?R\.string\.dsh_runtime_flavor_full\)/.test(SETTINGS) &&
+     /rightLabel = stringResource\((?:Core)?R\.string\.dsh_runtime_flavor_slim\)/.test(SETTINGS),
     "版本类型滑块两端是 完整版 / 精简版");
   ok(/private fun RuntimeChannelSlider\(beta: Boolean, onSelect: \(Boolean\) -> Unit\)/.test(SETTINGS) &&
-     /leftLabel = stringResource\(R\.string\.dsh_runtime_channel_stable_short\)/.test(SETTINGS) &&
-     /rightLabel = stringResource\(R\.string\.dsh_runtime_channel_beta_short\)/.test(SETTINGS),
+     /leftLabel = stringResource\((?:Core)?R\.string\.dsh_runtime_channel_stable_short\)/.test(SETTINGS) &&
+     /rightLabel = stringResource\((?:Core)?R\.string\.dsh_runtime_channel_beta_short\)/.test(SETTINGS),
     "更新通道滑块两端是 正式 / 测试");
   ok(/Slider\(/.test(twoStop) && /steps = 1/.test(twoStop) && /valueRange = 0f\.\.1f/.test(twoStop),
     "两档滑块就是 steps = 1 的 Slider（拖过去自动吸附到两端）");
@@ -133,7 +133,7 @@ console.log("\n── 列表：按滑块筛选 + 当前版本钉在最上面 ─
   ok(/if \(currentVersion\.isNotEmpty\(\) && !currentVisible\) \{/.test(dialog) &&
      /item\(key = "current-pinned"\)/.test(dialog),
     "当前已装被筛掉时钉在最上面（否则滑到别的组合就够不着重装了）");
-  ok(/R\.string\.dsh_runtime_menu_filter_note/.test(dialog), "菜单里说清列表跟着滑块走");
+  ok(/(?:Core)?R\.string\.dsh_runtime_menu_filter_note/.test(dialog), "菜单里说清列表跟着滑块走");
   // 2026-11：整串 35 字符塞进等宽单行必然被省略号截断，而截掉的正好是滑块筛出来的
   // 那半段（口味/通道）。主行改成只放 dsh 段，套件与 r 号变成标签。
   ok(/text = parts\.dsh,/.test(row),
@@ -147,7 +147,7 @@ console.log("\n── 列表：按滑块筛选 + 当前版本钉在最上面 ─
   ok(/RuntimeVersion\.sameVersion\(it\.version, currentVersion\)/.test(dialog) &&
      /current = RuntimeVersion\.sameVersion\(entry\.version, currentVersion\)/.test(dialog),
     "「当前版本」判定走 sameVersion（命名迁移期间不误判）");
-  ok(/R\.string\.dsh_runtime_versions_warning/.test(dialog),
+  ok(/(?:Core)?R\.string\.dsh_runtime_versions_warning/.test(dialog),
     "保留「老版本可能缺修复」的提醒（降级不是无代价的）");
   const filter = RUNTIME.slice(RUNTIME.indexOf("fun matchesFilter("), RUNTIME.indexOf("fun channelRank("));
   ok(/if \(flavorOf\(entry\) != want\) return false/.test(filter),
@@ -185,7 +185,7 @@ console.log("\n── 行动作：当前=重装、其它=切换；左下角=导�
   ok(/current -> onReinstall\(\)/.test(row) && /else -> onInstall\(\)/.test(row) &&
      /tooOld -> onGoUpdateApp\(\)/.test(row),
     "点当前版本 = 重装，点其它 = 切换，要求更高 App 版本的 = 去更新应用");
-  ok(/if \(current\) R\.string\.dsh_runtime_reinstall else R\.string\.dsh_runtime_row_switch/.test(row),
+  ok(/if \(current\) (?:Core)?R\.string\.dsh_runtime_reinstall else (?:Core)?R\.string\.dsh_runtime_row_switch/.test(row),
     "行右侧直接写清点下去会做什么（重装 / 切换）");
   ok(/private fun RuntimeCurrentVersionRow\(version: String, onReinstall: \(\) -> Unit\)/.test(SETTINGS) &&
      /combinedClickable\(onClick = onReinstall\)/.test(SETTINGS),
@@ -193,10 +193,10 @@ console.log("\n── 行动作：当前=重装、其它=切换；左下角=导�
   ok(/onReinstallCurrent = \{\s*\n\s*versionListOpen = false\s*\n\s*reinstallChoice = true/.test(card),
     "重装走回卡片原来那个「保留数据 / 全新重装」二选一（不清空也得问一句）");
   ok(/dismissButton = \{\s*\n\s*TextButton\(onClick = onImport\)/.test(dialog) &&
-     /R\.string\.dsh_runtime_import/.test(dialog),
+     /(?:Core)?R\.string\.dsh_runtime_import/.test(dialog),
     "左下角（dismissButton）是导入");
   ok(/confirmButton = \{\s*\n\s*TextButton\(onClick = onDismiss\)/.test(dialog) &&
-     /R\.string\.dsh_runtime_menu_close/.test(dialog),
+     /(?:Core)?R\.string\.dsh_runtime_menu_close/.test(dialog),
     "右下角是关闭");
 }
 

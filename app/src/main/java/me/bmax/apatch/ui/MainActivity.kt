@@ -193,6 +193,7 @@ import me.bmax.apatch.util.ui.rememberNavBarGlassLiquidState
 import me.bmax.apatch.util.ui.isRealTimeBlurAvailable
 import me.bmax.apatch.util.ui.isImeVisible
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 class MainActivity : AppCompatActivity() {
     private var isLoading = true
@@ -617,7 +618,7 @@ class MainActivity : AppCompatActivity() {
                         } ?: false
                         loadingDialog.hide()
                         if (staged == null) {
-                            showToast(context, context.getString(R.string.dsh_plugin_local_read_failed))
+                            showToast(context, context.getString(CoreR.string.dsh_plugin_local_read_failed))
                             return@launch
                         }
                         navigator.navigate(
@@ -805,11 +806,11 @@ class MainActivity : AppCompatActivity() {
                             showRuntimeDialog.value = false
                             DshRuntime.clearPromptedRuntimeVersion()
                         },
-                        title = { Text(stringResource(R.string.dsh_runtime_prompt_title)) },
+                        title = { Text(stringResource(CoreR.string.dsh_runtime_prompt_title)) },
                         text = {
                             Text(
                                 stringResource(
-                                    R.string.dsh_runtime_prompt_text,
+                                    CoreR.string.dsh_runtime_prompt_text,
                                     runtimePromptVersion.value,
                                 )
                             )
@@ -824,7 +825,7 @@ class MainActivity : AppCompatActivity() {
                                 // 不能借用 reinstallRuntime —— 那条是「装回已装那份」，会把自动
                                 // 检测到的新版本丢掉、仍旧下当前通道那份（真机复现过）。
                                 pendingRuntimeOp.value = { DshRuntime.updateRuntime(true) }
-                            }) { Text(stringResource(R.string.dsh_runtime_update_go)) }
+                            }) { Text(stringResource(CoreR.string.dsh_runtime_update_go)) }
                         },
                         dismissButton = {
                             TextButton(onClick = {

@@ -57,11 +57,11 @@ for (const file of walk(SRC)) {
     .join("\n");
 
   checked++;
-  for (const m of code.matchAll(/(\w+(?:\.\w+)*)\.getString\(\s*R\.string\.(\w+)/g)) {
+  for (const m of code.matchAll(/(\w+(?:\.\w+)*)\.getString\(\s*(?:Core)?R\.string\.(\w+)/g)) {
     hits.push(`${rel}: ${m[1]}.getString(R.string.${m[2]})`);
   }
   // Service / Application 里的裸 getString(R.string.x)（隐式 this）
-  for (const m of code.matchAll(/(?<![.\w])getString\(\s*R\.string\.(\w+)/g)) {
+  for (const m of code.matchAll(/(?<![.\w])getString\(\s*(?:Core)?R\.string\.(\w+)/g)) {
     hits.push(`${rel}: getString(R.string.${m[1]})（隐式 this）`);
   }
 }

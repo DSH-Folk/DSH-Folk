@@ -318,7 +318,7 @@ const server = http.createServer((req, res) => {
       "App 侧把清单写进 rootfs/root/.dsh（DshEnv.dshHome），与 CLI 的路径一致");
     // 实现在 DshRuntimeScripts（ctx 参数），DshRuntime 只留一行委托。
     ok(/fun nativeTroubleshootDoc\([^)]*\): String = buildString/.test(kt) &&
-      /appString\(R\.string\.dsh_troubleshoot_/.test(kt),
+      /appString\((?:Core)?R\.string\.dsh_troubleshoot_/.test(kt),
       "清单用资源串组装（跟着应用内语言走，不写死一种语言）");
     for (const reason of ["REASON_ROOT_UNVERIFIED", "REASON_SHIZUKU_UNAUTHORIZED", "REASON_ADB_UNPAIRED"]) {
       ok(kt.includes("PrivilegedShell." + reason + "))"),

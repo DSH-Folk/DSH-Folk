@@ -341,7 +341,7 @@ must(/deleteRecursively/.test(market), "市场安装没有清理临时目录（�
 
 // ---- 8c. 扩展页：与插件页/脚本页对齐后该有的东西 ----
 must(/extensionFilter/.test(screen), "扩展页没有自己的过滤词（与插件页共用一个词会串页）");
-must(/R\.string\.dsh_ext_empty_filtered/.test(screen),
+must(/(?:Core)?R\.string\.dsh_ext_empty_filtered/.test(screen),
   "扩展页空态没有区分「一个都没装」与「搜索没命中」：会让搜过东西的人以为扩展丢了");
 must(/ExtensionDetailSheet\(/.test(screen), "扩展页没有详情弹层（点卡片没反应）");
 must(/dsh_ext_badge_broken/.test(screen) && /dsh_ext_badge_nocode/.test(screen),

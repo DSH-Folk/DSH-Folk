@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 安装第三方扩展前的**风险确认**。
@@ -44,17 +45,17 @@ fun ExtensionInstallWarningDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_ext_warn_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_ext_warn_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(
-                    stringResource(R.string.dsh_ext_warn_body),
+                    stringResource(CoreR.string.dsh_ext_warn_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (declaredCaps.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        stringResource(R.string.dsh_ext_warn_caps_title),
+                        stringResource(CoreR.string.dsh_ext_warn_caps_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -70,14 +71,14 @@ fun ExtensionInstallWarningDialog(
                 if (!extensionName.isNullOrBlank()) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        stringResource(R.string.dsh_ext_warn_target, extensionName),
+                        stringResource(CoreR.string.dsh_ext_warn_target, extensionName),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    stringResource(R.string.dsh_ext_warn_revoke),
+                    stringResource(CoreR.string.dsh_ext_warn_revoke),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -86,7 +87,7 @@ fun ExtensionInstallWarningDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(
-                    stringResource(R.string.dsh_ext_warn_confirm),
+                    stringResource(CoreR.string.dsh_ext_warn_confirm),
                     color = MaterialTheme.colorScheme.error,
                 )
             }

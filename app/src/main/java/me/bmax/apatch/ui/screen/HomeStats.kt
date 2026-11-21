@@ -35,6 +35,7 @@ import me.bmax.apatch.ui.viewmodel.SystemMonitorState
 import me.bmax.apatch.ui.viewmodel.TimeSeriesData
 import me.bmax.apatch.util.AppData
 import me.bmax.apatch.util.ui.HomeBottomSpacer
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 统计风格首页。
@@ -464,9 +465,9 @@ private fun PluginStatisticsSection(
                     kernelModules = enabledCount,
                     apmModules = disabledCount,
                     superusers = updatableCount,
-                    kpmLabel = stringResource(R.string.dsh_stats_enabled),
-                    apmLabel = stringResource(R.string.dsh_stats_disabled),
-                    suLabel = stringResource(R.string.dsh_stats_updatable),
+                    kpmLabel = stringResource(CoreR.string.dsh_stats_enabled),
+                    apmLabel = stringResource(CoreR.string.dsh_stats_disabled),
+                    suLabel = stringResource(CoreR.string.dsh_stats_updatable),
                 ),
                 centerLabel = if (pluginCount > 0) pluginCount.toString() else "--",
                 modifier = Modifier.size(140.dp)
@@ -477,17 +478,17 @@ private fun PluginStatisticsSection(
                 modifier = Modifier.align(Alignment.CenterVertically)
             ) {
                 StatRow(
-                    label = stringResource(R.string.dsh_stats_enabled),
+                    label = stringResource(CoreR.string.dsh_stats_enabled),
                     value = enabledCount.toString(),
                     icon = Icons.Outlined.CheckCircle
                 )
                 StatRow(
-                    label = stringResource(R.string.dsh_stats_disabled),
+                    label = stringResource(CoreR.string.dsh_stats_disabled),
                     value = disabledCount.toString(),
                     icon = Icons.Outlined.Block
                 )
                 StatRow(
-                    label = stringResource(R.string.dsh_stats_updatable),
+                    label = stringResource(CoreR.string.dsh_stats_updatable),
                     value = updatableCount.toString(),
                     icon = Icons.Outlined.SystemUpdate
                 )
@@ -650,7 +651,7 @@ private fun StatsGridTopSection(navigator: DestinationsNavigator) {
         ) {
             SmallInfoCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.dsh_run_mode),
+                title = stringResource(CoreR.string.dsh_run_mode),
                 value = state.runtimeLabel,
                 icon = Icons.Outlined.Speed,
                 onClick = { navigator.navigate(FunctionSettingsScreenDestination(null)) { launchSingleTop = true } }
@@ -658,7 +659,7 @@ private fun StatsGridTopSection(navigator: DestinationsNavigator) {
 
             SmallInfoCard(
                 modifier = Modifier.weight(1f),
-                title = stringResource(R.string.dsh_permission),
+                title = stringResource(CoreR.string.dsh_permission),
                 value = state.permLabel,
                 icon = Icons.Outlined.Security,
                 onClick = { navigator.navigate(SecuritySettingsScreenDestination(null)) { launchSingleTop = true } }

@@ -30,6 +30,7 @@ import kotlinx.coroutines.withContext
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ScriptMarket
 import me.bmax.apatch.dsh.Userscripts
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「从链接安装」弹窗：**脚本市场与用户脚本页共用同一份**。
@@ -53,10 +54,10 @@ internal fun UserscriptLinkInstallDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_userscripts_market_link_install)) },
+        title = { Text(stringResource(CoreR.string.dsh_userscripts_market_link_install)) },
         text = {
             Column {
-                Text(stringResource(R.string.dsh_userscripts_market_link_desc))
+                Text(stringResource(CoreR.string.dsh_userscripts_market_link_desc))
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = input,
@@ -69,7 +70,7 @@ internal fun UserscriptLinkInstallDialog(
                 if (invalid) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        stringResource(R.string.dsh_userscripts_market_link_invalid),
+                        stringResource(CoreR.string.dsh_userscripts_market_link_invalid),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -84,7 +85,7 @@ internal fun UserscriptLinkInstallDialog(
                     onDismiss()
                     onInstall(url)
                 }
-            }) { Text(stringResource(R.string.dsh_userscripts_market_install)) }
+            }) { Text(stringResource(CoreR.string.dsh_userscripts_market_install)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
@@ -152,7 +153,7 @@ internal fun UserscriptInstallConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val noVersion = stringResource(R.string.dsh_userscripts_confirm_no_version)
+    val noVersion = stringResource(CoreR.string.dsh_userscripts_confirm_no_version)
     val version = pending.version.ifBlank { noVersion }
     val existing = pending.existing
 
@@ -162,10 +163,10 @@ internal fun UserscriptInstallConfirmDialog(
             Text(
                 stringResource(
                     when (pending.change) {
-                        Userscripts.Change.INSTALL -> R.string.dsh_userscripts_confirm_install
-                        Userscripts.Change.UPGRADE -> R.string.dsh_userscripts_confirm_upgrade
-                        Userscripts.Change.DOWNGRADE -> R.string.dsh_userscripts_confirm_downgrade
-                        Userscripts.Change.SAME -> R.string.dsh_userscripts_confirm_reinstall
+                        Userscripts.Change.INSTALL -> CoreR.string.dsh_userscripts_confirm_install
+                        Userscripts.Change.UPGRADE -> CoreR.string.dsh_userscripts_confirm_upgrade
+                        Userscripts.Change.DOWNGRADE -> CoreR.string.dsh_userscripts_confirm_downgrade
+                        Userscripts.Change.SAME -> CoreR.string.dsh_userscripts_confirm_reinstall
                     }
                 )
             )
@@ -176,14 +177,14 @@ internal fun UserscriptInstallConfirmDialog(
                 Spacer(Modifier.height(4.dp))
                 if (existing == null) {
                     Text(
-                        stringResource(R.string.dsh_userscripts_confirm_version, version),
+                        stringResource(CoreR.string.dsh_userscripts_confirm_version, version),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Text(
                         stringResource(
-                            R.string.dsh_userscripts_confirm_replace,
+                            CoreR.string.dsh_userscripts_confirm_replace,
                             existing.version.ifBlank { noVersion },
                             version,
                         ),
@@ -193,20 +194,20 @@ internal fun UserscriptInstallConfirmDialog(
                     if (pending.change == Userscripts.Change.DOWNGRADE) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            stringResource(R.string.dsh_userscripts_confirm_downgrade_warn),
+                            stringResource(CoreR.string.dsh_userscripts_confirm_downgrade_warn),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        stringResource(R.string.dsh_userscripts_confirm_diff),
+                        stringResource(CoreR.string.dsh_userscripts_confirm_diff),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Spacer(Modifier.height(4.dp))
                     if (pending.diff.none { it.kind != Userscripts.DiffLine.Kind.SAME }) {
                         Text(
-                            stringResource(R.string.dsh_userscripts_confirm_nodiff),
+                            stringResource(CoreR.string.dsh_userscripts_confirm_nodiff),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -243,10 +244,10 @@ internal fun UserscriptInstallConfirmDialog(
                 Text(
                     stringResource(
                         when (pending.change) {
-                            Userscripts.Change.INSTALL -> R.string.dsh_userscripts_market_install
-                            Userscripts.Change.UPGRADE -> R.string.dsh_userscripts_update
-                            Userscripts.Change.DOWNGRADE -> R.string.dsh_userscripts_confirm_go_downgrade
-                            Userscripts.Change.SAME -> R.string.dsh_userscripts_confirm_go_reinstall
+                            Userscripts.Change.INSTALL -> CoreR.string.dsh_userscripts_market_install
+                            Userscripts.Change.UPGRADE -> CoreR.string.dsh_userscripts_update
+                            Userscripts.Change.DOWNGRADE -> CoreR.string.dsh_userscripts_confirm_go_downgrade
+                            Userscripts.Change.SAME -> CoreR.string.dsh_userscripts_confirm_go_reinstall
                         }
                     )
                 )

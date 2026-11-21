@@ -51,16 +51,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import me.bmax.apatch.R
 import me.bmax.apatch.dsh.WorkflowNodeType
 import me.bmax.apatch.dsh.WorkflowPinKind
 import me.bmax.apatch.dsh.WorkflowStore
+import me.bmax.apatch.res.R as CoreR
 
 /** 面板顶部的三段标签：预设 / 任务 / 变量（对齐参考实现 SelectActionDialog 的 GroupType）。 */
 private val PICKER_TABS = listOf(
-    R.string.dsh_wf_picker_tab_preset,
-    R.string.dsh_wf_picker_tab_task,
-    R.string.dsh_wf_picker_tab_var,
+    CoreR.string.dsh_wf_picker_tab_preset,
+    CoreR.string.dsh_wf_picker_tab_task,
+    CoreR.string.dsh_wf_picker_tab_var,
 )
 
 private const val PICKER_TAB_PRESET = 0
@@ -204,12 +204,12 @@ fun WorkflowNodePicker(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                         singleLine = true,
                         shape = RoundedCornerShape(20.dp),
-                        placeholder = { Text(stringResource(R.string.dsh_wf_picker_search_hint)) },
+                        placeholder = { Text(stringResource(CoreR.string.dsh_wf_picker_search_hint)) },
                         leadingIcon = { Icon(Icons.Filled.Search, null) },
                         trailingIcon = {
                             if (query.isNotEmpty()) {
                                 IconButton(onClick = { query = "" }) {
-                                    Icon(Icons.Filled.Close, stringResource(R.string.dsh_wf_picker_clear))
+                                    Icon(Icons.Filled.Close, stringResource(CoreR.string.dsh_wf_picker_clear))
                                 }
                             }
                         },
@@ -254,9 +254,9 @@ fun WorkflowNodePicker(
                 Icon(
                     imageVector = if (searchOpen) Icons.Filled.Close else Icons.Filled.Search,
                     contentDescription = if (searchOpen) {
-                        stringResource(R.string.dsh_workflow_action_cancel)
+                        stringResource(CoreR.string.dsh_workflow_action_cancel)
                     } else {
-                        stringResource(R.string.dsh_wf_picker_search)
+                        stringResource(CoreR.string.dsh_wf_picker_search)
                     },
                 )
             }
@@ -336,8 +336,8 @@ private fun ColumnScope.PresetTab(
             // 搜索后为空是「没搜到」。混成一句会把用户引到错误的动作上（去改搜索词）。
             PickerEmpty(
                 stringResource(
-                    if (searching) R.string.dsh_wf_picker_empty
-                    else R.string.dsh_wf_picker_no_compatible
+                    if (searching) CoreR.string.dsh_wf_picker_empty
+                    else CoreR.string.dsh_wf_picker_no_compatible
                 ),
                 Modifier.weight(1f),
             )
@@ -363,7 +363,7 @@ private fun ColumnScope.TaskTab(
     onPick: (NodePickerEntry) -> Unit,
 ) {
     if (workflows.isEmpty()) {
-        PickerEmpty(stringResource(R.string.dsh_wf_picker_task_empty))
+        PickerEmpty(stringResource(CoreR.string.dsh_wf_picker_task_empty))
         return
     }
     val entries = workflows.map { (id, name) ->
@@ -372,7 +372,7 @@ private fun ColumnScope.TaskTab(
         NodePickerEntry(
             key = "wf_" + id,
             titleRes = 0,
-            descRes = R.string.dsh_wf_picker_task_desc,
+            descRes = CoreR.string.dsh_wf_picker_task_desc,
             icon = Icons.Filled.PlayArrow,
             accent = MaterialTheme.colorScheme.primary,
             searchText = name,
@@ -412,7 +412,7 @@ private fun ColumnScope.VariableTab(
         Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         if (variables.isEmpty()) {
-            PickerEmpty(stringResource(R.string.dsh_wf_picker_var_empty))
+            PickerEmpty(stringResource(CoreR.string.dsh_wf_picker_var_empty))
         } else {
             Column(
                 Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
@@ -422,7 +422,7 @@ private fun ColumnScope.VariableTab(
                     val entry = NodePickerEntry(
                         key = "var_" + name,
                         titleRes = 0,
-                        descRes = R.string.dsh_wf_picker_var_desc,
+                        descRes = CoreR.string.dsh_wf_picker_var_desc,
                         icon = Icons.Filled.PlayArrow,
                         accent = MaterialTheme.colorScheme.tertiary,
                         searchText = name,
@@ -451,7 +451,7 @@ private fun ColumnScope.VariableTab(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    stringResource(R.string.dsh_wf_picker_var_edit),
+                    stringResource(CoreR.string.dsh_wf_picker_var_edit),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     textAlign = TextAlign.Center,

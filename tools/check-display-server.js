@@ -1160,10 +1160,10 @@ if (jarArgAt >= 0) {
     '判定依据是一条就绪的提权通道（reach().usable），不是某个 Android 权限');
   must(/REASON_ROOT_UNVERIFIED[\s\S]{0,400}?REASON_SHIZUKU_UNAUTHORIZED[\s\S]{0,200}?REASON_ADB_UNPAIRED/.test(guide),
     '三种未就绪原因各有各的说法（笼统一句"没权限"指不出该开哪个开关）');
-  must(/REASON_ROOT_UNVERIFIED -> R\.string\.dsh_display_guide_root/.test(guide) &&
-    /REASON_SHIZUKU_UNAUTHORIZED -> R\.string\.dsh_display_guide_shizuku/.test(guide) &&
-    /REASON_ADB_UNPAIRED -> R\.string\.dsh_display_guide_adb/.test(guide) &&
-    /else -> R\.string\.dsh_display_guide_no_channel/.test(guide) &&
+  must(/REASON_ROOT_UNVERIFIED -> (?:Core)?R\.string\.dsh_display_guide_root/.test(guide) &&
+    /REASON_SHIZUKU_UNAUTHORIZED -> (?:Core)?R\.string\.dsh_display_guide_shizuku/.test(guide) &&
+    /REASON_ADB_UNPAIRED -> (?:Core)?R\.string\.dsh_display_guide_adb/.test(guide) &&
+    /else -> (?:Core)?R\.string\.dsh_display_guide_no_channel/.test(guide) &&
     /Text\(stringResource\(bodyRes\)\)/.test(guide),
     '四条文案（三种原因 + 兜底）都真的接到了文本上');
   must(/AlertDialog\(/.test(guide) && /onDismissRequest = onDismiss/.test(guide),

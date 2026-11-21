@@ -3,9 +3,9 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import me.bmax.apatch.R
 import org.json.JSONArray
 import org.json.JSONObject
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 自动化工作流的 HTTP 端点族（`/workflow/…`），挂在 [DshFsBridge] 的同一个回环 socket 上。
@@ -49,14 +49,14 @@ internal object WorkflowBridge {
             reconciled = true
             runCatching { WorkflowStore.reconcileInterrupted(ctx.applicationContext) }
         }
-        if (!enabled(ctx)) return 403 to err(str(ctx, R.string.dsh_workflow_err_disabled), "disabled")
+        if (!enabled(ctx)) return 403 to err(str(ctx, CoreR.string.dsh_workflow_err_disabled), "disabled")
         return when {
             method == "GET" && path == "/workflow/list" -> list(ctx, params)
             method == "GET" && path == "/workflow/status" -> status(ctx, params)
             method == "POST" && path == "/workflow/create" -> create(ctx, readBody(), params)
             method == "POST" && path == "/workflow/run" -> run(ctx, readBody(), params)
             method == "POST" && path == "/workflow/cancel" -> cancel(ctx, readBody())
-            else -> 404 to err(str(ctx, R.string.dsh_workflow_err_unknown_endpoint, method, path), "unknown_endpoint")
+            else -> 404 to err(str(ctx, CoreR.string.dsh_workflow_err_unknown_endpoint, method, path), "unknown_endpoint")
         }
     }
 
@@ -89,13 +89,13 @@ internal object WorkflowBridge {
         val runId = params["runId"].orEmpty()
         if (runId.isNotBlank()) {
             val run = WorkflowEngine.status(ctx, runId)
-                ?: return 404 to err(str(ctx, R.string.dsh_workflow_err_no_run, runId), "no_such_run")
+                ?: return 404 to err(str(ctx, CoreR.string.dsh_workflow_err_no_run, runId), "no_such_run")
             return 200 to statusJson(ctx, run, params)
         }
         val workflowId = params["workflowId"].orEmpty()
         if (workflowId.isNotBlank()) {
             val def = WorkflowStore.load(ctx, workflowId)
-                ?: return 404 to err(str(ctx, R.string.dsh_workflow_err_no_workflow, workflowId), "no_such_workflow")
+                ?: return 404 to err(str(ctx, CoreR.string.dsh_workflow_err_no_workflow, workflowId), "no_such_workflow")
             val runs = WorkflowStore.listRuns(ctx, workflowId, limit = 10)
             val arr = JSONArray()
             for (r in runs) arr.put(shortRun(r))
@@ -159,17 +159,17 @@ internal object WorkflowBridge {
 
     private fun create(ctx: Context, body: String, params: Map<String, String>): Pair<Int, String> {
         if (body.length > MAX_BODY_BYTES) {
-            return 413 to err(str(ctx, R.string.dsh_workflow_err_body_too_large), "body_too_large")
+            return 413 to err(str(ctx, CoreR.string.dsh_workflow_err_body_too_large), "body_too_large")
         }
         val json = runCatching { JSONObject(body) }.getOrNull()
-            ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_bad_json), "bad_json")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_bad_json), "bad_json")
         val raw = json.opt("definition")?.let { if (it is JSONObject) it.toString() else it.toString() }
             ?: json.optString("definitionJson").takeIf { it.isNotBlank() }
-            ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_missing_definition), "missing_definition")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_missing_definition), "missing_definition")
         val parsed = definitionFromJson(raw)
-            ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_bad_definition), "invalid_definition")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_bad_definition), "invalid_definition")
         val reason = json.optString("reason", params["reason"].orEmpty())
-        if (reason.isBlank()) return 400 to err(str(ctx, R.string.dsh_workflow_err_reason_required), "reason_required")
+        if (reason.isBlank()) return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_reason_required), "reason_required")
 
         // 名字/描述可以由调用方覆盖（AI 常常把定义里的 name 写成占位）
         val def = parsed.copy(
@@ -185,22 +185,22 @@ internal object WorkflowBridge {
 
     private fun run(ctx: Context, body: String, params: Map<String, String>): Pair<Int, String> {
         if (body.length > MAX_BODY_BYTES) {
-            return 413 to err(str(ctx, R.string.dsh_workflow_err_body_too_large), "body_too_large")
+            return 413 to err(str(ctx, CoreR.string.dsh_workflow_err_body_too_large), "body_too_large")
         }
         val json = runCatching { JSONObject(body) }.getOrNull()
-            ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_bad_json), "bad_json")
+            ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_bad_json), "bad_json")
         val reason = json.optString("reason", params["reason"].orEmpty())
-        if (reason.isBlank()) return 400 to err(str(ctx, R.string.dsh_workflow_err_reason_required), "reason_required")
+        if (reason.isBlank()) return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_reason_required), "reason_required")
 
         val workflowId = json.optString("workflowId").ifBlank { params["workflowId"].orEmpty() }
         val inlineRaw = json.opt("definition")?.let { if (it is JSONObject) it.toString() else it.toString() }
             ?: json.optString("definitionJson").takeIf { it.isNotBlank() }
         val def = when {
             workflowId.isNotBlank() -> WorkflowStore.load(ctx, workflowId)
-                ?: return 404 to err(str(ctx, R.string.dsh_workflow_err_no_workflow, workflowId), "no_such_workflow")
+                ?: return 404 to err(str(ctx, CoreR.string.dsh_workflow_err_no_workflow, workflowId), "no_such_workflow")
             inlineRaw != null -> definitionFromJson(inlineRaw)
-                ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_bad_definition), "invalid_definition")
-            else -> return 400 to err(str(ctx, R.string.dsh_workflow_err_missing_workflow), "missing_workflow")
+                ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_bad_definition), "invalid_definition")
+            else -> return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_missing_workflow), "missing_workflow")
         }
         val wait = json.optBoolean("wait", params["wait"] == "1" || params["wait"] == "true")
         return approveAndAct(ctx, WorkflowApprovals.Kind.RUN, def, reason, wait)
@@ -221,13 +221,13 @@ internal object WorkflowBridge {
     ): Pair<Int, String> {
         if (!DshNativeBridge.isForeground(ctx)) {
             // 弹窗只有前台才看得见。不在前台就把这条连接留着等一个永远不会出现的弹窗 = 静默超时。
-            return 409 to err(str(ctx, R.string.dsh_workflow_err_foreground), "not_foreground")
+            return 409 to err(str(ctx, CoreR.string.dsh_workflow_err_foreground), "not_foreground")
         }
         val allowedCaps = DshNativeBridge.Cap.entries.map { it.id }.toSet()
         val validation = WorkflowValidator.validate(submitted, allowedCaps)
         if (!validation.ok) {
             return 400 to err(
-                str(ctx, R.string.dsh_workflow_err_invalid, validation.errors.take(8).joinToString("；")),
+                str(ctx, CoreR.string.dsh_workflow_err_invalid, validation.errors.take(8).joinToString("；")),
                 "invalid_definition",
             ).let { body ->
                 JSONObject(body).put("errors", JSONArray(validation.errors)).toString()
@@ -247,20 +247,20 @@ internal object WorkflowBridge {
             reason = reason,
             nodeCount = submitted.nodes.size,
             edgeCount = submitted.edges.size,
-        ) ?: return 409 to err(str(ctx, R.string.dsh_workflow_err_busy), "approval_pending")
+        ) ?: return 409 to err(str(ctx, CoreR.string.dsh_workflow_err_busy), "approval_pending")
 
         val verdict = WorkflowApprovals.awaitDecision(request.id)
         WorkflowApprovals.takeVerdict(request.id)
         when (verdict.decision) {
             WorkflowApprovals.Decision.EXPIRED ->
-                return 403 to err(str(ctx, R.string.dsh_workflow_err_expired), "approval_expired")
+                return 403 to err(str(ctx, CoreR.string.dsh_workflow_err_expired), "approval_expired")
 
             WorkflowApprovals.Decision.REJECTED ->
                 return 403 to err(
                     str(
                         ctx,
-                        R.string.dsh_workflow_err_rejected,
-                        verdict.rejectReason.ifBlank { str(ctx, R.string.dsh_workflow_reject_no_reason) },
+                        CoreR.string.dsh_workflow_err_rejected,
+                        verdict.rejectReason.ifBlank { str(ctx, CoreR.string.dsh_workflow_reject_no_reason) },
                     ),
                     "rejected_by_user",
                 ).let { body ->
@@ -275,11 +275,11 @@ internal object WorkflowBridge {
         var diff = emptyList<WorkflowPatch>()
         if (verdict.editedJson != null) {
             val edited = definitionFromJson(verdict.editedJson)
-                ?: return 400 to err(str(ctx, R.string.dsh_workflow_err_edited_bad), "invalid_definition")
+                ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_edited_bad), "invalid_definition")
             val recheck = WorkflowValidator.validate(edited, allowedCaps)
             if (!recheck.ok) {
                 return 400 to err(
-                    str(ctx, R.string.dsh_workflow_err_edited_invalid, recheck.errors.take(8).joinToString("；")),
+                    str(ctx, CoreR.string.dsh_workflow_err_edited_invalid, recheck.errors.take(8).joinToString("；")),
                     "invalid_definition",
                 ).let { body ->
                     JSONObject(body).put("errors", JSONArray(recheck.errors)).toString()
@@ -291,7 +291,7 @@ internal object WorkflowBridge {
 
         val dangerousNow = scanDangerous(ctx, effective)
         val saved = WorkflowStore.save(ctx, effective)
-            ?: return 500 to err(str(ctx, R.string.dsh_workflow_err_save_failed), "save_failed")
+            ?: return 500 to err(str(ctx, CoreR.string.dsh_workflow_err_save_failed), "save_failed")
 
         if (kind == WorkflowApprovals.Kind.CREATE) {
             return 200 to JSONObject()
@@ -335,12 +335,12 @@ internal object WorkflowBridge {
                     workflowName = effective.name,
                     caps = effective.effectiveCaps,
                     reason = effective.name,
-                ) ?: return 409 to err(str(ctx, R.string.dsh_workflow_err_busy), "approval_pending")
+                ) ?: return 409 to err(str(ctx, CoreR.string.dsh_workflow_err_busy), "approval_pending")
                 if (WorkflowPermissions.Gate.awaitDecision(gate.id) !=
                     WorkflowPermissions.Gate.Decision.START
                 ) {
                     return 403 to err(
-                        str(ctx, R.string.dsh_workflow_err_permission_denied),
+                        str(ctx, CoreR.string.dsh_workflow_err_permission_denied),
                         "permission_denied",
                     )
                 }
@@ -358,7 +358,7 @@ internal object WorkflowBridge {
             allowDangerous = verdict.allowDangerous && dangerousNow,
         )
         if (!started.ok || started.runId == null) {
-            return 500 to err(str(ctx, R.string.dsh_workflow_err_start_failed, started.reason), "start_failed")
+            return 500 to err(str(ctx, CoreR.string.dsh_workflow_err_start_failed, started.reason), "start_failed")
         }
 
         val body = JSONObject()
@@ -395,12 +395,12 @@ internal object WorkflowBridge {
     private fun cancel(ctx: Context, body: String): Pair<Int, String> {
         val json = runCatching { JSONObject(body) }.getOrElse { JSONObject() }
         val runId = json.optString("runId")
-        if (runId.isBlank()) return 400 to err(str(ctx, R.string.dsh_workflow_err_missing_run), "missing_runId")
+        if (runId.isBlank()) return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_missing_run), "missing_runId")
         val ok = WorkflowEngine.cancel(ctx, runId, json.optString("reason"))
         return if (ok) {
             200 to JSONObject().put("ok", true).put("runId", runId).put("state", "canceled").toString()
         } else {
-            404 to err(str(ctx, R.string.dsh_workflow_err_not_running, runId), "not_running")
+            404 to err(str(ctx, CoreR.string.dsh_workflow_err_not_running, runId), "not_running")
         }
     }
 
@@ -416,30 +416,30 @@ internal object WorkflowBridge {
 
     /** 批准弹窗给用户看的那几行：他判断的不是「JSON 合不合法」，而是「它要做什么」。 */
     private fun summaryOf(ctx: Context, def: WorkflowDefinition, dangerous: Boolean): String = buildString {
-        append(str(ctx, R.string.dsh_workflow_summary_nodes, def.nodes.size, def.edges.size))
+        append(str(ctx, CoreR.string.dsh_workflow_summary_nodes, def.nodes.size, def.edges.size))
         val caps = def.effectiveCaps
         if (caps.isNotEmpty()) {
             append("\n")
-            append(str(ctx, R.string.dsh_workflow_summary_caps, caps.joinToString("、")))
+            append(str(ctx, CoreR.string.dsh_workflow_summary_caps, caps.joinToString("、")))
         }
         if (dangerous) {
             append("\n")
-            append(str(ctx, R.string.dsh_workflow_summary_danger))
+            append(str(ctx, CoreR.string.dsh_workflow_summary_danger))
         }
         val steps = def.nodes.take(6).joinToString("\n") { n ->
             val what = when (n.type) {
-                WorkflowNodeType.TRIGGER -> str(ctx, R.string.dsh_workflow_kind_trigger)
-                WorkflowNodeType.CONDITION -> str(ctx, R.string.dsh_workflow_kind_condition)
-                WorkflowNodeType.LOGIC -> str(ctx, R.string.dsh_workflow_kind_logic)
-                WorkflowNodeType.EXTRACT -> str(ctx, R.string.dsh_workflow_kind_extract)
-                WorkflowNodeType.WAIT -> str(ctx, R.string.dsh_workflow_kind_wait)
+                WorkflowNodeType.TRIGGER -> str(ctx, CoreR.string.dsh_workflow_kind_trigger)
+                WorkflowNodeType.CONDITION -> str(ctx, CoreR.string.dsh_workflow_kind_condition)
+                WorkflowNodeType.LOGIC -> str(ctx, CoreR.string.dsh_workflow_kind_logic)
+                WorkflowNodeType.EXTRACT -> str(ctx, CoreR.string.dsh_workflow_kind_extract)
+                WorkflowNodeType.WAIT -> str(ctx, CoreR.string.dsh_workflow_kind_wait)
                 WorkflowNodeType.EXECUTE -> when (n.actionType) {
                     WorkflowActionType.NATIVE -> {
                 val spec = WorkflowActionCatalog.byId(n.config("bridge"))
                 if (spec == null) "native: " + n.config("bridge")
                 else str(ctx, spec.titleRes)
             }
-            WorkflowActionType.NOTIFY -> str(ctx, R.string.dsh_workflow_kind_notify)
+            WorkflowActionType.NOTIFY -> str(ctx, CoreR.string.dsh_workflow_kind_notify)
                     WorkflowActionType.DSH -> "dsh: " + n.config("cmd").take(80)
                     // 计算动作没有 cmd，落到 else 会显示成一句空的 "$ "，
                     // 审批弹窗里那一步就变成"什么都没做"——必须给它的名字。

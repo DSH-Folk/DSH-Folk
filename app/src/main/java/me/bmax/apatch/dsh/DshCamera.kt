@@ -12,11 +12,11 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.util.Size
-import me.bmax.apatch.R
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 无预览拍照（`/native/camera/photo`）。
@@ -60,13 +60,13 @@ internal object DshCamera {
     fun photo(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         if (!DshNativeBridge.isForeground(ctx)) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_background),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_background),
                 "not_foreground",
             )
         }
         if (!capturing.compareAndSet(false, true)) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_busy),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_busy),
                 "already_capturing",
             )
         }
@@ -86,25 +86,25 @@ internal object DshCamera {
     private fun doPhoto(ctx: Context, params: Map<String, String>): Pair<Int, String> {
         val mgr = ctx.getSystemService(CameraManager::class.java)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_no_service, "CameraManager"),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_no_service, "CameraManager"),
                 "no_service",
             )
         val wantFront = (params["facing"] ?: "back").lowercase() == "front"
         val camId = pickCamera(mgr, wantFront)
             ?: return 404 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_none),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_none),
                 "no_camera",
             )
         val maxDim = (params["max"]?.toIntOrNull() ?: DEFAULT_MAX_DIM).coerceIn(320, MAX_MAX_DIM)
 
         val chars = runCatching { mgr.getCameraCharacteristics(camId) }.getOrNull()
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_open, camId),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_open, camId),
                 "camera_failed",
             )
         val size = pickSize(chars, maxDim)
             ?: return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_no_size),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_no_size),
                 "camera_failed",
             )
 
@@ -235,14 +235,14 @@ internal object DshCamera {
         val bytes = jpeg
         if (bytes == null || bytes.isEmpty()) {
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_capture),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_capture),
                 failure ?: "capture_timeout",
             )
         }
         // 拍完再确认一次前台：中途切走那几帧多半是黑的
         if (!DshNativeBridge.isForeground(ctx)) {
             return 409 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_background),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_background),
                 "not_foreground",
             )
         }
@@ -253,7 +253,7 @@ internal object DshCamera {
         if (!written) {
             runCatching { out.delete() }
             return 500 to DshNativeBridge.err(
-                DshNativeBridge.str(ctx, R.string.dsh_native_err_camera_write),
+                DshNativeBridge.str(ctx, CoreR.string.dsh_native_err_camera_write),
                 "write_failed",
             )
         }

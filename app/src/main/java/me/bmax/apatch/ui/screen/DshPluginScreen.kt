@@ -117,6 +117,7 @@ import me.bmax.apatch.ui.component.WallpaperAwareDropdownMenuItem
 import me.bmax.apatch.ui.viewmodel.DshPluginViewModel
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.LocalSnackbarHost
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * DSH 插件页（底栏「插件」）。
@@ -152,9 +153,9 @@ private class PluginPage(val id: String, val titleRes: Int)
 
 /** 三页平级，顺序即菜单顺序 —— 切换器与标题栏都照这一份走，不会再各写一遍 when。 */
 private val PLUGIN_PAGES = listOf(
-    PluginPage(GROUP_PLUGINS, R.string.dsh_plugins),
-    PluginPage(GROUP_SCRIPTS, R.string.dsh_userscripts_title),
-    PluginPage(GROUP_EXTENSIONS, R.string.dsh_plugins_extensions),
+    PluginPage(GROUP_PLUGINS, CoreR.string.dsh_plugins),
+    PluginPage(GROUP_SCRIPTS, CoreR.string.dsh_userscripts_title),
+    PluginPage(GROUP_EXTENSIONS, CoreR.string.dsh_plugins_extensions),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -221,7 +222,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         scope.launch {
             val guest = withContext(Dispatchers.IO) { DshPluginRepo.stageTarball(context, uri) }
             if (guest == null) {
-                snackBarHost.showSnackbar(context.getString(R.string.dsh_plugin_local_read_failed))
+                snackBarHost.showSnackbar(context.getString(CoreR.string.dsh_plugin_local_read_failed))
                 return@launch
             }
             viewModel.installLocal(guest)
@@ -259,7 +260,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                         r.fold(
                             onSuccess = {
                                 snackBarHost.showSnackbar(
-                                    context.getString(R.string.dsh_ext_installed_ok, it.name),
+                                    context.getString(CoreR.string.dsh_ext_installed_ok, it.name),
                                 )
                                 extensionRefresh++
                             },
@@ -314,11 +315,11 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
     if (showExtLinkInstall) {
         AlertDialog(
             onDismissRequest = { if (!extLinkBusy) showExtLinkInstall = false },
-            title = { Text(stringResource(R.string.dsh_ext_install_link)) },
+            title = { Text(stringResource(CoreR.string.dsh_ext_install_link)) },
             text = {
                 Column {
                     Text(
-                        stringResource(R.string.dsh_ext_install_link_desc),
+                        stringResource(CoreR.string.dsh_ext_install_link_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -366,7 +367,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                                             r.fold(
                                                 onSuccess = {
                                                     snackBarHost.showSnackbar(
-                                                        context.getString(R.string.dsh_ext_installed_ok, it.name),
+                                                        context.getString(CoreR.string.dsh_ext_installed_ok, it.name),
                                                     )
                                                     extensionRefresh++
                                                 },
@@ -387,7 +388,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                             )
                         }
                     },
-                ) { Text(stringResource(R.string.dsh_ext_install_go)) }
+                ) { Text(stringResource(CoreR.string.dsh_ext_install_go)) }
             },
             dismissButton = {
                 TextButton(
@@ -424,11 +425,11 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     Text(
                         stringResource(
                             when (group) {
-                                GROUP_SCRIPTS -> R.string.dsh_userscripts_title
+                                GROUP_SCRIPTS -> CoreR.string.dsh_userscripts_title
                                 // 标题栏用扩展自己的串（与菜单里那行「扩展」同一份文案）：
                                 // 菜单是给三页做索引的，标题说的是「你现在在哪一页」，两者分开取。
-                                GROUP_EXTENSIONS -> R.string.dsh_ext_title
-                                else -> R.string.dsh_plugins
+                                GROUP_EXTENSIONS -> CoreR.string.dsh_ext_title
+                                else -> CoreR.string.dsh_plugins
                             }
                         )
                     )
@@ -486,11 +487,11 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                                     // KDoc 里记着这个坑）。
                                     st.failure != null ->
                                         snackBarHost.showSnackbar(
-                                            context.getString(R.string.dsh_plugins_update_check_failed),
+                                            context.getString(CoreR.string.dsh_plugins_update_check_failed),
                                         )
                                     st.hasUpdate -> showAppUpdateDialog = true
                                     else -> snackBarHost.showSnackbar(
-                                        context.getString(R.string.dsh_plugins_update_up_to_date),
+                                        context.getString(CoreR.string.dsh_plugins_update_up_to_date),
                                     )
                                 }
                             }
@@ -504,7 +505,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                         } else {
                             Icon(
                                 Icons.Outlined.SystemUpdate,
-                                contentDescription = stringResource(R.string.dsh_plugins_check_app_update),
+                                contentDescription = stringResource(CoreR.string.dsh_plugins_check_app_update),
                             )
                         }
                     }
@@ -521,8 +522,8 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                                 if (hideBuiltins) Icons.Outlined.Visibility
                                 else Icons.Outlined.VisibilityOff,
                                 contentDescription = stringResource(
-                                    if (hideBuiltins) R.string.dsh_userscripts_show_builtin
-                                    else R.string.dsh_userscripts_hide_builtin
+                                    if (hideBuiltins) CoreR.string.dsh_userscripts_show_builtin
+                                    else CoreR.string.dsh_userscripts_hide_builtin
                                 ),
                             )
                         }
@@ -532,7 +533,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     IconButton(onClick = { groupMenu = true }) {
                         Icon(
                             Icons.Filled.Segment,
-                            contentDescription = stringResource(R.string.dsh_plugins_switch),
+                            contentDescription = stringResource(CoreR.string.dsh_plugins_switch),
                         )
                     }
                     WallpaperAwareDropdownMenu(
@@ -586,19 +587,19 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     listOf(
                         AddMenuEntry(
                             icon = Icons.Outlined.Storefront,
-                            labelRes = R.string.dsh_ext_market,
+                            labelRes = CoreR.string.dsh_ext_market,
                             onClick = { showMarket = true },
                         ),
                         // 从链接 / 从文件：与插件页那两个入口同构 —— 市场只是「有一个目录」，
                         // 而扩展同样可能是用户自己从别处拿到的包。
                         AddMenuEntry(
                             icon = Icons.Outlined.Link,
-                            labelRes = R.string.dsh_ext_install_link,
+                            labelRes = CoreR.string.dsh_ext_install_link,
                             onClick = { showExtLinkInstall = true },
                         ),
                         AddMenuEntry(
                             icon = Icons.Outlined.FolderOpen,
-                            labelRes = R.string.dsh_ext_install_file,
+                            labelRes = CoreR.string.dsh_ext_install_file,
                             onClick = {
                                 pickExtZip.launch(
                                     Intent(Intent.ACTION_GET_CONTENT).apply {
@@ -616,12 +617,12 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     listOf(
                         AddMenuEntry(
                             icon = Icons.Outlined.Link,
-                            labelRes = R.string.dsh_plugin_install_link,
+                            labelRes = CoreR.string.dsh_plugin_install_link,
                             onClick = { showLinkInstall = true },
                         ),
                         AddMenuEntry(
                             icon = Icons.Outlined.FolderOpen,
-                            labelRes = R.string.dsh_local_install,
+                            labelRes = CoreR.string.dsh_local_install,
                             onClick = {
                                 pickTarball.launch(
                                     Intent(Intent.ACTION_GET_CONTENT).apply {
@@ -633,7 +634,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                         ),
                         AddMenuEntry(
                             icon = Icons.Outlined.Storefront,
-                            labelRes = R.string.dsh_plugin_store,
+                            labelRes = CoreR.string.dsh_plugin_store,
                             onClick = { navigator.navigate(DshPluginStoreScreenDestination) { launchSingleTop = true } },
                         ),
                     )
@@ -703,10 +704,10 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
     if (showLinkInstall) {
         AlertDialog(
             onDismissRequest = { showLinkInstall = false },
-            title = { Text(stringResource(R.string.dsh_plugin_install_link)) },
+            title = { Text(stringResource(CoreR.string.dsh_plugin_install_link)) },
             text = {
                 Column {
-                    Text(stringResource(R.string.dsh_plugin_install_link_desc))
+                    Text(stringResource(CoreR.string.dsh_plugin_install_link_desc))
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = linkInput,
@@ -719,7 +720,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                     if (linkError) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            stringResource(R.string.dsh_plugin_install_link_invalid),
+                            stringResource(CoreR.string.dsh_plugin_install_link_invalid),
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -736,7 +737,7 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                         linkInput = ""
                         viewModel.install(spec)
                     }
-                }) { Text(stringResource(R.string.dsh_plugin_install_action)) }
+                }) { Text(stringResource(CoreR.string.dsh_plugin_install_action)) }
             },
             dismissButton = {
                 TextButton(onClick = { showLinkInstall = false }) {
@@ -765,11 +766,11 @@ internal fun PluginProgressHost(viewModel: DshPluginViewModel) {
     viewModel.buildApproval?.let { ask ->
         AlertDialog(
             onDismissRequest = { viewModel.dismissBuildApproval() },
-            title = { Text(stringResource(R.string.dsh_plugin_allow_builds_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_plugin_allow_builds_title)) },
             text = {
                 Column {
                     Text(
-                        text = stringResource(R.string.dsh_plugin_allow_builds_text, ask.target),
+                        text = stringResource(CoreR.string.dsh_plugin_allow_builds_text, ask.target),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(8.dp))
@@ -782,7 +783,7 @@ internal fun PluginProgressHost(viewModel: DshPluginViewModel) {
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.dsh_plugin_allow_builds_warn),
+                        text = stringResource(CoreR.string.dsh_plugin_allow_builds_warn),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -790,7 +791,7 @@ internal fun PluginProgressHost(viewModel: DshPluginViewModel) {
             },
             confirmButton = {
                 TextButton(onClick = { viewModel.approveBuilds() }) {
-                    Text(stringResource(R.string.dsh_plugin_allow_builds_go))
+                    Text(stringResource(CoreR.string.dsh_plugin_allow_builds_go))
                 }
             },
             dismissButton = {
@@ -845,14 +846,14 @@ internal fun DshRuntimeNeeded(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.dsh_plugin_needs_runtime),
+                text = stringResource(CoreR.string.dsh_plugin_needs_runtime),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 32.dp),
             )
             Spacer(Modifier.height(16.dp))
             TextButton(onClick = onGoHome) {
-                Text(stringResource(R.string.dsh_plugin_go_home))
+                Text(stringResource(CoreR.string.dsh_plugin_go_home))
             }
         }
     }
@@ -868,7 +869,7 @@ private fun DshPluginList(
     val context = LocalContext.current
     val list = viewModel.filtered
     val builtInVisible = viewModel.search.isBlank() ||
-        context.getString(R.string.dsh_host_plugin_name).contains(viewModel.search, ignoreCase = true)
+        context.getString(CoreR.string.dsh_host_plugin_name).contains(viewModel.search, ignoreCase = true)
     // 只存 id，实体每次从列表取：装/卸/切换之后列表会刷新，
     // 存快照的话详情面板里的开关会停在打开那一刻的状态（与商店页同一纪律）
     var detailId by remember { mutableStateOf<String?>(null) }
@@ -923,10 +924,10 @@ private fun DshPluginList(
             val query = viewModel.search
             Text(
                 text = when {
-                    viewModel.isRefreshing -> stringResource(R.string.dsh_plugin_loading)
+                    viewModel.isRefreshing -> stringResource(CoreR.string.dsh_plugin_loading)
                     viewModel.plugins.isNotEmpty() && query.isNotBlank() ->
-                        stringResource(R.string.dsh_plugin_no_match, query)
-                    else -> stringResource(R.string.dsh_plugin_empty)
+                        stringResource(CoreR.string.dsh_plugin_no_match, query)
+                    else -> stringResource(CoreR.string.dsh_plugin_empty)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -954,7 +955,7 @@ private fun DshPluginList(
         if (viewModel.refreshError.isNotEmpty()) {
             item(key = "refresh-error") {
                 Text(
-                    text = stringResource(R.string.dsh_plugin_refresh_failed, viewModel.refreshError),
+                    text = stringResource(CoreR.string.dsh_plugin_refresh_failed, viewModel.refreshError),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -965,7 +966,7 @@ private fun DshPluginList(
         if (viewModel.installing && viewModel.progressHidden) {
             item(key = "plugin-progress-hidden") {
                 TextButton(onClick = { viewModel.showProgress() }) {
-                    Text(stringResource(R.string.dsh_plugin_show_progress))
+                    Text(stringResource(CoreR.string.dsh_plugin_show_progress))
                 }
             }
         }
@@ -1130,7 +1131,7 @@ private fun ExtensionsPane(
                 ) {
                     Text(
                         text = stringResource(
-                            if (filteredOut) R.string.dsh_ext_empty_filtered else R.string.dsh_ext_empty,
+                            if (filteredOut) CoreR.string.dsh_ext_empty_filtered else CoreR.string.dsh_ext_empty,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1140,9 +1141,9 @@ private fun ExtensionsPane(
                     Text(
                         text = stringResource(
                             if (filteredOut) {
-                                R.string.dsh_ext_empty_filtered_hint
+                                CoreR.string.dsh_ext_empty_filtered_hint
                             } else {
-                                R.string.dsh_ext_install_hint
+                                CoreR.string.dsh_ext_install_hint
                             },
                         ),
                         style = MaterialTheme.typography.bodySmall,
@@ -1238,18 +1239,18 @@ private fun ExtensionsPane(
     trustRecord?.let { rec ->
         AlertDialog(
             onDismissRequest = { trustRecord = null },
-            title = { Text(stringResource(R.string.dsh_ext_trust_title)) },
+            title = { Text(stringResource(CoreR.string.dsh_ext_trust_title)) },
             text = {
                 Column {
                     Text(
-                        text = stringResource(R.string.dsh_ext_trust_body, rec.manifest.name),
+                        text = stringResource(CoreR.string.dsh_ext_trust_body, rec.manifest.name),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (rec.manifest.declaredCaps.isNotEmpty()) {
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stringResource(
-                                R.string.dsh_ext_caps,
+                                CoreR.string.dsh_ext_caps,
                                 rec.manifest.declaredCaps.joinToString(", "),
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -1266,10 +1267,10 @@ private fun ExtensionsPane(
                     refreshTick++
                     // 启用后要重启才真正加载（运行期不做热加载，理由见 onToggle）
                     scope.launch {
-                        snackBarHost.showSnackbar(context.getString(R.string.dsh_ext_restart_hint))
+                        snackBarHost.showSnackbar(context.getString(CoreR.string.dsh_ext_restart_hint))
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_ext_trust_accept))
+                    Text(stringResource(CoreR.string.dsh_ext_trust_accept))
                 }
             },
             dismissButton = {
@@ -1283,8 +1284,8 @@ private fun ExtensionsPane(
     if (confirmReenable) {
         AlertDialog(
             onDismissRequest = { confirmReenable = false },
-            title = { Text(stringResource(R.string.dsh_ext_reenable)) },
-            text = { Text(stringResource(R.string.dsh_ext_reenable_hint)) },
+            title = { Text(stringResource(CoreR.string.dsh_ext_reenable)) },
+            text = { Text(stringResource(CoreR.string.dsh_ext_reenable_hint)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmReenable = false
@@ -1293,10 +1294,10 @@ private fun ExtensionsPane(
                     ExtensionEngine.reEnable(context.applicationContext)
                     refreshTick++
                     scope.launch {
-                        snackBarHost.showSnackbar(context.getString(R.string.dsh_ext_reenable_hint))
+                        snackBarHost.showSnackbar(context.getString(CoreR.string.dsh_ext_reenable_hint))
                     }
                 }) {
-                    Text(stringResource(R.string.dsh_ext_reenable))
+                    Text(stringResource(CoreR.string.dsh_ext_reenable))
                 }
             },
             dismissButton = {
@@ -1334,7 +1335,7 @@ private fun ExtensionSafeModeBanner(
                 Icon(Icons.Outlined.Warning, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_safe_mode),
+                    text = stringResource(CoreR.string.dsh_ext_safe_mode),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -1343,12 +1344,12 @@ private fun ExtensionSafeModeBanner(
             if (reason.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_safe_mode_reason, reason),
+                    text = stringResource(CoreR.string.dsh_ext_safe_mode_reason, reason),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             TextButton(onClick = onReenable) {
-                Text(stringResource(R.string.dsh_ext_reenable))
+                Text(stringResource(CoreR.string.dsh_ext_reenable))
             }
         }
     }
@@ -1405,7 +1406,7 @@ private fun ExtensionItem(
                         if (broken) {
                             Spacer(Modifier.size(6.dp))
                             ModuleLabel(
-                                text = stringResource(R.string.dsh_ext_badge_broken),
+                                text = stringResource(CoreR.string.dsh_ext_badge_broken),
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                             )
@@ -1414,7 +1415,7 @@ private fun ExtensionItem(
                             // 否则用户会奇怪「为什么它没有 classes.dex 也能启用」。
                             Spacer(Modifier.size(6.dp))
                             ModuleLabel(
-                                text = stringResource(R.string.dsh_ext_badge_nocode),
+                                text = stringResource(CoreR.string.dsh_ext_badge_nocode),
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1422,7 +1423,7 @@ private fun ExtensionItem(
                         if (!record.enabled) {
                             Spacer(Modifier.size(6.dp))
                             ModuleLabel(
-                                text = stringResource(R.string.dsh_ext_badge_disabled),
+                                text = stringResource(CoreR.string.dsh_ext_badge_disabled),
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1431,7 +1432,7 @@ private fun ExtensionItem(
                 }
                 ModuleLabel(
                     text = stringResource(
-                        if (record.enabled) R.string.dsh_ext_enable else R.string.dsh_ext_disable,
+                        if (record.enabled) CoreR.string.dsh_ext_enable else CoreR.string.dsh_ext_disable,
                     ),
                     containerColor = if (record.enabled) {
                         MaterialTheme.colorScheme.primaryContainer
@@ -1451,7 +1452,7 @@ private fun ExtensionItem(
             if (caps.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_caps, caps.take(3).joinToString(", ")),
+                    text = stringResource(CoreR.string.dsh_ext_caps, caps.take(3).joinToString(", ")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1494,7 +1495,7 @@ private fun ExtensionItem(
                     Spacer(Modifier.size(6.dp))
                     Text(
                         stringResource(
-                            if (removeArmed) R.string.dsh_plugin_confirm_remove else R.string.apm_remove,
+                            if (removeArmed) CoreR.string.dsh_plugin_confirm_remove else R.string.apm_remove,
                         ),
                     )
                 }
@@ -1540,7 +1541,7 @@ private fun ExtensionConfigEntry(onClick: () -> Unit) {
             tint = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = stringResource(R.string.dsh_ext_config),
+            text = stringResource(CoreR.string.dsh_ext_config),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             softWrap = false,
@@ -1562,15 +1563,15 @@ private fun BuiltInHostPluginItem() {
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             ModuleLabel(
-                text = stringResource(R.string.dsh_plugin_builtin_label),
+                text = stringResource(CoreR.string.dsh_plugin_builtin_label),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.dsh_host_plugin_name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.dsh_host_plugin_version), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(CoreR.string.dsh_host_plugin_name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(CoreR.string.dsh_host_plugin_version), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Switch(
                     checked = enabled,
@@ -1581,7 +1582,7 @@ private fun BuiltInHostPluginItem() {
                 )
             }
             Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.dsh_host_plugin_description), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(CoreR.string.dsh_host_plugin_description), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1621,7 +1622,7 @@ private fun DshPluginItem(
             ) {
                 if (plugin.seeded) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_seeded_label),
+                        text = stringResource(CoreR.string.dsh_plugin_seeded_label),
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1639,7 +1640,7 @@ private fun DshPluginItem(
                 // 点赞来自 dsh-market，只有目录收录的插件有；未知（-1）时不占位
                 if (plugin.likes >= 0) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_likes, formatCount(plugin.likes)),
+                        text = stringResource(CoreR.string.dsh_plugin_likes, formatCount(plugin.likes)),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
@@ -1653,14 +1654,14 @@ private fun DshPluginItem(
                 }
                 if (!plugin.enabled) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_inactive),
+                        text = stringResource(CoreR.string.dsh_plugin_inactive),
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
                 if (plugin.disabled) {
                     ModuleLabel(
-                        text = stringResource(R.string.dsh_plugin_disabled_label),
+                        text = stringResource(CoreR.string.dsh_plugin_disabled_label),
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     )
@@ -1686,7 +1687,7 @@ private fun DshPluginItem(
             // 开关灰着却不给原因，等于让用户以为「开关坏了」：说清是读不到 entry id
             if (plugin.entryIds.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_plugin_toggle_state_unknown),
+                    text = stringResource(CoreR.string.dsh_plugin_toggle_state_unknown),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1709,7 +1710,7 @@ private fun DshPluginItem(
             if (!plugin.enabled) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_plugin_inactive_hint),
+                    text = stringResource(CoreR.string.dsh_plugin_inactive_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -1754,7 +1755,7 @@ private fun DshPluginItem(
                     Spacer(Modifier.size(6.dp))
                     Text(
                         stringResource(
-                            if (uninstallArmed) R.string.dsh_plugin_confirm_remove else R.string.apm_remove,
+                            if (uninstallArmed) CoreR.string.dsh_plugin_confirm_remove else R.string.apm_remove,
                         ),
                     )
                 }
@@ -1778,7 +1779,7 @@ internal fun openPluginRepo(
             Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
-    }.onFailure { onNoBrowser(context.getString(R.string.dsh_no_browser)) }
+    }.onFailure { onNoBrowser(context.getString(CoreR.string.dsh_no_browser)) }
 }
 
 /** 下载量/星标的紧凑写法；-1 表示还没取到。 */
@@ -1836,23 +1837,23 @@ private fun ExtensionDetailSheet(
             HorizontalDivider()
             Spacer(Modifier.height(12.dp))
 
-            DetailRow(stringResource(R.string.dsh_ext_detail_id), manifest.id)
+            DetailRow(stringResource(CoreR.string.dsh_ext_detail_id), manifest.id)
             DetailRow(
-                stringResource(R.string.dsh_ext_detail_entry),
-                manifest.entryClass ?: stringResource(R.string.dsh_ext_badge_nocode),
+                stringResource(CoreR.string.dsh_ext_detail_entry),
+                manifest.entryClass ?: stringResource(CoreR.string.dsh_ext_badge_nocode),
             )
             // 目录直接给绝对路径：用户要删/要改 manifest 时，这句话就是唯一有用的信息。
-            DetailRow(stringResource(R.string.dsh_ext_detail_dir), dir.absolutePath)
+            DetailRow(stringResource(CoreR.string.dsh_ext_detail_dir), dir.absolutePath)
 
             Spacer(Modifier.height(16.dp))
             Text(
-                text = stringResource(R.string.dsh_ext_detail_caps_all),
+                text = stringResource(CoreR.string.dsh_ext_detail_caps_all),
                 style = MaterialTheme.typography.titleSmall,
             )
             Spacer(Modifier.height(6.dp))
             if (manifest.declaredCaps.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.dsh_ext_detail_nocaps),
+                    text = stringResource(CoreR.string.dsh_ext_detail_nocaps),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1874,7 +1875,7 @@ private fun ExtensionDetailSheet(
             if (pages.isNotEmpty() && onOpenPage != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_pages_title),
+                    text = stringResource(CoreR.string.dsh_ext_pages_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(Modifier.height(6.dp))
@@ -1953,14 +1954,14 @@ private fun ExtensionConfigSheet(
                 for (claim in claims) {
                     when (claim.kind) {
                         ExtensionUiRegistry.SurfaceKind.SHELL ->
-                            labels.add(stringResource(R.string.dsh_ext_config_owns_shell))
+                            labels.add(stringResource(CoreR.string.dsh_ext_config_owns_shell))
                         ExtensionUiRegistry.SurfaceKind.SCREEN ->
-                            labels.add(stringResource(R.string.dsh_ext_config_owns_screen, claim.id))
+                            labels.add(stringResource(CoreR.string.dsh_ext_config_owns_screen, claim.id))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_config_owns, labels.joinToString("、")),
+                    text = stringResource(CoreR.string.dsh_ext_config_owns, labels.joinToString("、")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
@@ -1972,12 +1973,12 @@ private fun ExtensionConfigSheet(
 
             if (panel == null) {
                 Text(
-                    text = stringResource(R.string.dsh_ext_config_empty),
+                    text = stringResource(CoreR.string.dsh_ext_config_empty),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = stringResource(R.string.dsh_ext_config_empty_hint),
+                    text = stringResource(CoreR.string.dsh_ext_config_empty_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -2,9 +2,9 @@ package me.bmax.apatch.dsh
 
 import android.content.Context
 import android.util.Log
-import me.bmax.apatch.R
 import me.bmax.apatch.util.DshWebCompat
 import me.bmax.apatch.util.appString
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * WebUI 注入脚本的**注册表**：应用内置的那几段（assets）与用户导入的那一份（filesDir）
@@ -90,8 +90,8 @@ internal object WebScripts {
          */
         Entry(
             id = "compat",
-            titleRes = R.string.dsh_userscripts_builtin_compat,
-            summaryRes = R.string.dsh_userscripts_builtin_compat_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_compat,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_compat_summary,
             runAt = RunAt.START,
             asset = "webui-scripts/compat.js",
         ),
@@ -111,8 +111,8 @@ internal object WebScripts {
          */
         Entry(
             id = "inset",
-            titleRes = R.string.dsh_userscripts_builtin_inset,
-            summaryRes = R.string.dsh_userscripts_builtin_inset_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_inset,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_inset_summary,
             runAt = RunAt.START,
             asset = "webui-scripts/inset.js",
             needsParams = true,
@@ -129,8 +129,8 @@ internal object WebScripts {
          */
         Entry(
             id = "composer",
-            titleRes = R.string.dsh_userscripts_builtin_composer,
-            summaryRes = R.string.dsh_userscripts_builtin_composer_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_composer,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_composer_summary,
             runAt = RunAt.START,
             asset = "webui-scripts/composer.js",
         ),
@@ -145,8 +145,8 @@ internal object WebScripts {
          */
         Entry(
             id = "a11y-labels",
-            titleRes = R.string.dsh_userscripts_builtin_a11y,
-            summaryRes = R.string.dsh_userscripts_builtin_a11y_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_a11y,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_a11y_summary,
             runAt = RunAt.START,
             asset = "webui-scripts/a11y-labels.js",
         ),
@@ -163,8 +163,8 @@ internal object WebScripts {
          */
         Entry(
             id = "file-upload",
-            titleRes = R.string.dsh_userscripts_builtin_upload,
-            summaryRes = R.string.dsh_userscripts_builtin_upload_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_upload,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_upload_summary,
             runAt = RunAt.START,
             asset = "webui-scripts/file-upload.js",
         ),
@@ -180,8 +180,8 @@ internal object WebScripts {
          */
         Entry(
             id = "blob-download",
-            titleRes = R.string.dsh_userscripts_builtin_blob,
-            summaryRes = R.string.dsh_userscripts_builtin_blob_summary,
+            titleRes = CoreR.string.dsh_userscripts_builtin_blob,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_blob_summary,
             runAt = RunAt.END,
             asset = "webui-scripts/blob-download.js",
         ),

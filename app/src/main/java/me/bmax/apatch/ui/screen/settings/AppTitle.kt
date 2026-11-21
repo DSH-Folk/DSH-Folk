@@ -2,6 +2,7 @@ package me.bmax.apatch.ui.screen.settings
 
 import androidx.annotation.StringRes
 import me.bmax.apatch.R
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「应用名称」设置（`app_title`）的可选值与映射。
@@ -43,7 +44,7 @@ object AppTitle {
     @StringRes
     fun labelRes(key: String): Int = when (normalize(key)) {
         CUSTOM -> R.string.app_title_custom
-        DEEPSEEK_HARNESS -> R.string.dsh_app_title
+        DEEPSEEK_HARNESS -> CoreR.string.dsh_app_title
         DEEPDROID -> R.string.app_title_deepdroid
         DSHD -> R.string.app_title_dshd
         else -> R.string.app_title_dsh

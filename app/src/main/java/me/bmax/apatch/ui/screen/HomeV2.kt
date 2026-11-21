@@ -71,6 +71,7 @@ import me.bmax.apatch.ui.theme.BackgroundManager
 import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 网格风格首页（原 KernelSU 风格布局）。
@@ -118,7 +119,7 @@ fun HomeScreenV2(
                 // 运行方式：proot / proroot，点进权限与功能设置切换
                 SmallInfoCard(
                     modifier = Modifier.weight(1f),
-                    title = stringResource(R.string.dsh_run_mode),
+                    title = stringResource(CoreR.string.dsh_run_mode),
                     value = state.runtimeLabel,
                     icon = Icons.Outlined.Speed,
                     onClick = { navigator.navigate(FunctionSettingsScreenDestination(null)) { launchSingleTop = true } }
@@ -127,7 +128,7 @@ fun HomeScreenV2(
                 // 权限通道：Root / Shizuku / 无线 ADB / 未获取
                 SmallInfoCard(
                     modifier = Modifier.weight(1f),
-                    title = stringResource(R.string.dsh_permission),
+                    title = stringResource(CoreR.string.dsh_permission),
                     value = state.permLabel,
                     icon = Icons.Outlined.Security,
                     onClick = { navigator.navigate(SecuritySettingsScreenDestination(null)) { launchSingleTop = true } }

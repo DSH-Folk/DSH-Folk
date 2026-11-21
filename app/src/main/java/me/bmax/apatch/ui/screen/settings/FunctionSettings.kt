@@ -109,6 +109,7 @@ import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.util.DshDocsAccess
 import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.ui.screen.settings.general.CleanStorageDialog
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 「功能」页的一级分类：一个分类 = 入口页上的一行 + 次级页里的一组卡片。
@@ -128,32 +129,32 @@ enum class FunctionGroup(
 ) {
     STARTUP(
         "startup",
-        R.string.dsh_function_group_startup,
-        R.string.dsh_function_group_startup_summary,
+        CoreR.string.dsh_function_group_startup,
+        CoreR.string.dsh_function_group_startup_summary,
         Icons.Filled.PowerSettingsNew,
     ),
     NETWORK(
         "network",
-        R.string.dsh_function_group_network,
-        R.string.dsh_function_group_network_summary,
+        CoreR.string.dsh_function_group_network,
+        CoreR.string.dsh_function_group_network_summary,
         Icons.Filled.Tune,
     ),
     WEBUI(
         "webui",
-        R.string.dsh_function_group_webui,
-        R.string.dsh_function_group_webui_summary,
+        CoreR.string.dsh_function_group_webui,
+        CoreR.string.dsh_function_group_webui_summary,
         Icons.Filled.OpenInNew,
     ),
     RUNTIME(
         "runtime",
-        R.string.dsh_function_group_runtime,
-        R.string.dsh_function_group_runtime_summary,
+        CoreR.string.dsh_function_group_runtime,
+        CoreR.string.dsh_function_group_runtime_summary,
         Icons.Filled.Layers,
     ),
     STORAGE(
         "storage",
-        R.string.dsh_function_group_storage,
-        R.string.dsh_function_group_storage_summary,
+        CoreR.string.dsh_function_group_storage,
+        CoreR.string.dsh_function_group_storage_summary,
         Icons.Filled.Folder,
     ),
 }
@@ -190,20 +191,20 @@ internal val FUNCTION_GROUP_ITEMS: Map<FunctionGroup, List<String>> = mapOf(
  * 不是「网络与访问」这个分类名），命中后进那一类并把这行高亮。
  */
 private val FUNCTION_ITEM_TITLE: Map<String, Int> = mapOf(
-    "function_run_mode" to R.string.dsh_run_mode,
-    "function_autostart" to R.string.dsh_autostart,
-    "function_auto_start_service" to R.string.dsh_auto_start_service,
-    "function_auto_open_webui" to R.string.dsh_auto_open_webui,
-    "function_port" to R.string.dsh_port_title,
-    "function_lan" to R.string.dsh_lan_title,
-    "function_gh_mirror" to R.string.dsh_race_title,
-    "function_webui_mode" to R.string.dsh_webui_mode,
-    "function_webui_pip" to R.string.dsh_webui_pip,
-    "function_webui_browser_mode" to R.string.dsh_webui_browser_mode,
-    "function_runtime" to R.string.dsh_runtime_section,
-    "function_repair_plugins" to R.string.dsh_plugin_repair,
-    "function_verify_install" to R.string.dsh_verify_after_install,
-    "function_docs_access" to R.string.dsh_docs_access_title,
+    "function_run_mode" to CoreR.string.dsh_run_mode,
+    "function_autostart" to CoreR.string.dsh_autostart,
+    "function_auto_start_service" to CoreR.string.dsh_auto_start_service,
+    "function_auto_open_webui" to CoreR.string.dsh_auto_open_webui,
+    "function_port" to CoreR.string.dsh_port_title,
+    "function_lan" to CoreR.string.dsh_lan_title,
+    "function_gh_mirror" to CoreR.string.dsh_race_title,
+    "function_webui_mode" to CoreR.string.dsh_webui_mode,
+    "function_webui_pip" to CoreR.string.dsh_webui_pip,
+    "function_webui_browser_mode" to CoreR.string.dsh_webui_browser_mode,
+    "function_runtime" to CoreR.string.dsh_runtime_section,
+    "function_repair_plugins" to CoreR.string.dsh_plugin_repair,
+    "function_verify_install" to CoreR.string.dsh_verify_after_install,
+    "function_docs_access" to CoreR.string.dsh_docs_access_title,
     "function_clean_storage" to R.string.settings_clean_storage,
 )
 
@@ -267,7 +268,7 @@ internal fun FunctionHubContent(
                 .verticalScroll(rememberScrollState()),
         ) {
             Text(
-                text = stringResource(R.string.dsh_function_hub_summary),
+                text = stringResource(CoreR.string.dsh_function_hub_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -288,8 +289,8 @@ internal fun FunctionHubContent(
             HubCard {
                 HubRow(
                     icon = Icons.Filled.PlayArrow,
-                    title = stringResource(R.string.dsh_workflow_title),
-                    summary = stringResource(R.string.dsh_workflow_summary),
+                    title = stringResource(CoreR.string.dsh_workflow_title),
+                    summary = stringResource(CoreR.string.dsh_workflow_summary),
                     onClick = onOpenWorkflow,
                 )
             }
@@ -302,7 +303,7 @@ internal fun FunctionHubContent(
         if (hits.isEmpty()) {
             item {
                 Text(
-                    text = stringResource(R.string.dsh_function_hub_empty),
+                    text = stringResource(CoreR.string.dsh_function_hub_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp),
@@ -496,8 +497,8 @@ fun FunctionSettingsContent(
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         SectionHeader(
                             icon = { Icon(Icons.Filled.Security, null, Modifier.size(20.dp)) },
-                            title = stringResource(R.string.dsh_perm_hub_title),
-                            summary = stringResource(R.string.dsh_perm_hub_summary),
+                            title = stringResource(CoreR.string.dsh_perm_hub_title),
+                            summary = stringResource(CoreR.string.dsh_perm_hub_summary),
                         )
                     }
                 }
@@ -537,11 +538,11 @@ fun FunctionSettingsContent(
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        text = stringResource(R.string.dsh_storage_cap_title),
+                                        text = stringResource(CoreR.string.dsh_storage_cap_title),
                                         style = MaterialTheme.typography.bodyMedium,
                                     )
                                     Text(
-                                        text = stringResource(R.string.dsh_storage_mount_hint),
+                                        text = stringResource(CoreR.string.dsh_storage_mount_hint),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -555,17 +556,17 @@ fun FunctionSettingsContent(
                             if (mountEnabled) {
                                 if (allFilesGranted) {
                                     Text(
-                                        text = stringResource(R.string.dsh_storage_granted),
+                                        text = stringResource(CoreR.string.dsh_storage_granted),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 } else {
                                     TextButton(onClick = onOpenAllFilesSettings) {
-                                        Text(stringResource(R.string.dsh_storage_need_perm))
+                                        Text(stringResource(CoreR.string.dsh_storage_need_perm))
                                     }
                                 }
                                 Text(
-                                    text = stringResource(R.string.dsh_storage_restart_hint),
+                                    text = stringResource(CoreR.string.dsh_storage_restart_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -593,8 +594,8 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.Layers, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_run_mode),
-                                    summary = stringResource(R.string.dsh_run_mode_summary),
+                                    title = stringResource(CoreR.string.dsh_run_mode),
+                                    summary = stringResource(CoreR.string.dsh_run_mode_summary),
                                 )
                                 Spacer(Modifier.height(12.dp))
 
@@ -607,8 +608,8 @@ fun FunctionSettingsContent(
                                 RuntimeOption(
                                     selected = runtimeId == "proot",
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_mode_proot),
-                                    summary = stringResource(R.string.dsh_mode_proot_desc),
+                                    title = stringResource(CoreR.string.dsh_mode_proot),
+                                    summary = stringResource(CoreR.string.dsh_mode_proot_desc),
                                     onSelect = { onRuntimeIdChange("proot") },
                                 )
                                 // proroot / chroot 都是「能点」的：没有权限时**弹窗说明并保持原选择**，
@@ -620,8 +621,8 @@ fun FunctionSettingsContent(
                                 RuntimeOption(
                                     selected = runtimeId == "proroot",
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_mode_proroot),
-                                    summary = if (prorootAvailable) stringResource(R.string.dsh_mode_proroot_desc)
+                                    title = stringResource(CoreR.string.dsh_mode_proroot),
+                                    summary = if (prorootAvailable) stringResource(CoreR.string.dsh_mode_proroot_desc)
                                     else prorootUnavailableReason,
                                     onSelect = {
                                         if (prorootAvailable) onRuntimeIdChange("proroot")
@@ -633,8 +634,8 @@ fun FunctionSettingsContent(
                                 RuntimeOption(
                                     selected = runtimeId == "chroot",
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_mode_chroot_name),
-                                    summary = if (chrootAvailable) stringResource(R.string.dsh_mode_chroot_desc)
+                                    title = stringResource(CoreR.string.dsh_mode_chroot_name),
+                                    summary = if (chrootAvailable) stringResource(CoreR.string.dsh_mode_chroot_desc)
                                     else chrootUnavailableReason,
                                     onSelect = {
                                         if (chrootAvailable) onRuntimeIdChange("chroot")
@@ -651,22 +652,22 @@ fun FunctionSettingsContent(
                                         title = {
                                             Text(
                                                 stringResource(
-                                                    if (denied == "chroot") R.string.dsh_mode_chroot_denied_title
-                                                    else R.string.dsh_mode_proroot_denied_title,
+                                                    if (denied == "chroot") CoreR.string.dsh_mode_chroot_denied_title
+                                                    else CoreR.string.dsh_mode_proroot_denied_title,
                                                 ),
                                             )
                                         },
                                         text = {
                                             Text(
                                                 stringResource(
-                                                    if (denied == "chroot") R.string.dsh_mode_chroot_denied_body
-                                                    else R.string.dsh_mode_proroot_denied_body,
+                                                    if (denied == "chroot") CoreR.string.dsh_mode_chroot_denied_body
+                                                    else CoreR.string.dsh_mode_proroot_denied_body,
                                                 ),
                                             )
                                         },
                                         confirmButton = {
                                             TextButton(onClick = { deniedBackend = null }) {
-                                                Text(stringResource(R.string.dsh_mode_denied_ok))
+                                                Text(stringResource(CoreR.string.dsh_mode_denied_ok))
                                             }
                                         },
                                     )
@@ -674,7 +675,7 @@ fun FunctionSettingsContent(
 
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = stringResource(R.string.dsh_run_mode_restart_hint),
+                                    text = stringResource(CoreR.string.dsh_run_mode_restart_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -692,8 +693,8 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.PowerSettingsNew, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_autostart),
-                                    summary = stringResource(R.string.dsh_autostart_summary),
+                                    title = stringResource(CoreR.string.dsh_autostart),
+                                    summary = stringResource(CoreR.string.dsh_autostart_summary),
                                 )
                                 var autostartExpanded by remember { mutableStateOf(false) }
                                 TextButton(onClick = { autostartExpanded = !autostartExpanded }) {
@@ -702,7 +703,7 @@ fun FunctionSettingsContent(
                                         contentDescription = null,
                                     )
                                     Spacer(Modifier.width(4.dp))
-                                    Text(stringResource(if (autostartExpanded) R.string.dsh_section_collapse else R.string.dsh_section_expand))
+                                    Text(stringResource(if (autostartExpanded) CoreR.string.dsh_section_collapse else CoreR.string.dsh_section_expand))
                                 }
                                 AnimatedVisibility(visible = autostartExpanded) {
                                     Column {
@@ -711,29 +712,29 @@ fun FunctionSettingsContent(
                                 RuntimeOption(
                                     selected = autostartMode == DshAutostart.Mode.OFF,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_autostart_mode_off),
-                                    summary = stringResource(R.string.dsh_autostart_mode_off_desc),
+                                    title = stringResource(CoreR.string.dsh_autostart_mode_off),
+                                    summary = stringResource(CoreR.string.dsh_autostart_mode_off_desc),
                                     onSelect = { onAutostartModeChange(DshAutostart.Mode.OFF) },
                                 )
                                 RuntimeOption(
                                     selected = autostartMode == DshAutostart.Mode.RECEIVER,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_autostart_mode_receiver),
-                                    summary = stringResource(R.string.dsh_autostart_mode_receiver_desc),
+                                    title = stringResource(CoreR.string.dsh_autostart_mode_receiver),
+                                    summary = stringResource(CoreR.string.dsh_autostart_mode_receiver_desc),
                                     onSelect = { onAutostartModeChange(DshAutostart.Mode.RECEIVER) },
                                 )
                                 RuntimeOption(
                                     selected = autostartMode == DshAutostart.Mode.ACCESSIBILITY,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_autostart_mode_a11y),
-                                    summary = stringResource(R.string.dsh_autostart_mode_a11y_desc),
+                                    title = stringResource(CoreR.string.dsh_autostart_mode_a11y),
+                                    summary = stringResource(CoreR.string.dsh_autostart_mode_a11y_desc),
                                     onSelect = { onAutostartModeChange(DshAutostart.Mode.ACCESSIBILITY) },
                                 )
                                 RuntimeOption(
                                     selected = autostartMode == DshAutostart.Mode.SCRIPT,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_autostart_mode_script),
-                                    summary = stringResource(R.string.dsh_autostart_mode_script_desc),
+                                    title = stringResource(CoreR.string.dsh_autostart_mode_script),
+                                    summary = stringResource(CoreR.string.dsh_autostart_mode_script_desc),
                                     onSelect = { onAutostartModeChange(DshAutostart.Mode.SCRIPT) },
                                 )
 
@@ -745,12 +746,12 @@ fun FunctionSettingsContent(
                                         Text(
                                             text = when {
                                                 autostartScriptOutdated ->
-                                                    stringResource(R.string.dsh_autostart_script_state_outdated)
+                                                    stringResource(CoreR.string.dsh_autostart_script_state_outdated)
                                                 autostartScriptInstalled -> stringResource(
-                                                    R.string.dsh_autostart_script_state_installed,
+                                                    CoreR.string.dsh_autostart_script_state_installed,
                                                     DshAutostart.scriptPath(),
                                                 )
-                                                else -> stringResource(R.string.dsh_autostart_script_state_missing)
+                                                else -> stringResource(CoreR.string.dsh_autostart_script_state_missing)
                                             },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = if (autostartScriptInstalled && !autostartScriptOutdated) {
@@ -768,9 +769,9 @@ fun FunctionSettingsContent(
                                                 Text(
                                                     stringResource(
                                                         if (autostartScriptInstalled) {
-                                                            R.string.dsh_autostart_script_reinstall
+                                                            CoreR.string.dsh_autostart_script_reinstall
                                                         } else {
-                                                            R.string.dsh_autostart_script_install
+                                                            CoreR.string.dsh_autostart_script_install
                                                         }
                                                     )
                                                 )
@@ -780,7 +781,7 @@ fun FunctionSettingsContent(
                                                     onClick = onRemoveAutostartScript,
                                                     enabled = !autostartScriptBusy,
                                                 ) {
-                                                    Text(stringResource(R.string.dsh_autostart_script_remove))
+                                                    Text(stringResource(CoreR.string.dsh_autostart_script_remove))
                                                 }
                                             }
                                         }
@@ -790,10 +791,10 @@ fun FunctionSettingsContent(
                                         Spacer(Modifier.height(8.dp))
                                         Text(
                                             text = if (autostartA11yEnabled) {
-                                                stringResource(R.string.dsh_autostart_a11y_state_on)
+                                                stringResource(CoreR.string.dsh_autostart_a11y_state_on)
                                             } else {
                                                 stringResource(
-                                                    R.string.dsh_autostart_a11y_state_off,
+                                                    CoreR.string.dsh_autostart_a11y_state_off,
                                                     stringResource(R.string.app_name),
                                                 )
                                             },
@@ -810,14 +811,14 @@ fun FunctionSettingsContent(
                                             // 以为我们写坏了。
                                             Spacer(Modifier.height(4.dp))
                                             Text(
-                                                text = stringResource(R.string.dsh_autostart_a11y_restricted),
+                                                text = stringResource(CoreR.string.dsh_autostart_a11y_restricted),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                         Spacer(Modifier.height(8.dp))
                                         Button(onClick = onOpenA11ySettings) {
-                                            Text(stringResource(R.string.dsh_autostart_a11y_open))
+                                            Text(stringResource(CoreR.string.dsh_autostart_a11y_open))
                                         }
                                     }
 
@@ -828,7 +829,7 @@ fun FunctionSettingsContent(
                                     if (!runtimeInstalled) {
                                         Spacer(Modifier.height(8.dp))
                                         Text(
-                                            text = stringResource(R.string.dsh_autostart_not_installed),
+                                            text = stringResource(CoreR.string.dsh_autostart_not_installed),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.tertiary,
                                         )
@@ -842,11 +843,11 @@ fun FunctionSettingsContent(
                                     ) {
                                         Column(Modifier.weight(1f)) {
                                             Text(
-                                                text = stringResource(R.string.dsh_autostart_container),
+                                                text = stringResource(CoreR.string.dsh_autostart_container),
                                                 style = MaterialTheme.typography.bodyMedium,
                                             )
                                             Text(
-                                                text = stringResource(R.string.dsh_autostart_container_desc),
+                                                text = stringResource(CoreR.string.dsh_autostart_container_desc),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -873,8 +874,8 @@ fun FunctionSettingsContent(
                         ToggleSettingCard(
                             flat = flat,
                             icon = Icons.Filled.PowerSettingsNew,
-                            title = stringResource(R.string.dsh_auto_start_service),
-                            description = stringResource(R.string.dsh_auto_start_service_summary),
+                            title = stringResource(CoreR.string.dsh_auto_start_service),
+                            description = stringResource(CoreR.string.dsh_auto_start_service_summary),
                             checked = autoStartOnLaunch,
                             onCheckedChange = onAutoStartOnLaunchChange,
                         )
@@ -884,8 +885,8 @@ fun FunctionSettingsContent(
                         ToggleSettingCard(
                             flat = flat,
                             icon = Icons.Filled.OpenInNew,
-                            title = stringResource(R.string.dsh_auto_open_webui),
-                            description = stringResource(R.string.dsh_auto_open_webui_summary),
+                            title = stringResource(CoreR.string.dsh_auto_open_webui),
+                            description = stringResource(CoreR.string.dsh_auto_open_webui_summary),
                             checked = autoOpenWebUi,
                             onCheckedChange = onAutoOpenWebUiChange,
                         )
@@ -899,26 +900,26 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.Tune, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_port_title),
-                                    summary = stringResource(R.string.dsh_port_summary),
+                                    title = stringResource(CoreR.string.dsh_port_title),
+                                    summary = stringResource(CoreR.string.dsh_port_summary),
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 Text(
-                                    text = stringResource(R.string.dsh_port_current, port),
+                                    text = stringResource(CoreR.string.dsh_port_current, port),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 var editing by remember { mutableStateOf(false) }
                                 OutlinedButton(onClick = { editing = true }) {
-                                    Text(stringResource(R.string.dsh_port_edit))
+                                    Text(stringResource(CoreR.string.dsh_port_edit))
                                 }
                                 if (editing) {
                                     var input by remember { mutableStateOf(port.toString()) }
                                     var inputError by remember { mutableStateOf(false) }
                                     AlertDialog(
                                         onDismissRequest = { editing = false },
-                                        title = { Text(stringResource(R.string.dsh_port_title)) },
+                                        title = { Text(stringResource(CoreR.string.dsh_port_title)) },
                                         text = {
                                             OutlinedTextField(
                                                 value = input,
@@ -926,10 +927,10 @@ fun FunctionSettingsContent(
                                                     input = it.filter(Char::isDigit)
                                                     inputError = false
                                                 },
-                                                label = { Text(stringResource(R.string.dsh_port_input_hint)) },
+                                                label = { Text(stringResource(CoreR.string.dsh_port_input_hint)) },
                                                 isError = inputError,
                                                 supportingText = if (inputError) {
-                                                    { Text(stringResource(R.string.dsh_port_invalid)) }
+                                                    { Text(stringResource(CoreR.string.dsh_port_invalid)) }
                                                 } else {
                                                     null
                                                 },
@@ -946,7 +947,7 @@ fun FunctionSettingsContent(
                                                     onPortChange(p)
                                                     editing = false
                                                 }
-                                            }) { Text(stringResource(R.string.dsh_port_confirm)) }
+                                            }) { Text(stringResource(CoreR.string.dsh_port_confirm)) }
                                         },
                                         dismissButton = {
                                             TextButton(onClick = { editing = false }) {
@@ -964,8 +965,8 @@ fun FunctionSettingsContent(
                         ToggleSettingCard(
                             flat = flat,
                             icon = Icons.Filled.Public,
-                            title = stringResource(R.string.dsh_lan_title),
-                            description = stringResource(R.string.dsh_lan_summary),
+                            title = stringResource(CoreR.string.dsh_lan_title),
+                            description = stringResource(CoreR.string.dsh_lan_summary),
                             checked = lanEnabled,
                             onCheckedChange = onLanChange,
                         )
@@ -978,8 +979,8 @@ fun FunctionSettingsContent(
                         ToggleSettingCard(
                             flat = flat,
                             icon = Icons.Filled.CloudDownload,
-                            title = stringResource(R.string.dsh_race_title),
-                            description = stringResource(R.string.dsh_race_summary),
+                            title = stringResource(CoreR.string.dsh_race_title),
+                            description = stringResource(CoreR.string.dsh_race_summary),
                             checked = raceMasterEnabled,
                             onLongClick = { showRaceDialog = true },
                             onCheckedChange = onRaceMasterChange,
@@ -1014,30 +1015,30 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.Layers, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_webui_mode),
-                                    summary = stringResource(R.string.dsh_webui_mode_summary),
+                                    title = stringResource(CoreR.string.dsh_webui_mode),
+                                    summary = stringResource(CoreR.string.dsh_webui_mode_summary),
                                 )
                                 Spacer(Modifier.height(12.dp))
 
                                 RuntimeOption(
                                     selected = webuiMode == DshWebUi.MODE_IN_APP,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_webui_mode_in_app),
-                                    summary = stringResource(R.string.dsh_webui_mode_in_app_desc),
+                                    title = stringResource(CoreR.string.dsh_webui_mode_in_app),
+                                    summary = stringResource(CoreR.string.dsh_webui_mode_in_app_desc),
                                     onSelect = { onWebuiModeChange(DshWebUi.MODE_IN_APP) },
                                 )
                                 RuntimeOption(
                                     selected = webuiMode == DshWebUi.MODE_BROWSER,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_webui_mode_browser),
-                                    summary = stringResource(R.string.dsh_webui_mode_browser_desc),
+                                    title = stringResource(CoreR.string.dsh_webui_mode_browser),
+                                    summary = stringResource(CoreR.string.dsh_webui_mode_browser_desc),
                                     onSelect = { onWebuiModeChange(DshWebUi.MODE_BROWSER) },
                                 )
                                 RuntimeOption(
                                     selected = webuiMode == DshWebUi.MODE_ASK,
                                     enabled = true,
-                                    title = stringResource(R.string.dsh_webui_mode_ask),
-                                    summary = stringResource(R.string.dsh_webui_mode_ask_desc),
+                                    title = stringResource(CoreR.string.dsh_webui_mode_ask),
+                                    summary = stringResource(CoreR.string.dsh_webui_mode_ask_desc),
                                     onSelect = { onWebuiModeChange(DshWebUi.MODE_ASK) },
                                 )
                             }
@@ -1053,20 +1054,20 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Outlined.PictureInPictureAlt, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_webui_pip),
-                                    summary = stringResource(R.string.dsh_webui_pip_summary),
+                                    title = stringResource(CoreR.string.dsh_webui_pip),
+                                    summary = stringResource(CoreR.string.dsh_webui_pip_summary),
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 PipSwitchRow(
-                                    title = stringResource(R.string.dsh_webui_pip_main),
-                                    summary = stringResource(R.string.dsh_webui_pip_main_summary),
+                                    title = stringResource(CoreR.string.dsh_webui_pip_main),
+                                    summary = stringResource(CoreR.string.dsh_webui_pip_main_summary),
                                     checked = webuiPipMain,
                                     enabled = true,
                                     onCheckedChange = onWebuiPipMainChange,
                                 )
                                 PipSwitchRow(
-                                    title = stringResource(R.string.dsh_webui_pip_auto),
-                                    summary = stringResource(R.string.dsh_webui_pip_auto_summary),
+                                    title = stringResource(CoreR.string.dsh_webui_pip_auto),
+                                    summary = stringResource(CoreR.string.dsh_webui_pip_auto_summary),
                                     checked = webuiPipAuto,
                                     enabled = webuiPipMain,
                                     onCheckedChange = onWebuiPipAutoChange,
@@ -1085,18 +1086,18 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Outlined.Public, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_webui_browser_mode),
-                                    summary = stringResource(R.string.dsh_webui_browser_mode_summary),
+                                    title = stringResource(CoreR.string.dsh_webui_browser_mode),
+                                    summary = stringResource(CoreR.string.dsh_webui_browser_mode_summary),
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 // 有扩展要求浏览器模式时，这个开关是**只读**的：
                                 // 显示为开、点不动，并在摘要里说明原因。
                                 // 让用户能点关会立刻产生矛盾（关掉后扩展又把它拉起来）。
                                 PipSwitchRow(
-                                    title = stringResource(R.string.dsh_webui_browser_mode_switch),
+                                    title = stringResource(CoreR.string.dsh_webui_browser_mode_switch),
                                     summary = stringResource(
-                                        if (browserModeForced) R.string.dsh_webui_browser_mode_forced
-                                        else R.string.dsh_webui_browser_mode_switch_summary,
+                                        if (browserModeForced) CoreR.string.dsh_webui_browser_mode_forced
+                                        else CoreR.string.dsh_webui_browser_mode_switch_summary,
                                     ),
                                     checked = browserMode,
                                     // 只在内置 WebUI 模式下有意义：选「系统浏览器」时
@@ -1111,7 +1112,7 @@ fun FunctionSettingsContent(
                                 if (browserMode) {
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = stringResource(R.string.dsh_webui_debug_hint),
+                                        text = stringResource(CoreR.string.dsh_webui_debug_hint),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -1146,17 +1147,17 @@ fun FunctionSettingsContent(
                             ) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.Refresh, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_runtime_section),
-                                    summary = stringResource(R.string.dsh_runtime_summary),
+                                    title = stringResource(CoreR.string.dsh_runtime_section),
+                                    summary = stringResource(CoreR.string.dsh_runtime_summary),
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 Text(
                                     text = if (runtimeInstalled && runtimeVersion.isNotEmpty()) {
-                                        stringResource(R.string.dsh_runtime_installed_version, runtimeVersion)
+                                        stringResource(CoreR.string.dsh_runtime_installed_version, runtimeVersion)
                                     } else if (runtimeInstalled) {
-                                        stringResource(R.string.dsh_runtime_section)
+                                        stringResource(CoreR.string.dsh_runtime_section)
                                     } else {
-                                        stringResource(R.string.dsh_runtime_not_installed)
+                                        stringResource(CoreR.string.dsh_runtime_not_installed)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1203,24 +1204,24 @@ fun FunctionSettingsContent(
                                     requiredAppVersion?.let { req ->
                                         Spacer(Modifier.height(6.dp))
                                         Text(
-                                            text = stringResource(R.string.dsh_runtime_min_app_required, req),
+                                            text = stringResource(CoreR.string.dsh_runtime_min_app_required, req),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.error,
                                         )
                                         Spacer(Modifier.height(6.dp))
                                         OutlinedButton(onClick = onGoUpdateApp) {
-                                            Text(stringResource(R.string.dsh_runtime_min_app_go_update))
+                                            Text(stringResource(CoreR.string.dsh_runtime_min_app_go_update))
                                         }
                                     }
                                 } else {
                                     latest?.let { result ->
                                         val line = when {
                                             result.version != null && result.minAppVersion.isNotEmpty() ->
-                                                stringResource(R.string.dsh_runtime_update_requires_app, result.minAppVersion)
+                                                stringResource(CoreR.string.dsh_runtime_update_requires_app, result.minAppVersion)
                                             result.version != null ->
-                                                stringResource(R.string.dsh_runtime_update_available, result.version)
-                                            result.failure -> stringResource(R.string.dsh_runtime_check_failed)
-                                            else -> stringResource(R.string.dsh_runtime_up_to_date)
+                                                stringResource(CoreR.string.dsh_runtime_update_available, result.version)
+                                            result.failure -> stringResource(CoreR.string.dsh_runtime_check_failed)
+                                            else -> stringResource(CoreR.string.dsh_runtime_up_to_date)
                                         }
                                         val color = when {
                                             result.version != null && result.minAppVersion.isNotEmpty() ->
@@ -1242,7 +1243,7 @@ fun FunctionSettingsContent(
                                             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                                             Spacer(Modifier.width(8.dp))
                                             Text(
-                                                text = stringResource(R.string.dsh_runtime_checking),
+                                                text = stringResource(CoreR.string.dsh_runtime_checking),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
@@ -1257,8 +1258,8 @@ fun FunctionSettingsContent(
                                 ToggleSettingCard(
                                     flat = true,
                                     icon = Icons.Filled.CloudDownload,
-                                    title = stringResource(R.string.dsh_runtime_auto_check),
-                                    description = stringResource(R.string.dsh_runtime_auto_check_summary),
+                                    title = stringResource(CoreR.string.dsh_runtime_auto_check),
+                                    description = stringResource(CoreR.string.dsh_runtime_auto_check_summary),
                                     checked = runtimeAutoCheck,
                                     onCheckedChange = onRuntimeAutoCheckChange,
                                     onClick = {
@@ -1286,11 +1287,11 @@ fun FunctionSettingsContent(
                                 updateConfirming = false
                                 DshRuntime.clearPromptedRuntimeVersion()
                             },
-                                        title = { Text(stringResource(R.string.dsh_runtime_update_confirm_title)) },
+                                        title = { Text(stringResource(CoreR.string.dsh_runtime_update_confirm_title)) },
                                         text = {
                                             Text(
                                                 stringResource(
-                                                    R.string.dsh_runtime_switch_confirm_text,
+                                                    CoreR.string.dsh_runtime_switch_confirm_text,
                                                     latest?.version.orEmpty(),
                                                 )
                                             )
@@ -1300,7 +1301,7 @@ fun FunctionSettingsContent(
                                                 updateConfirming = false
                                                 // 更新走「候选取最新」，不能借用重装那条（那条装回已装那份）
                                                 onUpdateRuntime(true)
-                                            }) { Text(stringResource(R.string.dsh_runtime_update_go)) }
+                                            }) { Text(stringResource(CoreR.string.dsh_runtime_update_go)) }
                                         },
                                         dismissButton = {
                                             TextButton(onClick = {
@@ -1343,20 +1344,20 @@ fun FunctionSettingsContent(
                                 if (reinstallChoice) {
                                     AlertDialog(
                                         onDismissRequest = { reinstallChoice = false },
-                                        title = { Text(stringResource(R.string.dsh_runtime_reinstall_confirm_title)) },
-                                        text = { Text(stringResource(R.string.dsh_runtime_preserve_question)) },
+                                        title = { Text(stringResource(CoreR.string.dsh_runtime_reinstall_confirm_title)) },
+                                        text = { Text(stringResource(CoreR.string.dsh_runtime_preserve_question)) },
                                         confirmButton = {
                                             TextButton(onClick = {
                                                 reinstallChoice = false
                                                 onReinstallRuntime(true)
-                                            }) { Text(stringResource(R.string.dsh_runtime_preserve)) }
+                                            }) { Text(stringResource(CoreR.string.dsh_runtime_preserve)) }
                                         },
                                         dismissButton = {
                                             Row {
                                                 TextButton(onClick = {
                                                     reinstallChoice = false
                                                     cleanConfirming = true
-                                                }) { Text(stringResource(R.string.dsh_runtime_clean)) }
+                                                }) { Text(stringResource(CoreR.string.dsh_runtime_clean)) }
                                                 TextButton(onClick = { reinstallChoice = false }) { Text(stringResource(android.R.string.cancel)) }
                                             }
                                         },
@@ -1365,13 +1366,13 @@ fun FunctionSettingsContent(
                                 if (cleanConfirming) {
                                     AlertDialog(
                                         onDismissRequest = { cleanConfirming = false },
-                                        title = { Text(stringResource(R.string.dsh_runtime_clean_confirm_title)) },
-                                        text = { Text(stringResource(R.string.dsh_runtime_clean_confirm_text)) },
+                                        title = { Text(stringResource(CoreR.string.dsh_runtime_clean_confirm_title)) },
+                                        text = { Text(stringResource(CoreR.string.dsh_runtime_clean_confirm_text)) },
                                         confirmButton = {
                                             TextButton(onClick = {
                                                 cleanConfirming = false
                                                 onReinstallRuntime(false)
-                                            }) { Text(stringResource(R.string.dsh_runtime_clean_confirm_go)) }
+                                            }) { Text(stringResource(CoreR.string.dsh_runtime_clean_confirm_go)) }
                                         },
                                         dismissButton = {
                                             TextButton(onClick = { cleanConfirming = false }) {
@@ -1390,15 +1391,15 @@ fun FunctionSettingsContent(
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                                 SectionHeader(
                                     icon = { Icon(Icons.Filled.Build, null, Modifier.size(20.dp)) },
-                                    title = stringResource(R.string.dsh_plugin_repair),
-                                    summary = stringResource(R.string.dsh_plugin_repair_summary),
+                                    title = stringResource(CoreR.string.dsh_plugin_repair),
+                                    summary = stringResource(CoreR.string.dsh_plugin_repair_summary),
                                 )
                                 Spacer(Modifier.height(12.dp))
                                 OutlinedButton(
                                     onClick = onRepairPlugins,
                                     enabled = runtimeInstalled && !repairBusy,
                                 ) {
-                                    Text(stringResource(R.string.dsh_plugin_repair_go))
+                                    Text(stringResource(CoreR.string.dsh_plugin_repair_go))
                                 }
                             }
                         }
@@ -1409,8 +1410,8 @@ fun FunctionSettingsContent(
                         ToggleSettingCard(
                             flat = flat,
                             icon = Icons.Filled.VerifiedUser,
-                            title = stringResource(R.string.dsh_verify_after_install),
-                            description = stringResource(R.string.dsh_verify_after_install_summary),
+                            title = stringResource(CoreR.string.dsh_verify_after_install),
+                            description = stringResource(CoreR.string.dsh_verify_after_install_summary),
                             checked = verifyAfterInstall,
                             onCheckedChange = onVerifyAfterInstallChange,
                         )
@@ -1432,9 +1433,9 @@ fun FunctionSettingsContent(
                                     Icon(Icons.Filled.FolderOpen, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
                                     Spacer(Modifier.width(16.dp))
                                     Column {
-                                        Text(stringResource(R.string.dsh_docs_access_title), style = MaterialTheme.typography.bodyLarge)
+                                        Text(stringResource(CoreR.string.dsh_docs_access_title), style = MaterialTheme.typography.bodyLarge)
                                         Spacer(Modifier.height(4.dp))
-                                        Text(stringResource(R.string.dsh_docs_access_summary), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(stringResource(CoreR.string.dsh_docs_access_summary), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                                 Row(
@@ -1458,16 +1459,16 @@ fun FunctionSettingsContent(
                                                     Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
                                             )
                                         if (!runCatching { context.startActivity(intent) }.isSuccess) {
-                                            showToast(context, R.string.dsh_docs_open_failed)
+                                            showToast(context, CoreR.string.dsh_docs_open_failed)
                                         }
-                                    }) { Text(stringResource(R.string.dsh_docs_open_action)) }
+                                    }) { Text(stringResource(CoreR.string.dsh_docs_open_action)) }
                                     // 路二：缺陷 ROM 兼容通道（由本应用自己发放同一份授权）。
                                     // 候选按「能力」算，见 DshDocsAccess.candidates —— 默认勾选系统文件
                                     // 管理器与 MT 管理器，其余能打开文件夹的应用列出来由用户勾。
                                     // 已经授过（哪怕被授权方后来卸了）也要留着这个入口：撤销只在弹窗里。
                                     if (docsCandidates.isNotEmpty() || docsGranted.value.isNotEmpty()) {
                                         TextButton(onClick = { showGrantDocsDialog.value = true }) {
-                                            Text(stringResource(R.string.dsh_docs_grant_action))
+                                            Text(stringResource(CoreR.string.dsh_docs_grant_action))
                                         }
                                     }
                                 }
@@ -1479,7 +1480,7 @@ fun FunctionSettingsContent(
                                         docsCandidates.firstOrNull { it.packageName == pkg }?.label ?: pkg
                                     }
                                     Text(
-                                        text = stringResource(R.string.dsh_docs_granted_label, labels),
+                                        text = stringResource(CoreR.string.dsh_docs_granted_label, labels),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(top = 8.dp),
@@ -1566,11 +1567,11 @@ private fun DocsGrantDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_docs_grant_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_docs_grant_title)) },
         text = {
             Column {
                 Text(
-                    text = stringResource(R.string.dsh_docs_grant_message),
+                    text = stringResource(CoreR.string.dsh_docs_grant_message),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1578,12 +1579,12 @@ private fun DocsGrantDialog(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    placeholder = { Text(stringResource(R.string.dsh_docs_grant_search)) },
+                    placeholder = { Text(stringResource(CoreR.string.dsh_docs_grant_search)) },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
                 if (shown.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.dsh_docs_grant_empty),
+                        text = stringResource(CoreR.string.dsh_docs_grant_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp),
@@ -1627,17 +1628,17 @@ private fun DocsGrantDialog(
                 val picked = candidates.filter { it.packageName in checked }
                 if (picked.isEmpty()) {
                     // 不关弹窗：勾一个再点，比"点了没反应"清楚
-                    showToast(context, R.string.dsh_docs_grant_none)
+                    showToast(context, CoreR.string.dsh_docs_grant_none)
                 } else {
                     val granted = picked.count { DshDocsAccess.grant(context, it.packageName) }
                     onChanged()
                     onDismiss()
                     showToast(
                         context,
-                        if (granted > 0) R.string.dsh_docs_grant_done else R.string.dsh_docs_grant_failed,
+                        if (granted > 0) CoreR.string.dsh_docs_grant_done else CoreR.string.dsh_docs_grant_failed,
                     )
                 }
-            }) { Text(stringResource(R.string.dsh_docs_grant_confirm)) }
+            }) { Text(stringResource(CoreR.string.dsh_docs_grant_confirm)) }
         },
         dismissButton = {
             Row {
@@ -1645,8 +1646,8 @@ private fun DocsGrantDialog(
                     DshDocsAccess.revokeAll(context)
                     onChanged()
                     onDismiss()
-                    showToast(context, R.string.dsh_docs_grant_revoked)
-                }) { Text(stringResource(R.string.dsh_docs_grant_revoke)) }
+                    showToast(context, CoreR.string.dsh_docs_grant_revoked)
+                }) { Text(stringResource(CoreR.string.dsh_docs_grant_revoke)) }
                 TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
             }
         },
@@ -1755,76 +1756,76 @@ private fun PipSwitchRow(
 
 /** 原生能力 → 标题串。 */
 internal fun nativeCapTitleRes(cap: DshNativeBridge.Cap): Int = when (cap) {
-    DshNativeBridge.Cap.NOTIFY -> R.string.dsh_native_cap_notify
-    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> R.string.dsh_native_cap_full_screen_notify
-    DshNativeBridge.Cap.TOAST -> R.string.dsh_native_cap_toast
-    DshNativeBridge.Cap.VIBRATE -> R.string.dsh_native_cap_vibrate
-    DshNativeBridge.Cap.TORCH -> R.string.dsh_native_cap_torch
-    DshNativeBridge.Cap.CLIPBOARD -> R.string.dsh_native_cap_clipboard
-    DshNativeBridge.Cap.INTENT -> R.string.dsh_native_cap_intent
-    DshNativeBridge.Cap.DEVICE -> R.string.dsh_native_cap_device
-    DshNativeBridge.Cap.MEDIA -> R.string.dsh_native_cap_media
-    DshNativeBridge.Cap.MIC -> R.string.dsh_native_cap_mic
-    DshNativeBridge.Cap.CAMERA -> R.string.dsh_native_cap_camera
-    DshNativeBridge.Cap.TTS -> R.string.dsh_native_cap_tts
-    DshNativeBridge.Cap.CALENDAR -> R.string.dsh_native_cap_calendar
-    DshNativeBridge.Cap.CONTACTS -> R.string.dsh_native_cap_contacts
-    DshNativeBridge.Cap.LOCATION -> R.string.dsh_native_cap_location
-    DshNativeBridge.Cap.PHONE -> R.string.dsh_native_cap_phone
-    DshNativeBridge.Cap.SENSORS -> R.string.dsh_native_cap_sensors
-    DshNativeBridge.Cap.NETWORK -> R.string.dsh_native_cap_network
-    DshNativeBridge.Cap.VOLUME -> R.string.dsh_native_cap_volume
-    DshNativeBridge.Cap.SETTINGS -> R.string.dsh_native_cap_settings
-    DshNativeBridge.Cap.INSTALL -> R.string.dsh_native_cap_install
-    DshNativeBridge.Cap.USAGE -> R.string.dsh_native_cap_usage
-    DshNativeBridge.Cap.SAF -> R.string.dsh_native_cap_saf
-    DshNativeBridge.Cap.SMS -> R.string.dsh_native_cap_sms
-    DshNativeBridge.Cap.SHELL -> R.string.dsh_native_cap_shell
-    DshNativeBridge.Cap.A11Y -> R.string.dsh_native_cap_a11y
-    DshNativeBridge.Cap.DISPLAY -> R.string.dsh_native_cap_display
+    DshNativeBridge.Cap.NOTIFY -> CoreR.string.dsh_native_cap_notify
+    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> CoreR.string.dsh_native_cap_full_screen_notify
+    DshNativeBridge.Cap.TOAST -> CoreR.string.dsh_native_cap_toast
+    DshNativeBridge.Cap.VIBRATE -> CoreR.string.dsh_native_cap_vibrate
+    DshNativeBridge.Cap.TORCH -> CoreR.string.dsh_native_cap_torch
+    DshNativeBridge.Cap.CLIPBOARD -> CoreR.string.dsh_native_cap_clipboard
+    DshNativeBridge.Cap.INTENT -> CoreR.string.dsh_native_cap_intent
+    DshNativeBridge.Cap.DEVICE -> CoreR.string.dsh_native_cap_device
+    DshNativeBridge.Cap.MEDIA -> CoreR.string.dsh_native_cap_media
+    DshNativeBridge.Cap.MIC -> CoreR.string.dsh_native_cap_mic
+    DshNativeBridge.Cap.CAMERA -> CoreR.string.dsh_native_cap_camera
+    DshNativeBridge.Cap.TTS -> CoreR.string.dsh_native_cap_tts
+    DshNativeBridge.Cap.CALENDAR -> CoreR.string.dsh_native_cap_calendar
+    DshNativeBridge.Cap.CONTACTS -> CoreR.string.dsh_native_cap_contacts
+    DshNativeBridge.Cap.LOCATION -> CoreR.string.dsh_native_cap_location
+    DshNativeBridge.Cap.PHONE -> CoreR.string.dsh_native_cap_phone
+    DshNativeBridge.Cap.SENSORS -> CoreR.string.dsh_native_cap_sensors
+    DshNativeBridge.Cap.NETWORK -> CoreR.string.dsh_native_cap_network
+    DshNativeBridge.Cap.VOLUME -> CoreR.string.dsh_native_cap_volume
+    DshNativeBridge.Cap.SETTINGS -> CoreR.string.dsh_native_cap_settings
+    DshNativeBridge.Cap.INSTALL -> CoreR.string.dsh_native_cap_install
+    DshNativeBridge.Cap.USAGE -> CoreR.string.dsh_native_cap_usage
+    DshNativeBridge.Cap.SAF -> CoreR.string.dsh_native_cap_saf
+    DshNativeBridge.Cap.SMS -> CoreR.string.dsh_native_cap_sms
+    DshNativeBridge.Cap.SHELL -> CoreR.string.dsh_native_cap_shell
+    DshNativeBridge.Cap.A11Y -> CoreR.string.dsh_native_cap_a11y
+    DshNativeBridge.Cap.DISPLAY -> CoreR.string.dsh_native_cap_display
 }
 
 internal fun accessLabelRes(cap: DshNativeBridge.Cap, access: DshNativeBridge.Access): Int = when {
-    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.WRITE -> R.string.dsh_native_access_send_only
-    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.READ -> R.string.dsh_native_access_view_only
-    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.READ_WRITE -> R.string.dsh_native_access_view_send
-    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.WRITE -> R.string.dsh_native_access_send_only
-    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.READ -> R.string.dsh_native_access_view_only
-    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.READ_WRITE -> R.string.dsh_native_access_view_send
-    access == DshNativeBridge.Access.WRITE -> R.string.dsh_native_access_allow
-    access == DshNativeBridge.Access.READ -> R.string.dsh_native_access_read
-    else -> R.string.dsh_native_access_read_write
+    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.WRITE -> CoreR.string.dsh_native_access_send_only
+    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.READ -> CoreR.string.dsh_native_access_view_only
+    cap == DshNativeBridge.Cap.NOTIFY && access == DshNativeBridge.Access.READ_WRITE -> CoreR.string.dsh_native_access_view_send
+    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.WRITE -> CoreR.string.dsh_native_access_send_only
+    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.READ -> CoreR.string.dsh_native_access_view_only
+    cap == DshNativeBridge.Cap.SMS && access == DshNativeBridge.Access.READ_WRITE -> CoreR.string.dsh_native_access_view_send
+    access == DshNativeBridge.Access.WRITE -> CoreR.string.dsh_native_access_allow
+    access == DshNativeBridge.Access.READ -> CoreR.string.dsh_native_access_read
+    else -> CoreR.string.dsh_native_access_read_write
 }
 
 /** 原生能力 → 说明串。 */
 internal fun nativeCapSummaryRes(cap: DshNativeBridge.Cap): Int = when (cap) {
-    DshNativeBridge.Cap.NOTIFY -> R.string.dsh_native_cap_notify
-    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> R.string.dsh_native_cap_full_screen_notify_desc
-    DshNativeBridge.Cap.TOAST -> R.string.dsh_native_cap_toast_desc
-    DshNativeBridge.Cap.VIBRATE -> R.string.dsh_native_cap_vibrate_desc
-    DshNativeBridge.Cap.TORCH -> R.string.dsh_native_cap_torch_desc
-    DshNativeBridge.Cap.CLIPBOARD -> R.string.dsh_native_cap_clipboard_desc
-    DshNativeBridge.Cap.INTENT -> R.string.dsh_native_cap_intent_desc
-    DshNativeBridge.Cap.DEVICE -> R.string.dsh_native_cap_device_desc
-    DshNativeBridge.Cap.MEDIA -> R.string.dsh_native_cap_media_desc
-    DshNativeBridge.Cap.MIC -> R.string.dsh_native_cap_mic_desc
-    DshNativeBridge.Cap.CAMERA -> R.string.dsh_native_cap_camera_desc
-    DshNativeBridge.Cap.TTS -> R.string.dsh_native_cap_tts_desc
-    DshNativeBridge.Cap.CALENDAR -> R.string.dsh_native_cap_calendar_desc
-    DshNativeBridge.Cap.CONTACTS -> R.string.dsh_native_cap_contacts_desc
-    DshNativeBridge.Cap.LOCATION -> R.string.dsh_native_cap_location_desc
-    DshNativeBridge.Cap.PHONE -> R.string.dsh_native_cap_phone_desc
-    DshNativeBridge.Cap.SENSORS -> R.string.dsh_native_cap_sensors_desc
-    DshNativeBridge.Cap.NETWORK -> R.string.dsh_native_cap_network_desc
-    DshNativeBridge.Cap.VOLUME -> R.string.dsh_native_cap_volume_desc
-    DshNativeBridge.Cap.SETTINGS -> R.string.dsh_native_cap_settings_desc
-    DshNativeBridge.Cap.INSTALL -> R.string.dsh_native_cap_install_desc
-    DshNativeBridge.Cap.USAGE -> R.string.dsh_native_cap_usage_desc
-    DshNativeBridge.Cap.SAF -> R.string.dsh_native_cap_saf_desc
-    DshNativeBridge.Cap.SMS -> R.string.dsh_native_cap_sms_desc
-    DshNativeBridge.Cap.SHELL -> R.string.dsh_native_cap_shell_desc
-    DshNativeBridge.Cap.A11Y -> R.string.dsh_native_cap_a11y_desc
-    DshNativeBridge.Cap.DISPLAY -> R.string.dsh_native_cap_display_desc
+    DshNativeBridge.Cap.NOTIFY -> CoreR.string.dsh_native_cap_notify
+    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> CoreR.string.dsh_native_cap_full_screen_notify_desc
+    DshNativeBridge.Cap.TOAST -> CoreR.string.dsh_native_cap_toast_desc
+    DshNativeBridge.Cap.VIBRATE -> CoreR.string.dsh_native_cap_vibrate_desc
+    DshNativeBridge.Cap.TORCH -> CoreR.string.dsh_native_cap_torch_desc
+    DshNativeBridge.Cap.CLIPBOARD -> CoreR.string.dsh_native_cap_clipboard_desc
+    DshNativeBridge.Cap.INTENT -> CoreR.string.dsh_native_cap_intent_desc
+    DshNativeBridge.Cap.DEVICE -> CoreR.string.dsh_native_cap_device_desc
+    DshNativeBridge.Cap.MEDIA -> CoreR.string.dsh_native_cap_media_desc
+    DshNativeBridge.Cap.MIC -> CoreR.string.dsh_native_cap_mic_desc
+    DshNativeBridge.Cap.CAMERA -> CoreR.string.dsh_native_cap_camera_desc
+    DshNativeBridge.Cap.TTS -> CoreR.string.dsh_native_cap_tts_desc
+    DshNativeBridge.Cap.CALENDAR -> CoreR.string.dsh_native_cap_calendar_desc
+    DshNativeBridge.Cap.CONTACTS -> CoreR.string.dsh_native_cap_contacts_desc
+    DshNativeBridge.Cap.LOCATION -> CoreR.string.dsh_native_cap_location_desc
+    DshNativeBridge.Cap.PHONE -> CoreR.string.dsh_native_cap_phone_desc
+    DshNativeBridge.Cap.SENSORS -> CoreR.string.dsh_native_cap_sensors_desc
+    DshNativeBridge.Cap.NETWORK -> CoreR.string.dsh_native_cap_network_desc
+    DshNativeBridge.Cap.VOLUME -> CoreR.string.dsh_native_cap_volume_desc
+    DshNativeBridge.Cap.SETTINGS -> CoreR.string.dsh_native_cap_settings_desc
+    DshNativeBridge.Cap.INSTALL -> CoreR.string.dsh_native_cap_install_desc
+    DshNativeBridge.Cap.USAGE -> CoreR.string.dsh_native_cap_usage_desc
+    DshNativeBridge.Cap.SAF -> CoreR.string.dsh_native_cap_saf_desc
+    DshNativeBridge.Cap.SMS -> CoreR.string.dsh_native_cap_sms_desc
+    DshNativeBridge.Cap.SHELL -> CoreR.string.dsh_native_cap_shell_desc
+    DshNativeBridge.Cap.A11Y -> CoreR.string.dsh_native_cap_a11y_desc
+    DshNativeBridge.Cap.DISPLAY -> CoreR.string.dsh_native_cap_display_desc
 }
 
 /**
@@ -1837,30 +1838,30 @@ internal fun nativeCapSummaryRes(cap: DshNativeBridge.Cap): Int = when (cap) {
  * 「所有文件访问」不在这里：它不是 Cap，走独立的一行。
  */
 internal fun capPermissionHintRes(cap: DshNativeBridge.Cap): Int = when (cap) {
-    DshNativeBridge.Cap.NOTIFY -> R.string.dsh_native_need_notif_perm
-    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> R.string.dsh_native_need_full_screen_perm
-    DshNativeBridge.Cap.MEDIA -> R.string.dsh_native_need_media_perm
-    DshNativeBridge.Cap.MIC -> R.string.dsh_native_need_mic_perm
-    DshNativeBridge.Cap.CAMERA -> R.string.dsh_native_need_camera_perm
-    DshNativeBridge.Cap.CALENDAR -> R.string.dsh_native_need_calendar_perm
-    DshNativeBridge.Cap.CONTACTS -> R.string.dsh_native_need_contacts_perm
-    DshNativeBridge.Cap.LOCATION -> R.string.dsh_native_need_location_perm
-    DshNativeBridge.Cap.PHONE -> R.string.dsh_native_need_phone_perm
-    DshNativeBridge.Cap.SENSORS -> R.string.dsh_native_need_sensors_perm
+    DshNativeBridge.Cap.NOTIFY -> CoreR.string.dsh_native_need_notif_perm
+    DshNativeBridge.Cap.FULL_SCREEN_NOTIFY -> CoreR.string.dsh_native_need_full_screen_perm
+    DshNativeBridge.Cap.MEDIA -> CoreR.string.dsh_native_need_media_perm
+    DshNativeBridge.Cap.MIC -> CoreR.string.dsh_native_need_mic_perm
+    DshNativeBridge.Cap.CAMERA -> CoreR.string.dsh_native_need_camera_perm
+    DshNativeBridge.Cap.CALENDAR -> CoreR.string.dsh_native_need_calendar_perm
+    DshNativeBridge.Cap.CONTACTS -> CoreR.string.dsh_native_need_contacts_perm
+    DshNativeBridge.Cap.LOCATION -> CoreR.string.dsh_native_need_location_perm
+    DshNativeBridge.Cap.PHONE -> CoreR.string.dsh_native_need_phone_perm
+    DshNativeBridge.Cap.SENSORS -> CoreR.string.dsh_native_need_sensors_perm
     // 下面三项是特殊权限：点了会跳系统设置页，不会弹授权框
-    DshNativeBridge.Cap.SETTINGS -> R.string.dsh_native_need_write_settings
-    DshNativeBridge.Cap.VOLUME -> R.string.dsh_native_need_dnd_access
-    DshNativeBridge.Cap.INSTALL -> R.string.dsh_native_need_install_perm
-    DshNativeBridge.Cap.USAGE -> R.string.dsh_native_need_usage_perm
-    DshNativeBridge.Cap.SMS -> R.string.dsh_native_need_sms_perm
+    DshNativeBridge.Cap.SETTINGS -> CoreR.string.dsh_native_need_write_settings
+    DshNativeBridge.Cap.VOLUME -> CoreR.string.dsh_native_need_dnd_access
+    DshNativeBridge.Cap.INSTALL -> CoreR.string.dsh_native_need_install_perm
+    DshNativeBridge.Cap.USAGE -> CoreR.string.dsh_native_need_usage_perm
+    DshNativeBridge.Cap.SMS -> CoreR.string.dsh_native_need_sms_perm
     // 特权命令缺的不是 Android 权限，而是「还没选通道」：点下去跳到本页的权限通道那一段。
     // 虚拟屏也是同一条约束 —— 它要靠那条通道才能把服务端以特权身份拉起来。
-    DshNativeBridge.Cap.SHELL, DshNativeBridge.Cap.DISPLAY -> R.string.dsh_native_cap_shell_need_channel
-    DshNativeBridge.Cap.A11Y -> R.string.dsh_native_need_a11y_perm
+    DshNativeBridge.Cap.SHELL, DshNativeBridge.Cap.DISPLAY -> CoreR.string.dsh_native_cap_shell_need_channel
+    DshNativeBridge.Cap.A11Y -> CoreR.string.dsh_native_need_a11y_perm
     // 剩下的（toast/振动/剪贴板/分享/设备信息/网络）不需要任何权限。
     // 界面只在 cap !in capsWithPermission 时才取这一行，而这些项恒在集合里，
     // 所以这个分支实际不会被显示；给一个中性串而不是抛，免得将来加了新能力就崩。
-    else -> R.string.dsh_native_need_notif_perm
+    else -> CoreR.string.dsh_native_need_notif_perm
 }
 
 /**
@@ -1887,7 +1888,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
      * 已经挪到各自更该在的组。
      */
     INTERACT(
-        R.string.dsh_native_group_interact,
+        CoreR.string.dsh_native_group_interact,
         listOf(
             DshNativeBridge.Cap.NOTIFY,
             DshNativeBridge.Cap.FULL_SCREEN_NOTIFY,
@@ -1909,7 +1910,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
      * 与它自己的语义自相矛盾。
      */
     SENSE(
-        R.string.dsh_native_group_sense,
+        CoreR.string.dsh_native_group_sense,
         listOf(
             DshNativeBridge.Cap.DEVICE,
             DshNativeBridge.Cap.NETWORK,
@@ -1921,7 +1922,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
 
     /** 读（少数情况下写）属于用户本人的内容。这一组最该逐项想清楚。 */
     PERSONAL(
-        R.string.dsh_native_group_personal,
+        CoreR.string.dsh_native_group_personal,
         listOf(
             // 剪贴板放这一组：档位里有 view / view_send，它是能**读**用户复制的东西的
             // （可能是刚复制的密码）。INTERACT 那组的判据是「不读任何持久状态」，它不合。
@@ -1938,7 +1939,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
 
     /** 动采集硬件：拿得到画面、声音与所在位置。需要应用在前台的几项也都在这里。 */
     CAPTURE(
-        R.string.dsh_native_group_capture,
+        CoreR.string.dsh_native_group_capture,
         listOf(
             DshNativeBridge.Cap.MEDIA,
             DshNativeBridge.Cap.CAMERA,
@@ -1958,7 +1959,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
      * 同样是「影响到本应用之外的界面」。
      */
     SCREEN(
-        R.string.dsh_native_group_screen,
+        CoreR.string.dsh_native_group_screen,
         listOf(
             // 读屏更进一步：它读的是用户此刻看的那个界面（可能是聊天窗口）
             DshNativeBridge.Cap.A11Y,
@@ -1970,7 +1971,7 @@ internal enum class CapGroup(val titleRes: Int, val caps: List<DshNativeBridge.C
 
     /** 改系统的全局状态，或直接动用特权通道。改完不会自动恢复，所以放在最后。 */
     CONTROL(
-        R.string.dsh_native_group_control,
+        CoreR.string.dsh_native_group_control,
         listOf(
             // 特权命令是全组里权限最大的一项：它不通过 Android 权限，而是借整条通道
             DshNativeBridge.Cap.SHELL,
@@ -2027,19 +2028,19 @@ private fun RuntimeVersionDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_runtime_versions_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_runtime_versions_title)) },
         text = {
             Column {
                 RuntimeFlavorSlider(slim = slim, onSelect = onSlimChange)
                 // 选了非默认那一端才解释它是什么（精简版砍了什么 / 测试版可能不稳定）。
                 // 常显会把菜单顶下去，而且默认端本来就不需要解释。
-                if (slim) RuntimeSliderNote(text = stringResource(R.string.dsh_runtime_slim_summary))
+                if (slim) RuntimeSliderNote(text = stringResource(CoreR.string.dsh_runtime_slim_summary))
                 Spacer(Modifier.height(6.dp))
                 RuntimeChannelSlider(beta = beta, onSelect = onBetaChange)
-                if (beta) RuntimeSliderNote(text = stringResource(R.string.dsh_runtime_beta_summary))
+                if (beta) RuntimeSliderNote(text = stringResource(CoreR.string.dsh_runtime_beta_summary))
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = stringResource(R.string.dsh_runtime_menu_filter_note),
+                    text = stringResource(CoreR.string.dsh_runtime_menu_filter_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2047,22 +2048,22 @@ private fun RuntimeVersionDialog(
                 val list = versions
                 when {
                     failed -> Column {
-                        Text(stringResource(R.string.dsh_runtime_versions_failed))
+                        Text(stringResource(CoreR.string.dsh_runtime_versions_failed))
                         Spacer(Modifier.height(8.dp))
                         TextButton(onClick = { reloadKey++ }) {
-                            Text(stringResource(R.string.dsh_runtime_versions_retry))
+                            Text(stringResource(CoreR.string.dsh_runtime_versions_retry))
                         }
                     }
                     list == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(10.dp))
-                        Text(stringResource(R.string.dsh_runtime_versions_loading))
+                        Text(stringResource(CoreR.string.dsh_runtime_versions_loading))
                     }
                     else -> {
                         val visible = list.filter { RuntimeVersion.matchesFilter(it, slim, beta) }
                         val currentVisible = visible.any { RuntimeVersion.sameVersion(it.version, currentVersion) }
                         Text(
-                            text = stringResource(R.string.dsh_runtime_versions_warning),
+                            text = stringResource(CoreR.string.dsh_runtime_versions_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -2083,7 +2084,7 @@ private fun RuntimeVersionDialog(
                             if (visible.isEmpty()) {
                                 item(key = "empty") {
                                     Text(
-                                        text = stringResource(R.string.dsh_runtime_menu_empty),
+                                        text = stringResource(CoreR.string.dsh_runtime_menu_empty),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -2105,10 +2106,10 @@ private fun RuntimeVersionDialog(
         },
         // 左下角是导入（dismissButton 就在确认键左边），右下角是关闭
         dismissButton = {
-            TextButton(onClick = onImport) { Text(stringResource(R.string.dsh_runtime_import)) }
+            TextButton(onClick = onImport) { Text(stringResource(CoreR.string.dsh_runtime_import)) }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dsh_runtime_menu_close)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(CoreR.string.dsh_runtime_menu_close)) }
         },
     )
 }
@@ -2122,9 +2123,9 @@ private fun RuntimeVersionDialog(
 @Composable
 private fun RuntimeFlavorSlider(slim: Boolean, onSelect: (Boolean) -> Unit) {
     RuntimeTwoStopSlider(
-        caption = stringResource(R.string.dsh_runtime_menu_flavor),
-        leftLabel = stringResource(R.string.dsh_runtime_flavor_full),
-        rightLabel = stringResource(R.string.dsh_runtime_flavor_slim),
+        caption = stringResource(CoreR.string.dsh_runtime_menu_flavor),
+        leftLabel = stringResource(CoreR.string.dsh_runtime_flavor_full),
+        rightLabel = stringResource(CoreR.string.dsh_runtime_flavor_slim),
         rightSelected = slim,
         onSelect = onSelect,
     )
@@ -2134,9 +2135,9 @@ private fun RuntimeFlavorSlider(slim: Boolean, onSelect: (Boolean) -> Unit) {
 @Composable
 private fun RuntimeChannelSlider(beta: Boolean, onSelect: (Boolean) -> Unit) {
     RuntimeTwoStopSlider(
-        caption = stringResource(R.string.dsh_runtime_menu_channel),
-        leftLabel = stringResource(R.string.dsh_runtime_channel_stable_short),
-        rightLabel = stringResource(R.string.dsh_runtime_channel_beta_short),
+        caption = stringResource(CoreR.string.dsh_runtime_menu_channel),
+        leftLabel = stringResource(CoreR.string.dsh_runtime_channel_stable_short),
+        rightLabel = stringResource(CoreR.string.dsh_runtime_channel_beta_short),
         rightSelected = beta,
         onSelect = onSelect,
     )
@@ -2225,11 +2226,11 @@ private fun RuntimeCurrentVersionRow(version: String, onReinstall: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            RuntimeRowActionLabel(text = stringResource(R.string.dsh_runtime_reinstall))
+            RuntimeRowActionLabel(text = stringResource(CoreR.string.dsh_runtime_reinstall))
         }
         Spacer(Modifier.height(4.dp))
         ModuleLabel(
-            text = stringResource(R.string.dsh_runtime_current),
+            text = stringResource(CoreR.string.dsh_runtime_current),
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )
@@ -2286,7 +2287,7 @@ private fun RuntimeVersionRow(
             if (!tooOld) {
                 RuntimeRowActionLabel(
                     text = stringResource(
-                        if (current) R.string.dsh_runtime_reinstall else R.string.dsh_runtime_row_switch,
+                        if (current) CoreR.string.dsh_runtime_reinstall else CoreR.string.dsh_runtime_row_switch,
                     ),
                 )
             }
@@ -2312,14 +2313,14 @@ private fun RuntimeVersionRow(
             }
             if (parts.rev > 0) {
                 ModuleLabel(
-                    text = stringResource(R.string.dsh_runtime_tag_rootfs, parts.rev),
+                    text = stringResource(CoreR.string.dsh_runtime_tag_rootfs, parts.rev),
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (current) {
                 ModuleLabel(
-                    text = stringResource(R.string.dsh_runtime_current),
+                    text = stringResource(CoreR.string.dsh_runtime_current),
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -2328,7 +2329,7 @@ private fun RuntimeVersionRow(
         Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(
-                R.string.dsh_runtime_version_detail,
+                CoreR.string.dsh_runtime_version_detail,
                 entry.dsh.ifEmpty { "?" },
                 entry.nodeVersion.ifEmpty { "?" },
                 entry.sizeBytes / 1024 / 1024,
@@ -2339,7 +2340,7 @@ private fun RuntimeVersionRow(
         if (tooOld) {
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(R.string.dsh_runtime_min_app_required, entry.minAppVersion),
+                text = stringResource(CoreR.string.dsh_runtime_min_app_required, entry.minAppVersion),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -2360,11 +2361,11 @@ private fun RuntimeRowActionLabel(text: String) {
 
 /** 通道标签文案：正式 / 精简 / 测试 / 精简测试 / 历史版本。 */
 private fun channelLabelRes(channel: String): Int = when (channel) {
-    RuntimeVersion.CHANNEL_STABLE -> R.string.dsh_runtime_channel_stable
-    RuntimeVersion.CHANNEL_SLIM -> R.string.dsh_runtime_channel_slim
-    RuntimeVersion.CHANNEL_BETA -> R.string.dsh_runtime_channel_beta
-    RuntimeVersion.CHANNEL_SLIM_BETA -> R.string.dsh_runtime_channel_slim_beta
-    else -> R.string.dsh_runtime_channel_archive
+    RuntimeVersion.CHANNEL_STABLE -> CoreR.string.dsh_runtime_channel_stable
+    RuntimeVersion.CHANNEL_SLIM -> CoreR.string.dsh_runtime_channel_slim
+    RuntimeVersion.CHANNEL_BETA -> CoreR.string.dsh_runtime_channel_beta
+    RuntimeVersion.CHANNEL_SLIM_BETA -> CoreR.string.dsh_runtime_channel_slim_beta
+    else -> CoreR.string.dsh_runtime_channel_archive
 }
 
 /**
@@ -2398,13 +2399,13 @@ private fun RaceChannelDialog(
     onDismiss: () -> Unit,
 ) {
     val channels = listOf(
-        Triple(DshRuntime.RACE_PLUGINS, R.string.dsh_race_channel_plugins, racePlugins),
-        Triple(DshRuntime.RACE_APP_UPDATE, R.string.dsh_race_channel_app, raceAppUpdate),
-        Triple(DshRuntime.RACE_RUNTIME, R.string.dsh_race_channel_runtime, raceRuntime),
+        Triple(DshRuntime.RACE_PLUGINS, CoreR.string.dsh_race_channel_plugins, racePlugins),
+        Triple(DshRuntime.RACE_APP_UPDATE, CoreR.string.dsh_race_channel_app, raceAppUpdate),
+        Triple(DshRuntime.RACE_RUNTIME, CoreR.string.dsh_race_channel_runtime, raceRuntime),
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dsh_race_dialog_title)) },
+        title = { Text(stringResource(CoreR.string.dsh_race_dialog_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -2413,7 +2414,7 @@ private fun RaceChannelDialog(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = stringResource(R.string.dsh_race_dialog_message),
+                    text = stringResource(CoreR.string.dsh_race_dialog_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2449,7 +2450,7 @@ private fun RaceChannelDialog(
                 if (!masterEnabled) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = stringResource(R.string.dsh_race_master_off_hint),
+                        text = stringResource(CoreR.string.dsh_race_master_off_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -2457,12 +2458,12 @@ private fun RaceChannelDialog(
 
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = stringResource(R.string.dsh_race_mirrors_title),
+                    text = stringResource(CoreR.string.dsh_race_mirrors_title),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = stringResource(R.string.dsh_race_mirrors_hint),
+                    text = stringResource(CoreR.string.dsh_race_mirrors_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2499,14 +2500,14 @@ private fun RaceChannelDialog(
                             if (result != null) {
                                 val latency = result.latencyMs
                                 val detail = when {
-                                    latency == null -> stringResource(R.string.dsh_race_mirror_unreachable)
+                                    latency == null -> stringResource(CoreR.string.dsh_race_mirror_unreachable)
                                     result.speedKBps > 0.0 -> String.format(
-                                        stringResource(R.string.dsh_race_mirror_measured_speed),
+                                        stringResource(CoreR.string.dsh_race_mirror_measured_speed),
                                         latency.toInt(),
                                         result.speedKBps.toInt(),
                                     )
                                     else -> String.format(
-                                        stringResource(R.string.dsh_race_mirror_measured_latency),
+                                        stringResource(CoreR.string.dsh_race_mirror_measured_latency),
                                         latency.toInt(),
                                     )
                                 }
@@ -2528,8 +2529,8 @@ private fun RaceChannelDialog(
                     OutlinedButton(onClick = onSpeedTest, enabled = !speedTesting) {
                         Text(
                             stringResource(
-                                if (speedTesting) R.string.dsh_source_testing
-                                else R.string.dsh_source_speedtest
+                                if (speedTesting) CoreR.string.dsh_source_testing
+                                else CoreR.string.dsh_source_speedtest
                             )
                         )
                     }
@@ -2539,9 +2540,9 @@ private fun RaceChannelDialog(
                         val reachable = speedResults.count { it.reachable }
                         Text(
                             text = if (reachable > 0) {
-                                stringResource(R.string.dsh_race_testing_progress, measured, reachable)
+                                stringResource(CoreR.string.dsh_race_testing_progress, measured, reachable)
                             } else {
-                                stringResource(R.string.dsh_source_testing)
+                                stringResource(CoreR.string.dsh_source_testing)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2549,7 +2550,7 @@ private fun RaceChannelDialog(
                     } else {
                         Text(
                             text = stringResource(
-                                R.string.dsh_source_effective,
+                                CoreR.string.dsh_source_effective,
                                 stringResource(DshSource.labelRes(effectiveSource)),
                             ),
                             style = MaterialTheme.typography.bodySmall,
@@ -2579,13 +2580,13 @@ private fun RaceChannelDialog(
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = stringResource(R.string.dsh_race_custom_title),
+                            text = stringResource(CoreR.string.dsh_race_custom_title),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (masterEnabled) MaterialTheme.colorScheme.onSurface
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                         )
                         Text(
-                            text = stringResource(R.string.dsh_race_custom_desc),
+                            text = stringResource(CoreR.string.dsh_race_custom_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -2595,7 +2596,7 @@ private fun RaceChannelDialog(
                     OutlinedTextField(
                         value = customMetaUrl,
                         onValueChange = onCustomMetaUrlChange,
-                        label = { Text(stringResource(R.string.dsh_source_custom_hint)) },
+                        label = { Text(stringResource(CoreR.string.dsh_source_custom_hint)) },
                         singleLine = true,
                         enabled = masterEnabled,
                         modifier = Modifier.fillMaxWidth(),
