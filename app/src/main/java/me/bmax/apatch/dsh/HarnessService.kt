@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.bmax.apatch.R
 import me.bmax.apatch.util.appString
-import me.bmax.apatch.ui.MainActivity
+import me.bmax.apatch.util.appLaunchIntent
 import me.bmax.apatch.res.R as CoreR
 
 /**
@@ -124,7 +124,7 @@ class HarnessService : Service() {
 
     private fun buildNotification(text: String): Notification {
         val openIntent = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
+            this, 0, appLaunchIntent(this), PendingIntent.FLAG_IMMUTABLE,
         )
         val stopIntent = PendingIntent.getService(
             this, 1,

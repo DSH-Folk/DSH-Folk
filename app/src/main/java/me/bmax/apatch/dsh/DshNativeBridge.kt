@@ -29,7 +29,7 @@ import androidx.core.content.edit
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.util.appString
-import me.bmax.apatch.ui.MainActivity
+import me.bmax.apatch.util.appLaunchIntent
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
 import org.json.JSONObject
@@ -1860,7 +1860,8 @@ object DshNativeBridge {
         val open = PendingIntent.getActivity(
             ctx,
             NOTIFICATION_ID_BASE + MAX_NOTIFICATION_SLOT + 1,
-            Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            // 不 import MainActivity：dsh 包要下沉 :core-kernel，反向依赖 ui 会让整块搬不动
+            appLaunchIntent(ctx),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -1957,7 +1958,7 @@ object DshNativeBridge {
         val open = PendingIntent.getActivity(
             ctx,
             NOTIFICATION_ID_BASE,
-            Intent(ctx, MainActivity::class.java),
+            appLaunchIntent(ctx),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return NotificationCompat.Builder(ctx, CHANNEL_ID)

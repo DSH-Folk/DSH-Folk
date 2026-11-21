@@ -77,7 +77,9 @@ function stripXmlComments(src) {
 
 const SERVICE = "app/src/main/java/me/bmax/apatch/dsh/DshShizukuShellService.kt";
 const CLIENT = "app/src/main/java/me/bmax/apatch/dsh/DshShizukuShell.kt";
-const AIDL = "app/src/main/aidl/me/bmax/apatch/dsh/IDshShellService.aidl";
+// AIDL 已迁入 :core-kernel（Checkpoint 1）：Shizuku 用户服务是全仓共用的 IPC 契约，
+// 放底层才能让 DshShizukuShell 随之下沉。
+const AIDL = "core-kernel/src/main/aidl/me/bmax/apatch/dsh/IDshShellService.aidl";
 const MANIFEST = "app/src/main/AndroidManifest.xml";
 const PROGUARD = "app/proguard-rules.pro";
 

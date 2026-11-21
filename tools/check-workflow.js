@@ -1438,7 +1438,9 @@ console.log("\u2500 #16v chroot 启动方式（真 root，实验性）");
   ok(/class Chroot\(private val ctx: Context\) : ContainerRuntime/.test(rt), '有 Chroot 运行时实现');
   ok(/override fun id\(\) = "chroot"/.test(rt), 'id 是 chroot');
   // 可用性 = root 通道，不是「沙箱可用」
-  ok(/PrivilegedShell\.reach\(ctx\)\?\.channel == PermissionManager\.Channel\.ROOT/.test(rt),
+  // ContainerRuntime 已下沉 :core-kernel，PrivilegedShell 在 :app（依赖 AIDL 生成类
+  // 的调用点仍在 app），所以走 KernelEnv.HostFacts 注入。
+  ok(/KernelEnv\.hostFacts\(ctx\)\.rootChannelActive/.test(rt),
     '可用性判定 = root 通道就绪');
   // 关键：chroot 不是沙箱，注释必须写明（避免误导）
   ok(/\*\*chroot 本身不是沙箱\*\*/.test(rt), '类注释明确「chroot 不是沙箱」');
@@ -1483,7 +1485,7 @@ console.log("\u2500 #16w chroot 的 su 路径探测与三处回退（真机反�
   ok(/getRootShell\(\)\.newJob\(\)/.test(ps), '借已生效的 root shell 去问（libsu 自己知道怎么找 su）');
   ok(/cachedSuPath/.test(ps), 'su 路径有缓存（不每次启动都重探）');
   // chroot 必须用探测到的路径
-  ok(/val su = PrivilegedShell\.resolveSuPath\(ctx\) \?: return null/.test(rt),
+  ok(/val su = KernelEnv\.hostFacts\(ctx\)\.suPath \?: return null/.test(rt),
     '解析不到 su 就返回 null（而不是拼一条注定失败的 argv）');
   ok(/shellQuote\(su\) \+ " -c " \+ shellQuote/.test(rt), 'argv 用的是解析出的 su 绝对路径');
   // 关键陷阱：chroot 的 baseArgv 是空列表，简单回退会拼出非法 argv
@@ -1577,7 +1579,9 @@ console.log("\u2500 #16z launch.sh 的真凶与启动前自检（issue #12 第�
   ok(/private fun checkLaunchScript\(launch: File\): String\?/.test(rt), '有 launch.sh 语法自检');
   ok(/ProcessBuilder\("\/system\/bin\/sh", "-n", launch\.absolutePath\)/.test(rt), '用 /system/bin/sh -n 检查（就是真正解析脚本的那个 shell）');
   ok(/val syntaxError = checkLaunchScript\(launch\)/.test(rt), 'spawnArgv 返回 argv 之前先自检');
-  ok(/DshRuntime\.appendLog\(/.test(rt) && /已回退 proot/.test(rt), '自检不过：把 shell 原文写进日志并回退 proot');
+  // DshEnv/ContainerRuntime/AdbBridge 走 KernelEnv.log 断环；DshRuntime 自己仍用 appendLog。
+  ok(/(?:DshRuntime\.appendLog|KernelEnv\.log)\(/.test(rt) && /已回退 proot/.test(rt),
+    '自检不过：把 shell 原文写进日志并回退 proot');
   // ── 跨运行时互操作 + 挂载（真机：切回 proot 后 /root/.dsh/... EACCES；工作区列目录 ENOENT）──
   ok(/^\s*binds \+= storageBinds\(ctx\)/m.test(rt) && /^\s*binds \+= workspaceBinds\(ctx\)/m.test(rt),
     "chroot 同时挂「存储」与「工作区」（proot/proroot 都有；缺工作区就是新建工作区 ENOENT）");

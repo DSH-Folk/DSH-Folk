@@ -12,16 +12,8 @@ import android.content.Context
  * 识别只读命令（[PrivilegedShell.isReadonly] 的对照）、给审计与返回值一个稳定的语义
  * （`risk: dangerous` 这条记录不随策略改动而变），以及做「危险操作清单」的内置内容。
  */
-internal enum class PrivRisk {
-    /** 只读：无论怎么给参数都不改设备状态。 */
-    READONLY,
-
-    /** 会改状态，但影响范围清楚、容易恢复。 */
-    WRITE,
-
-    /** 改完不容易恢复，或者影响整机（卸载、重启、清数据）。 */
-    DANGEROUS,
-}
+// PrivRisk 已抽到 :core-kernel 的 PrivRisk.kt（Checkpoint 1）：
+// PrivilegedShell 下沉后要用它，而 PrivPolicy 依赖 DshNativeBridge.Cap 无法下沉。
 
 /**
  * 特权调用的策略判定。**唯一实现**：宿主侧的门禁（[DshNativeBridge]）与容器侧的提示词都

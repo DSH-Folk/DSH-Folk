@@ -43,6 +43,11 @@ android {
 
     buildFeatures {
         compose = true
+        // IDshShellService.aidl 从 :app 迁过来了（Checkpoint 1）。
+        // AIDL 生成本来就该在底层：Shizuku 用户服务是全仓库共用的 IPC 契约，
+        // 不是 UI 层的东西。不开这个开关，DshShizukuShell 在 :core-kernel 里
+        // 找不到生成的 IDshShellService 接口。
+        aidl = true
     }
 }
 
