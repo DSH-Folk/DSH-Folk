@@ -229,7 +229,8 @@ object DshFileAccess {
      * 却告诉用户"提供器不给出真实路径" —— 与我们自己算出来的事实自相矛盾，用户也没法据此
      * 报障。
      */
-    internal sealed class PickerHostDir {
+    @InternalKernelApi
+    sealed class PickerHostDir {
         /** 读得到、能挂的真实宿主路径。 */
         data class Mountable(val path: String) : PickerHostDir()
 
