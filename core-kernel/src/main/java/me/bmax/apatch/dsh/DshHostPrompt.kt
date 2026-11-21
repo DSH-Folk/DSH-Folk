@@ -328,7 +328,7 @@ object DshHostPrompt {
                 // 自带的各段一致），但 agent 需要知道该用什么语言回话、通知该写成什么语言。
                 .put("locale", localeTag(ctx))
                 // 实际在跑的那个：agent 看到 proroot 会以为 link() 一定变符号链接
-                .put("containerRuntime", DshRuntime.effectiveRuntimeId())
+                .put("containerRuntime", hf.effectiveRuntimeId)
                 // 桥进程一直在，但没有「所有文件访问」时每个文件端点都回 403 ——
                 // 提示词必须说清是哪一种，否则 agent 会拿着 dsh-fs 一路撞 403。
                 // 挂载总开关关时：容器不挂 /sdcard，dsh-fs 也拒（storageMounted=false）。

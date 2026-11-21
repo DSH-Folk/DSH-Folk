@@ -190,6 +190,7 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
                 onceTtlMs = DshNativeBridge.ONCE_TTL_MS,
                 a11yConnected = DshA11y.connected(),
                 a11yOwnMode = A11yOwn.mode(c),
+                effectiveRuntimeId = DshRuntime.effectiveRuntimeId(),
             )
         }
         ExtensionEngine.bootstrap(this)

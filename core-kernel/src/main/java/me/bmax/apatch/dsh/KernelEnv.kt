@@ -42,6 +42,16 @@ object KernelEnv {
     var isDebugBuild: Boolean = false
         private set
 
+    /**
+     * 宿主 applicationId（BuildConfig.APPLICATION_ID）。
+     *
+     * `DshFileAccess` 用它拼 `${applicationId}.documents` —— 那个 FileProvider authority
+     * 必须与实际 manifest 里的一致，写死字符串在换包名（debug/alpha 后缀）时会失配。
+     */
+    @Volatile
+    var applicationId: String = ""
+        private set
+
     /** APatch 数据目录（APApplication.APATCH_FOLDER），拼 PATH / BUSYBOX 用。 */
     @Volatile
     var apatchFolder: String = ""
@@ -77,7 +87,9 @@ object KernelEnv {
         appVersionCode: Int = 0,
         hostPrefs: android.content.SharedPreferences? = null,
         hostPrefsName: String = "",
+        applicationId: String = "",
     ) {
+        this.applicationId = applicationId
         this.appVersionName = appVersionName
         this.isDebugBuild = isDebugBuild
         this.apatchFolder = apatchFolder
@@ -140,6 +152,7 @@ object KernelEnv {
         val onceTtlMs: Long = 0L,
         val a11yConnected: Boolean = false,
         val a11yOwnMode: String = "",
+        val effectiveRuntimeId: String = "",
     )
 
     @Volatile

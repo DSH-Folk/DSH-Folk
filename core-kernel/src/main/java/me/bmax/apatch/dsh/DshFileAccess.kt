@@ -209,7 +209,7 @@ object DshFileAccess {
      * 自家文档提供器的 authority：manifest 里 `DshDocumentsProvider` 的
      * `${applicationId}.documents`（与 util 里 DshDocsAccess 用的是同一个算法）。
      */
-    private fun ownDocsAuthority(): String = "${BuildConfig.APPLICATION_ID}.documents"
+    private fun ownDocsAuthority(): String = "${KernelEnv.applicationId}.documents"
 
     /**
      * 系统文件选择器那条路的判定结果。三种情形必须分开（用户 2026-10 定：唯一标准是
