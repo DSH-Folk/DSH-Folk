@@ -3,6 +3,7 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import java.io.File
 import java.nio.charset.StandardCharsets
+import org.json.JSONObject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -37,7 +38,7 @@ object DshRuntimeInstall {
 
     /** 取（或首先生成）文件桥 token。 */
     private fun ensureFsToken(): String {
-        val p = DshRuntime.prefs()
+        val p = K.prefs()
         p.getString(DshEnv.KEY_FS_TOKEN, null)?.takeIf { it.isNotEmpty() }?.let { return it }
         val t = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
             .joinToString("") { b -> "%02x".format(b.toInt() and 0xff) }
@@ -155,7 +156,7 @@ object DshRuntimeInstall {
      * 设置页上。
      */
     fun refreshContainerCli() {
-        runCatching { this@DshRuntimeInstall.ensureFsBridgeCli() }
+        runCatching { ensureFsBridgeCli() }
             .onFailure { android.util.Log.w(DshRuntime.TAG, "刷新容器侧 CLI 失败: ${it.message}") }
         // 插件与 cordis 挂载项也要一起补：agent 看到工作流的**唯一**通道就是这两个插件
         // （工具描述 + 提示词段）。只补 CLI 与指南的话，升级后没重启过容器的设备上，agent
@@ -168,8 +169,8 @@ object DshRuntimeInstall {
     private fun startFsBridge() {
         runCatching {
             val fsPort = DshPortConfig.findFreePort(DshFsBridge.PORT_BASE)
-            val fsToken = this@DshRuntimeInstall.ensureFsToken()
-            this@DshRuntimeInstall.writeFsBridgeConfig(fsPort, fsToken)
+            val fsToken = ensureFsToken()
+            writeFsBridgeConfig(fsPort, fsToken)
             DshFsBridge.start(fsPort, fsToken, K.appContext)
             DshLogging.logInfo(CoreR.string.dsh_log_bridge_up)
         }.onFailure { DshLogging.logWarn(CoreR.string.dsh_log_bridge_failed, it.message ?: it.javaClass.simpleName) }
@@ -245,17 +246,17 @@ object DshRuntimeInstall {
         K.scope.launch {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
-                this@DshRuntimeInstall.clearSeedLedger()
+                clearSeedLedger()
                 downloadAndInstall(preserveData, newest = true)
                 if (K.current.phase != DshPhase.ERROR) {
-                    this@DshRuntimeInstall.setupResolvConf()
+                    setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    this@DshRuntimeInstall.ensureFsBridgeCli()
+                    ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     // 装完**不一定要**立刻拉起来：首页那条「安装」路径要把「装完」与
                     // 「启动」拆成两步，由用户在弹窗里自己决定。不拆的话，用户点「安装」
                     // 之后容器直接跑起来，而他想先看一眼装了什么的机会就没有了。
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else this@DshRuntimeInstall.markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else markInstalledIdle()
                 }
             }
         }
@@ -266,15 +267,15 @@ object DshRuntimeInstall {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
                 // 重装等于换了一套全新 rootfs，容器里的插件确实没了，该重新预装
-                this@DshRuntimeInstall.clearSeedLedger()
+                clearSeedLedger()
                 // 重装 = 装回已装那一份，不跟着通道走（否则「重装」会变成静默升级）
                 downloadAndInstall(preserveData, newest = false)
                 if (K.current.phase != DshPhase.ERROR) {
-                    this@DshRuntimeInstall.setupResolvConf()
+                    setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    this@DshRuntimeInstall.ensureFsBridgeCli()
+                    ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else this@DshRuntimeInstall.markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else markInstalledIdle()
                 }
             }
         }
@@ -293,7 +294,7 @@ object DshRuntimeInstall {
                 DshLogging.clearLog()
                 DshLogging.logInfo(CoreR.string.dsh_log_switch_runtime, entry.version, entry.tag)
                 DshRuntime.stopServer()
-                this@DshRuntimeInstall.clearSeedLedger()
+                clearSeedLedger()
                 K.stateFlow.update {
                     it.copy(
                         phase = DshPhase.DOWNLOADING,
@@ -304,9 +305,9 @@ object DshRuntimeInstall {
                 }
                 installMeta(entry.toMeta(), preserveData)
                 if (K.current.phase != DshPhase.ERROR) {
-                    this@DshRuntimeInstall.setupResolvConf()
+                    setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    this@DshRuntimeInstall.ensureFsBridgeCli()
+                    ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     DshRuntime.startAndAwaitForInstall()
                 }
@@ -318,7 +319,7 @@ object DshRuntimeInstall {
      * 换 rootfs = 容器里的预装插件没了：清掉预装记账，让下一轮 [seedPlugins] 重新来一遍。
      */
     private fun clearSeedLedger() {
-        DshRuntime.prefs().edit()
+        K.prefs().edit()
             .remove(DshEnv.KEY_SEEDED_PLUGINS)
             .remove(@Suppress("DEPRECATION") DshEnv.KEY_SEED_PLUGINS_DONE)
             .apply()
@@ -352,7 +353,7 @@ object DshRuntimeInstall {
                     DshLogging.fail(DshLogging.str(CoreR.string.dsh_err_extract_failed))
                     return@withLock
                 }
-                DshRuntime.prefs().edit()
+                K.prefs().edit()
                     .remove(DshEnv.KEY_SEEDED_PLUGINS)
                     .remove(@Suppress("DEPRECATION") DshEnv.KEY_SEED_PLUGINS_DONE)
                     .putString(DshEnv.KEY_RUNTIME_VERSION, "imported")
@@ -367,9 +368,9 @@ object DshRuntimeInstall {
                     )
                 }
                 DshRuntime.refreshRootfsSize()
-                this@DshRuntimeInstall.setupResolvConf()
+                setupResolvConf()
                 DshRuntime.seedPluginsForInstall()
-                this@DshRuntimeInstall.ensureFsBridgeCli()
+                ensureFsBridgeCli()
                 if (!DshRuntime.checkPortConflictForInstall()) DshRuntime.startAndAwaitForInstall()
             }
         }
@@ -383,7 +384,7 @@ object DshRuntimeInstall {
      */
     fun runtimeSource(ctx: Context): String {
         val setting = DshSource.setting(ctx)
-        if (!DshRuntime.raceEnabled(RACE_RUNTIME)) {
+        if (!DshRuntime.raceEnabled(DshPortConfig.RACE_RUNTIME)) {
             return if (setting == DshSource.SOURCE_AUTO) DshSource.SOURCE_GITHUB else setting
         }
         return DshSource.resolve(ctx)
@@ -403,7 +404,7 @@ object DshRuntimeInstall {
      * metadata 都是固定的 GitHub 下载地址，用不上测速排序那一套。
      */
     internal fun fetchMetaFrom(url: String): DshMeta? {
-        val text = this@DshRuntimeInstall.fetchJsonText(url) ?: return null
+        val text = fetchJsonText(url) ?: return null
         return runCatching {
             val json = JSONObject(text)
             DshMeta(
@@ -532,7 +533,7 @@ object DshRuntimeInstall {
         withContext(Dispatchers.IO) {
         if (!DshEnv.isRuntimeInstalled(K.appContext)) return@withContext RuntimeCheckResult()
         val meta = fetchNewestMeta() ?: return@withContext RuntimeCheckResult(failure = true)
-        val local = DshRuntime.prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
+        val local = K.prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
         // 本地版本未知（早期版本装的，没记过）时不谎报有更新：重装要重下 150MB，
         // 不能靠猜就让用户付这个代价；也没法说「已是最新」——那同样是猜的
         if (local.isEmpty()) return@withContext RuntimeCheckResult(failure = true)
@@ -595,7 +596,7 @@ object DshRuntimeInstall {
             flavor = meta.flavor,
         )
 
-        val releases = this@DshRuntimeInstall.fetchRuntimeReleases()
+        val releases = fetchRuntimeReleases()
         if (releases.isNotEmpty()) {
             DshLogging.logInfo(CoreR.string.dsh_log_version_list_api, releases.size)
             // 并发拉各 release 的 metadata：串行的话二十几个版本在慢网络上要等半分钟
@@ -606,7 +607,7 @@ object DshRuntimeInstall {
             }
             for ((tag, published, meta) in metas) {
                 if (meta.arch.isNotEmpty() && meta.arch != want) continue
-                this@DshRuntimeInstall.keep(this@DshRuntimeInstall.entryOf(tag, published, meta))
+                keep(entryOf(tag, published, meta))
             }
         }
 
@@ -620,7 +621,7 @@ object DshRuntimeInstall {
         }
         for ((tag, meta) in rolling) {
             if (meta.arch.isNotEmpty() && meta.arch != want) continue
-            this@DshRuntimeInstall.keep(this@DshRuntimeInstall.entryOf(tag, "", meta))
+            keep(entryOf(tag, "", meta))
         }
 
         found.values.sortedWith(
@@ -690,7 +691,7 @@ object DshRuntimeInstall {
      * 用户显式写过这一项时**不覆盖** —— 显式配置优先于我们的推断。
      */
     private fun ensureProfilePnpmSettings() {
-        runCatching { this@DshRuntimeInstall.removeLegacyNpmrcImportLine() }
+        runCatching { removeLegacyNpmrcImportLine() }
         if (!linkBecomesSymlink()) return
         runCatching {
             val ws = File(DshEnv.rootfs(K.appContext), "$PROFILE_GUEST_REL/pnpm-workspace.yaml")
@@ -745,21 +746,21 @@ object DshRuntimeInstall {
     // 这些函数原本是 DshRuntime 的 private 成员，迁到这里后 DshRuntime 内部
     // 还有调用点，所以暴露 internal 包装（参数只多一个 caller 位置占位）。
 
-    internal fun setupResolvConfFor(caller: Any) = this@DshRuntimeInstall.setupResolvConf()
+    internal fun setupResolvConfFor(caller: Any) = setupResolvConf()
 
-    internal fun ensureContainerDnsFor(caller: Any) = this@DshRuntimeInstall.ensureContainerDns()
+    internal fun ensureContainerDnsFor(caller: Any) = ensureContainerDns()
 
-    internal fun ensureContainerGroupsFor(caller: Any) = this@DshRuntimeInstall.ensureContainerGroups()
+    internal fun ensureContainerGroupsFor(caller: Any) = ensureContainerGroups()
 
-    internal fun ensureProfilePnpmSettingsFor(caller: Any) = this@DshRuntimeInstall.ensureProfilePnpmSettings()
+    internal fun ensureProfilePnpmSettingsFor(caller: Any) = ensureProfilePnpmSettings()
 
-    internal fun removeLegacyNpmrcImportLineFor(caller: Any) = this@DshRuntimeInstall.removeLegacyNpmrcImportLine()
+    internal fun removeLegacyNpmrcImportLineFor(caller: Any) = removeLegacyNpmrcImportLine()
 
-    internal fun pnpmImportMethodLineFor(caller: Any): String = this@DshRuntimeInstall.pnpmImportMethodLine()
+    internal fun pnpmImportMethodLineFor(caller: Any): String = pnpmImportMethodLine()
 
-    internal fun pnpmInstalledFor(caller: Any): Boolean = this@DshRuntimeInstall.pnpmInstalled()
+    internal fun pnpmInstalledFor(caller: Any): Boolean = pnpmInstalled()
 
-    internal fun ensureFsBridgeCliFor(caller: Any) = this@DshRuntimeInstall.ensureFsBridgeCli()
+    internal fun ensureFsBridgeCliFor(caller: Any) = ensureFsBridgeCli()
 
-    internal fun startFsBridgeFor(caller: Any) = this@DshRuntimeInstall.startFsBridge()
+    internal fun startFsBridgeFor(caller: Any) = startFsBridge()
 }
