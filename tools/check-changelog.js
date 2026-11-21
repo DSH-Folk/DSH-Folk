@@ -407,7 +407,8 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   // ── 安装与启动分开 ──
   ok(/fun updateRuntime\(preserveData: Boolean = true, autoStart: Boolean = true\)/.test(runtime),
     "updateRuntime 可指定装完是否自动启动");
-  ok(/private fun markInstalledIdle\(\)/.test(runtime),
+  // markInstalledIdle 已放宽为 internal（lambda 内要能调）。
+  ok(/(?:private |internal )fun markInstalledIdle\(\)/.test(runtime),
     "装完不启动要落回「已安装未运行」（否则首页一直转圈）");
   const home = code(read("app/src/main/java/me/bmax/apatch/ui/screen/HomeDsh.kt"));
   ok(/if \(installed\) onStart else onInstall/.test(home),

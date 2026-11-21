@@ -297,7 +297,7 @@ ok(/fun updateRuntime\(preserveData: Boolean = true(, autoStart: Boolean = true)
   /downloadAndInstall\(preserveData, newest = true\)/.test(rt),
   "「更新」走候选取最新，与「重装」分道（更新曾借用重装那条，下载的还是旧通道）");
 // startAndAwait 由 DshRuntime 持有（引导流程），这里通过 ForInstall 包装调用。
-ok(/if \(autoStart\) (?:DshRuntime\.)?startAndAwait(?:ForInstall)?\(\) else (?:this@DshRuntimeInstall\.)?markInstalledIdle\(\)/.test(rt),
+ok(/if \(autoStart\) (?:DshRuntime\.)?startAndAwait(?:ForInstall)?\(\) else (?:DshRuntimeInstall\.)?markInstalledIdle\(\)/.test(rt),
   "装完不一定启动：autoStart=false 时落回「已安装未运行」（首页安装流程要用）");
 // downloadAndInstall 现在是 DshRuntime 的扩展函数（同包搬家），内部调用带 this. 前缀。
 ok(/internal suspend fun DshRuntime\.downloadAndInstall\(preserveData: Boolean = true, newest: Boolean = true\)/.test(rt) &&

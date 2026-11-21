@@ -5,7 +5,9 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,7 +41,7 @@ object DshRuntimeInstall {
 
 
     /** 取（或首先生成）文件桥 token。 */
-    private fun ensureFsToken(): String {
+    internal fun ensureFsToken(): String {
         val p = K.prefs()
         p.getString(DshEnv.KEY_FS_TOKEN, null)?.takeIf { it.isNotEmpty() }?.let { return it }
         val t = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
@@ -56,7 +58,7 @@ object DshRuntimeInstall {
      * 调试 socket 名只在开着时才写：没开的时候容器里根本连不上，
      * 写一个空名字只会让 `dsh-browser` 报"找不到"，不如不写、让它报"没启用"。
      */
-    private fun writeFsBridgeConfig(port: Int, token: String) {
+    internal fun writeFsBridgeConfig(port: Int, token: String) {
         runCatching {
             DshEnv.fsBridgeConfig(K.appContext).parentFile?.mkdirs()
             val socket = DshEnv.webviewDebugSocket(K.appContext)
@@ -84,7 +86,7 @@ object DshRuntimeInstall {
      * 判据只看 `usr/local/bin/pnpm` 在不在：执行位与入口正确性由运行时构建期自检保证，
      * 容器内 `dsh plugin` 前还有一次 `command -v pnpm` 兜底（见 DshPluginRepo）。
      */
-    private fun pnpmInstalled(): Boolean =
+    internal fun pnpmInstalled(): Boolean =
         File(DshEnv.rootfs(K.appContext), "usr/local/bin/pnpm").exists()
 
     /**
@@ -101,7 +103,7 @@ object DshRuntimeInstall {
      * 两个脚本都读同一份 fs-bridge.json，所以不需要各自的配置或 ROOTFS_REV 变更。
      * （`dsh-saf` 是第三个，同样读那一份、同一 token、同一 port，只是打到 `/saf/…`。）
      */
-    private fun ensureFsBridgeCli() {
+    internal fun ensureFsBridgeCli() {
         if (!DshEnv.isRuntimeInstalled(K.appContext)) return
         val bin = File(DshEnv.rootfs(K.appContext), "usr/local/bin")
         for ((name, script) in listOf(
@@ -168,7 +170,7 @@ object DshRuntimeInstall {
     }
 
     /** 启动回环桥（选空闲端口 + 写配置 + 监听）。文件端点与原生端点共用它。 */
-    private fun startFsBridge() {
+    internal fun startFsBridge() {
         runCatching {
             val fsPort = DshPortConfig.findFreePort(DshFsBridge.PORT_BASE)
             val fsToken = ensureFsToken()
@@ -232,7 +234,7 @@ object DshRuntimeInstall {
      * 中间态上，首页会一直转圈，而实际上安装早就完成了。
      * 也不能复用 DshRuntime.stopServer() —— 那会写「已停止」，而这里从来没有启动过。
      */
-    private fun markInstalledIdle() {
+    internal fun markInstalledIdle() {
         // 只改 phase 与 message：webUrl 是**计算属性**（由 port + token 拼出来），
         // 不是构造参数，写不了；pid / webToken 也不该在这里清 ——
         // 装完不启动时它们本来就是空的。
@@ -320,7 +322,7 @@ object DshRuntimeInstall {
     /**
      * 换 rootfs = 容器里的预装插件没了：清掉预装记账，让下一轮 [seedPlugins] 重新来一遍。
      */
-    private fun clearSeedLedger() {
+    internal fun clearSeedLedger() {
         K.prefs().edit()
             .remove(DshEnv.KEY_SEEDED_PLUGINS)
             .remove(@Suppress("DEPRECATION") DshEnv.KEY_SEED_PLUGINS_DONE)
@@ -443,7 +445,7 @@ object DshRuntimeInstall {
      * 这几个 metadata 只有几十 KB，代理前缀是白名单里的两个 gh-proxy 域名 ——
      * 与下载 rootfs 用的是同一批入口，国内网络下直连 GitHub 经常直接超时。
      */
-    private fun fetchJsonText(url: String): String? {
+    internal fun fetchJsonText(url: String): String? {
         val candidates = listOf(
             url,
             DshSource.proxyPrefix(DshSource.SOURCE_GHPROXY_CF) + url,
@@ -476,7 +478,7 @@ object DshRuntimeInstall {
      *
      * 拿不到就返回空表，由 [listRuntimeVersions] 退回通道兜底。
      */
-    private suspend fun fetchRuntimeReleases(): List<Pair<String, String>> {
+    internal suspend fun fetchRuntimeReleases(): List<Pair<String, String>> {
         val out = ArrayList<Pair<String, String>>()
         for (page in 1..MAX_RELEASE_PAGES) {
             val body = UpdateChecker.fetchApiJson(
@@ -529,7 +531,6 @@ object DshRuntimeInstall {
      * 用 [Mutex] 而不是"标志位 + 直接返回"：后到的那次**等**前一次做完再返回它的结果，
      * 而不是拿到一个假的"没更新"。用户点检查就是想看到答案，给他一个假的否定比让他多等一会儿糟。
      */
-    private val K.updateCheckMutex get() = DshKernelState.K.updateCheckMutex
 
     suspend fun checkRuntimeUpdate(): RuntimeCheckResult = K.updateCheckMutex.withLock {
         withContext(Dispatchers.IO) {
@@ -542,7 +543,7 @@ object DshRuntimeInstall {
         if (RuntimeVersion.sameVersion(meta.version, local)) RuntimeCheckResult()
         else RuntimeCheckResult(
             version = meta.version,
-            minAppVersion = if (appSatisfies(meta.minAppVersion)) "" else meta.minAppVersion,
+            minAppVersion = if (DshRuntime.appSatisfies(meta.minAppVersion)) "" else meta.minAppVersion,
         )
         }
     }
@@ -573,7 +574,7 @@ object DshRuntimeInstall {
         val suffix = if (want == "arm64-v8a") "" else "-x86_64"
         // version 去重：同一个版本串可能同时挂在滚动 tag 与历史 tag 上，保留通道权重高的那份
         val found = LinkedHashMap<String, RuntimeVersion>()
-        fun keep(entry: RuntimeVersion) {
+        internal fun keep(entry: RuntimeVersion) {
             val prev = found[entry.version]
             if (prev == null ||
                 RuntimeVersion.channelRank(entry.channel) < RuntimeVersion.channelRank(prev.channel)
@@ -581,7 +582,7 @@ object DshRuntimeInstall {
                 found[entry.version] = entry
             }
         }
-        fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
+        internal fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
             version = meta.version,
             tag = tag,
             channel = RuntimeVersion.channelOf(tag),
@@ -645,10 +646,10 @@ object DshRuntimeInstall {
      * 时没有这一行就解析不出来。
      */
     // 实现搬到同包 DshRuntimeEnv（只接 ctx 的纯落地件）；这里保留同名私有壳，调用点零改动。
-    private fun setupResolvConf() = DshRuntimeEnv.setupResolvConf(K.appContext)
+    internal fun setupResolvConf() = DshRuntimeEnv.setupResolvConf(K.appContext)
 
     /** 缺失或空文件才写（不覆盖用户自己改过的内容）。 */
-    private fun ensureContainerDns() = DshRuntimeEnv.ensureDns(K.appContext)
+    internal fun ensureContainerDns() = DshRuntimeEnv.ensureDns(K.appContext)
 
     /** 落地件的日志桥：按接口把日志口子交出去，辅助文件不需要认识整个单例。 */
     private val logBridge = object : DshRuntimeLog {
@@ -657,7 +658,7 @@ object DshRuntimeInstall {
     }
 
     // 实现在 DshRuntimeEnv（只接 ctx + 依赖闭包）。调用点零改动。
-    private fun ensureContainerGroups() = DshRuntimeEnv.ensureContainerGroups(K.appContext, logBridge)
+    internal fun ensureContainerGroups() = DshRuntimeEnv.ensureContainerGroups(K.appContext, logBridge)
 
     /** 公开入口保持原签名（DshPluginRepo 会调）。 */
     fun allowProfileBuilds(packages: List<String>, onLine: (String) -> Unit = {}): List<String> =
@@ -692,7 +693,7 @@ object DshRuntimeInstall {
      *
      * 用户显式写过这一项时**不覆盖** —— 显式配置优先于我们的推断。
      */
-    private fun ensureProfilePnpmSettings() {
+    internal fun ensureProfilePnpmSettings() {
         runCatching { removeLegacyNpmrcImportLine() }
         if (!linkBecomesSymlink()) return
         runCatching {
@@ -714,7 +715,7 @@ object DshRuntimeInstall {
      * 留着只会在排查时误导。只删精确匹配的那一行，用户自己写的其它行一律不碰；
      * 文件因此变空就把文件删掉。
      */
-    private fun removeLegacyNpmrcImportLine() {
+    internal fun removeLegacyNpmrcImportLine() {
         val rc = File(DshEnv.rootfs(K.appContext), "root/.npmrc")
         if (!rc.isFile) return
         val old = rc.readText(StandardCharsets.UTF_8)
@@ -733,7 +734,7 @@ object DshRuntimeInstall {
      *
      * 读文件而不是回答「我们写过没有」：v1.3 的教训正是日志宣称了一件没生效的事。
      */
-    private fun pnpmImportMethodLine(): String {
+    internal fun pnpmImportMethodLine(): String {
         val ws = File(DshEnv.rootfs(K.appContext), "$PROFILE_GUEST_REL/pnpm-workspace.yaml")
         if (!ws.isFile) return DshLogging.str(CoreR.string.dsh_log_pnpm_unconfigured)
         val line = runCatching {
