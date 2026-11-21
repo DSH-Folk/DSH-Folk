@@ -394,9 +394,9 @@ object DshRuntimeInstall {
      * 竞速**关掉**（总开关或「运行时」分开关）时不再测速：用户若在「下载渠道」里明确指定过某个源，
      * 就按他指定的走（那是手选、不是竞速）；只有 `auto`（= 交给竞速决定）才退化为直连 GitHub。
      */
-    override fun runtimeSource(ctx: Context): String {
+    fun runtimeSource(ctx: Context): String {
         val setting = DshSource.setting(ctx)
-        if (!DshRuntime.raceEnabled(RACE_RUNTIME)) {
+        if (!DshRuntime.raceEnabled(DshPortConfig.RACE_RUNTIME)) {
             return if (setting == DshSource.SOURCE_AUTO) DshSource.SOURCE_GITHUB else setting
         }
         return DshSource.resolve(ctx)
@@ -582,7 +582,7 @@ object DshRuntimeInstall {
         val suffix = if (want == "arm64-v8a") "" else "-x86_64"
         // version 去重：同一个版本串可能同时挂在滚动 tag 与历史 tag 上，保留通道权重高的那份
         val found = LinkedHashMap<String, RuntimeVersion>()
-        internal fun keep(entry: RuntimeVersion) {
+        fun keep(entry: RuntimeVersion) {
             val prev = found[entry.version]
             if (prev == null ||
                 RuntimeVersion.channelRank(entry.channel) < RuntimeVersion.channelRank(prev.channel)
@@ -590,7 +590,7 @@ object DshRuntimeInstall {
                 found[entry.version] = entry
             }
         }
-        internal fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
+        fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
             version = meta.version,
             tag = tag,
             channel = RuntimeVersion.channelOf(tag),
@@ -618,7 +618,7 @@ object DshRuntimeInstall {
             }
             for ((tag, published, meta) in metas) {
                 if (meta.arch.isNotEmpty() && meta.arch != want) continue
-                DshRuntimeInstall.keep(DshRuntimeInstall.entryOf(tag, published, meta))
+                keep(entryOf(tag, published, meta))
             }
         }
 
@@ -632,7 +632,7 @@ object DshRuntimeInstall {
         }
         for ((tag, meta) in rolling) {
             if (meta.arch.isNotEmpty() && meta.arch != want) continue
-            DshRuntimeInstall.keep(DshRuntimeInstall.entryOf(tag, "", meta))
+            keep(entryOf(tag, "", meta))
         }
 
         found.values.sortedWith(
