@@ -285,6 +285,34 @@ for (const mod of MODULES) {
   }
 }
 
+// ── 源码里写死的旧全限定名 ──
+//
+// `me.bmax.apatch.dsh.DisplayServer.LOG_PATH` 这种写法不需要 import，
+// 所以上面两条规则都看不见它，但它在文件搬走后同样编译失败。
+{
+  for (const mod of MODULES) {
+    for (const f of moduleFiles.get(mod)) {
+      const raw = fs.readFileSync(f, "utf8");
+      for (const m of raw.matchAll(/me\.bmax\.apatch\.[a-z0-9_.]*?\.([A-Z][A-Za-z0-9_]*)/g)) {
+        const simple = m[1];
+        const hits = index.get(simple);
+        if (!hits) continue;
+        const usedFq = m[0];
+        const usedPkg = usedFq.slice(0, usedFq.length - simple.length - 1);
+        if (hits.some((h) => h.pkg === usedPkg)) continue;
+        // 只报「符号已经搬到别的模块」的情况。
+        // 同模块内的全限定名（`:app` 里写 `me.bmax.apatch.util.LogStore`）是正常的，
+        // 报出来只会制造噪音 —— 那不是搬迁遗留，是本来就该这么写。
+        if (hits.some((h) => h.module === mod)) continue;
+        const rel = path.relative(ROOT, f);
+        const right = hits[0].pkg + "." + simple;
+        errors++;
+        report.push(`  ${rel}: 写死了 ${usedFq}（旧包）；应为 ${right}`);
+      }
+    }
+  }
+}
+
 // 注：跨模块 smart cast 的检查留在 check-module-boundary.js 里。
 // 这里试过一版「按属性名反查定义模块」的实现，误报率过高（`mutable.value` 是
 // MutableState 的标准属性、`errorMessage` 是局部变量，都会被判成跨模块），

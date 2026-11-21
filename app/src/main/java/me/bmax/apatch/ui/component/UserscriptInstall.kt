@@ -40,7 +40,7 @@ import me.bmax.apatch.dsh.userscripts.ScriptMarket
  * 「认不出就标红」这类细节必然会漂移 —— 而它正是用户唯一能得到的反馈。
  *
  * 这里只做「输入 + 归一 + 标红」，真正的网络与落盘由调用方在 IO 线程上走
- * [me.bmax.apatch.dsh.Userscripts.prepareFromUrl] + [me.bmax.apatch.dsh.Userscripts.commit]。
+ * [me.bmax.apatch.dsh.userscripts.Userscripts.prepareFromUrl] + [me.bmax.apatch.dsh.userscripts.Userscripts.commit]。
  *
  * @param onInstall 归一之后的正文地址（[ScriptMarket.normalizeInstallUrl] 认得的那种）。
  */

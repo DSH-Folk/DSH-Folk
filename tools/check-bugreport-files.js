@@ -231,7 +231,8 @@ ok(/容器日志采集失败: \$\{it\.message\}/.test(code), "采集失败记进
 // 「服务端到底起来没有、卡在哪一步」只能靠来回问（2026-10-03 那次就是这么绕了一圈）。
 ok(/val displayServerLogFile = File\(bugreportDir, "display-server\.log"\)/.test(code),
   "归档带虚拟屏服务端日志");
-ok(/cat \$\{me\.bmax\.apatch\.dsh\.DisplayServer\.LOG_PATH\}/.test(code),
+// DisplayServer 已迁 :ext-display，LogEvent 用短名 + import（预检会盯全限定名）。
+ok(/cat \$\{DisplayServer\.LOG_PATH\}/.test(code),
   "服务端日志经特权通道 cat 采集（应用直读多被 SELinux 挡住）");
 ok(/PrivilegedShell\.tryEnter\(\)/.test(code) && /PrivilegedShell\.exit\(\)/.test(code),
   "采集服务端日志要守特权命令的单飞（tryEnter/exit），不能插队");

@@ -13,7 +13,7 @@ import me.bmax.apatch.dsh.DshConfigBackup
  * ## 云备份配置从 1.9.2.5 起不再存在这里
  *
  * WebDAV 云备份整个搬进了 `dsh-folk-cloud` 插件：地址/用户名/口令/远端目录/档位/触发方式
- * 只存插件一份（口令走 DSH 凭据），App 通过 [me.bmax.apatch.dsh.DshCloudBackup] 读写。
+ * 只存插件一份（口令走 DSH 凭据），App 通过 [me.bmax.apatch.dsh.backup.DshCloudBackup] 读写。
  * 所以这里原来的 `webdav_*` 四个字段与 `isBackupEnabled` 开关都删了 —— App 不再自己传 zip，
  * 也就没有本机 webdav 偏好可存。历史遗留的 `webdav_*` prefs 键留在盘上无害（不再读），
  * 迁移时也被 [me.bmax.apatch.dsh.DshAppData] 的 `SKIP_PREFIXES` 一并跳过。

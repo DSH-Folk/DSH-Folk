@@ -693,7 +693,7 @@ class DshWebUiActivity : AppCompatActivity() {
                                      * "Failed to load plugins … Iterator is not defined"
                                      * 时，页面自己画了个错误页，而 logcat 与上报里**一个字都没有**
                                      * —— 排查时只能靠用户截图。现在页面报错会落到
-                                     * [me.bmax.apatch.util.LogStore]，随 bugreport 一起带出来。
+                                     * [me.bmax.apatch.dsh.LogStore]，随 bugreport 一起带出来。
                                      */
                                     override fun onConsoleMessage(
                                         msg: android.webkit.ConsoleMessage?,

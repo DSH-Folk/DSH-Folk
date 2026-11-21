@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.display.DisplayServer
 
 /**
  * 发送日志的时间窗口。
@@ -407,7 +408,7 @@ suspend fun getBugreportFile(context: Context, window: LogWindow = LogWindow.All
         // 而不是静默留空（静默留空会被读成"服务端没产生日志"）。
         val displayServerLogFile = File(bugreportDir, "display-server.log")
         runCatching {
-            val cmd = "cat ${me.bmax.apatch.dsh.DisplayServer.LOG_PATH}"
+            val cmd = "cat ${DisplayServer.LOG_PATH}"
             val risk = me.bmax.apatch.dsh.PrivilegedShell.riskOf(cmd)
             val denied = me.bmax.apatch.dsh.PrivilegedShell.denyReason(apApp, risk, false)
             when {
