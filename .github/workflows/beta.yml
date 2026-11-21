@@ -122,6 +122,7 @@ jobs:
         run: |
           # 放在最前：它挂了，后面脚本读文件都可能是错的
           node tools/check-module-boundary.js
+          node tools/check-cross-module-symbols.js
           node tools/check-paths.js
           node tools/check-version-naming.js
           node tools/check-changelog.js

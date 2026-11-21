@@ -185,6 +185,9 @@ jobs:
         run: |
           # 放在最前：它挂了，后面脚本读文件都可能是错的
           node tools/check-module-boundary.js
+          # 跨模块符号：搬迁/拆模块时提前发现「缺 import」「误用 :app 符号」。
+          # 本地没有 Kotlin 编译器，这类错误只有 CI 能查；有了它就不必一轮轮试。
+          node tools/check-cross-module-symbols.js
           node tools/check-paths.js
           node tools/check-version-naming.js
           node tools/check-changelog.js

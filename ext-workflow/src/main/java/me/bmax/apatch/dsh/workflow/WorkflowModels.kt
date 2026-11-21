@@ -1,6 +1,8 @@
 package me.bmax.apatch.dsh.workflow
 
 import org.json.JSONArray
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.DshKernelState
 import org.json.JSONObject
 
 /**
@@ -309,10 +311,10 @@ object WorkflowSchema {
  */
 /** 计算动作参数的显示名（针脚标签与字段标签同源）。 */
 private fun computeParamLabel(p: WorkflowCompute.Param): String =
-    runCatching { me.bmax.apatch.apApp.resources.getString(p.labelRes) }.getOrDefault(p.key)
+    runCatching { DshKernelState.appContext.resources.getString(p.labelRes) }.getOrDefault(p.key)
 
 private fun actionParamLabel(p: WorkflowActionCatalog.Param): String =
-    runCatching { me.bmax.apatch.apApp.resources.getString(p.labelRes) }.getOrDefault(p.key)
+    runCatching { DshKernelState.appContext.resources.getString(p.labelRes) }.getOrDefault(p.key)
 
 /**
  * 目录里的参数种类 → 针脚类型。
