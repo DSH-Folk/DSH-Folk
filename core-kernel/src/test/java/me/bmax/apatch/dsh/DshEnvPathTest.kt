@@ -43,7 +43,7 @@ class DshEnvPathTest {
     }
 
     @Test
-    fun `含 .. 的路径一律拒绝（越界防线）`() {
+    fun `含双点段的路径一律拒绝（越界防线）`() {
         // 不看它规范化后是否还在内部：符号链接存在时 `/a/../../b` 的行为
         // 不可预测（proot 的 --link2symlink 会制造大量符号链接）。
         assertNull(DshEnv.containerRelPath("/.."))
@@ -60,7 +60,7 @@ class DshEnvPathTest {
     }
 
     @Test
-    fun `名字里含两个点但不是 .. 的段要放行`() {
+    fun `名字里含两个点但不是双点段的要放行`() {
         // ".." 是逃逸，但 "..foo" / "a..b" 只是普通文件名。
         // 用 == 比较而不是 contains，就是为了不误杀这类名字。
         assertEquals("root/..hidden", DshEnv.containerRelPath("/root/..hidden"))
