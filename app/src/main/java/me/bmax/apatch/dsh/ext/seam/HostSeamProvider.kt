@@ -17,4 +17,5 @@ internal class HostSeamProvider(ctx: Context) : SeamProvider {
     override val ui: UiSeam? = HostUiSeam(ctx)
     override val backup: BackupSeam? = HostBackupSeam(ctx)
     override val nativeBridge: NativeBridgeSeam? = HostNativeBridgeSeam(ctx)
+    override val themeBackup: ThemeBackupSeam = HostThemeBackupSeam
 }

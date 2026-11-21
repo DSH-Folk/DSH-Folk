@@ -52,12 +52,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.DshAppDataSnapshot
 import me.bmax.apatch.dsh.DshPluginRepo
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.DshPhase
-import me.bmax.apatch.util.BackupLogManager
+import me.bmax.apatch.dsh.BackupLogManager
 import me.bmax.apatch.ui.component.DshPluginProgressDialog
 import me.bmax.apatch.ui.screen.PluginProgressHost
 import me.bmax.apatch.ui.theme.BackgroundConfig

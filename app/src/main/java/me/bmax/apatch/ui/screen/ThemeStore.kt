@@ -51,7 +51,7 @@ import java.io.File
 import me.bmax.apatch.util.DownloadProgress
 import me.bmax.apatch.util.DownloadStatus
 import me.bmax.apatch.util.ThemeDownloader
-import me.bmax.apatch.util.getSafeDownloadsDir
+import me.bmax.apatch.dsh.getSafeDownloadsDir
 
 @Destination<RootGraph>
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

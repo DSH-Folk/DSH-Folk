@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.dsh.backup.BackupScope
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 
 /**
  * 云备份的「软件数据补包」实现：把 [DshConfigBackup] 已有的导出/导入整包通路，包一层给

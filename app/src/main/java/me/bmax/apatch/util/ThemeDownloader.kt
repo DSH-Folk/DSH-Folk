@@ -23,6 +23,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import me.bmax.apatch.dsh.getSafeDownloadsDir
 
 /**
  * 主题下载器 - 支持断点续传、并发下载、后台下载

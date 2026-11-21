@@ -45,7 +45,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.ConflictChoice
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.DshImportWizard
 import me.bmax.apatch.dsh.WizardStage
 import me.bmax.apatch.dsh.WizardStep

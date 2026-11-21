@@ -585,12 +585,13 @@ ok(/const val THEME = "dsh-folk\/theme\.zip"/.test(archive),
   "外观主题包落在 dsh-folk/theme.zip（与 app-data.json 同一前缀）");
 ok(/copyInto\(zos, theme, THEME\)/.test(archive) && /themeBytes = theme\.length\(\)/.test(archive),
   "补包时把主题包写进包并记下大小");
-ok(/ThemeManager\.exportTheme\(/.test(backup) && /ThemeManager\.ThemeMetadata\(/.test(backup),
+// Theme 依赖已改走 ThemeBackupSeam（备份模块不再依赖整个 ui.theme）。
+ok(/SeamRegistry\.themeBackup\(\)\.exportTheme\(/.test(backup) && /ThemeBackupSeam\.ThemeMetadata\(/.test(backup),
   "导出用的就是既有的主题导出通路（外观带资源文件，prefs 搬不动）");
 ok(/private suspend fun exportThemeZip\(/.test(backup) &&
   /trace\(ctx, "theme-export-failed " \+ describe\(e\)\)/.test(backup),
   "外观打不出来不阻断导出，只记一笔并如实报「不含外观」");
-ok(/private suspend fun restoreThemeZip\(/.test(backup) && /ThemeManager\.importTheme\(ctx, Uri\.fromFile\(tmp\)\)/.test(backup),
+ok(/private suspend fun restoreThemeZip\(/.test(backup) && /SeamRegistry\.themeBackup\(\)\.importTheme\(ctx, Uri\.fromFile\(tmp\)\)/.test(backup),
   "恢复走既有的主题导入通路（它会把 file:// URI 重写成新路径，并刷 UI）");
 ok(/enum class ThemeOutcome \{ RESTORED, ABSENT, FAILED \}/.test(backup) &&
   /ThemeOutcome\.ABSENT -> ctx\.appString\((?:Core)?R\.string\.dsh_bk_theme_absent\)/.test(backup),
@@ -839,9 +840,9 @@ ok(/append\(" --no-open"\)/.test(runtime),
   ok(/fun measureThemeZipBytes\(/.test(backup) && /val THEME_SIZE_LIMIT_BYTES = 5L \* 1024 \* 1024/.test(backup),
     "有主题包大小度量与 5MB 上限常量");
   // 口径一致：导出与度量必须共用同一份元信息，否则量出来的数与真导出永远差一点
-  ok(/private fun themeMetadata\(ctx: Context\): ThemeManager\.ThemeMetadata/.test(backup) &&
-    /ThemeManager\.exportTheme\(ctx, Uri\.fromFile\(out\), themeMetadata\(ctx\)\)/.test(backup) &&
-    /ThemeIO\.measureThemeZip\(ctx, themeMetadata\(ctx\)\)/.test(backup),
+  ok(/private fun themeMetadata\(ctx: Context\): ThemeBackupSeam\.ThemeMetadata/.test(backup) &&
+    /SeamRegistry\.themeBackup\(\)\.exportTheme\(ctx, Uri\.fromFile\(out\), themeMetadata\(ctx\)\)/.test(backup) &&
+    /SeamRegistry\.themeBackup\(\)\.measureThemeZipBytes\(ctx, themeMetadata\(ctx\)\)/.test(backup),
     "导出与度量共用 themeMetadata（否则「显示的大小」与「打进包的大小」不是一个数）");
   ok(/includesTheme = if \(body\.has\("includeTheme"\)\).*true/.test(cloud),
     "调用处用 includesTheme=（ExportPlan 的形参名）：这里写成 JSON 字段名 includeTheme 会在编译期就报 No parameter with name");

@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import me.bmax.apatch.APApplication
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 
 /**
  * 本地备份/导入的偏好。

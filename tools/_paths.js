@@ -38,6 +38,13 @@ const ROOT = path.resolve(__dirname, "..");
  * 重构每搬一个文件，在这里加一行。这是**唯一**需要跟着改动的地方。
  */
 const MOVED = {
+  // 收口轮续：备份管线整文件迁入 :ext-backup（Theme 依赖改走 ThemeBackupSeam）。
+  "app/src/main/java/me/bmax/apatch/dsh/DshConfigBackup.kt":
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshConfigBackup.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshAppData.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshAppData.kt",
+  "app/src/main/java/me/bmax/apatch/util/BackupLogManager.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/BackupLogManager.kt",
   // 收口轮（务实策略）：不硬拆 DshNativeBridge，改用 NativeBridgeSeam 隔离后搬迁。
   // 这批文件都是「整文件迁入」—— 没有在搬迁时顺手拆内部。
   "app/src/main/java/me/bmax/apatch/dsh/DshDisplay.kt":

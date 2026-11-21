@@ -39,11 +39,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.DshImportWizard
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.WizardStep
-import me.bmax.apatch.util.BackupLogManager
+import me.bmax.apatch.dsh.BackupLogManager
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.res.R as CoreR
 

@@ -18,7 +18,7 @@ import me.bmax.apatch.dsh.DshAutostart
 import me.bmax.apatch.dsh.DshBridgeGuard
 import me.bmax.apatch.dsh.DshCamera
 import me.bmax.apatch.dsh.backup.DshCloudBackup
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.DshDeepClean
 import me.bmax.apatch.dsh.DshDeviceSense
 import me.bmax.apatch.dsh.DshEnv

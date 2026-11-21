@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.backup
 
 import android.content.ContentValues
 import android.content.Context
@@ -15,18 +15,20 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.BuildConfig
-import me.bmax.apatch.ui.theme.ThemeIO
-import me.bmax.apatch.ui.theme.ThemeManager
-import me.bmax.apatch.util.BackupLogManager
+import me.bmax.apatch.dsh.KernelEnv
+import me.bmax.apatch.dsh.ext.seam.ThemeBackupSeam
+import me.bmax.apatch.dsh.BackupLogManager
 import me.bmax.apatch.util.appString
-import me.bmax.apatch.util.getSafeDownloadsDir
+import me.bmax.apatch.dsh.getSafeDownloadsDir
 import org.json.JSONArray
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.backup.DshBackupCrypto
 import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.dsh.backup.DshBackupArchive
+import me.bmax.apatch.dsh.ext.seam.SeamRegistry
+import me.bmax.apatch.dsh.DshEnv
+import me.bmax.apatch.dsh.DshAppData
 
 /**
  * DSH 配置备份 / 迁移。
@@ -490,10 +492,10 @@ object DshConfigBackup {
      * 抽出来是为了让 [measureThemeZipBytes] 量到的字节数与真导出**完全一致** —— 元信息会写进
      * 主题包内的 theme.json，两边若各写一份，量出来的大小就永远差一点。
      */
-    private fun themeMetadata(ctx: Context): ThemeManager.ThemeMetadata = ThemeManager.ThemeMetadata(
+    private fun themeMetadata(ctx: Context): ThemeBackupSeam.ThemeMetadata = ThemeBackupSeam.ThemeMetadata(
         name = ctx.appString(CoreR.string.dsh_bk_theme_name),
         type = "phone",
-        version = BuildConfig.VERSION_NAME,
+        version = KernelEnv.appVersionName,
         author = "DSH-Folk",
         description = ctx.appString(CoreR.string.dsh_bk_theme_desc),
     )
@@ -507,7 +509,7 @@ object DshConfigBackup {
      * 加密后的数据本来就压不动，落盘对结果没有影响，省掉一次几十 MB 的写入。
      */
     suspend fun measureThemeZipBytes(ctx: Context): Long =
-        ThemeIO.measureThemeZip(ctx, themeMetadata(ctx))
+        SeamRegistry.themeBackup().measureThemeZipBytes(ctx, themeMetadata(ctx))
 
     private suspend fun exportThemeZip(
         ctx: Context,
@@ -521,7 +523,7 @@ object DshConfigBackup {
         return try {
             onLine(ctx.appString(CoreR.string.dsh_bk_step_theme_export))
             // exportTheme 内部自己切到 IO，并先清空它自己的暂存目录再写。
-            val ok = ThemeManager.exportTheme(ctx, Uri.fromFile(out), themeMetadata(ctx))
+            val ok = SeamRegistry.themeBackup().exportTheme(ctx, Uri.fromFile(out), themeMetadata(ctx))
             val bytes = out.length()
             trace(ctx, "theme-export ok=" + ok + " bytes=" + bytes)
             if (ok && out.isFile && bytes > 0L) out else null
@@ -551,7 +553,7 @@ object DshConfigBackup {
         return try {
             tmp.delete()
             tmp.writeBytes(entry)
-            val ok = ThemeManager.importTheme(ctx, Uri.fromFile(tmp))
+            val ok = SeamRegistry.themeBackup().importTheme(ctx, Uri.fromFile(tmp))
             trace(ctx, "theme-import ok=" + ok + " bytes=" + entry.size)
             if (ok) ThemeOutcome.RESTORED else ThemeOutcome.FAILED
         } catch (e: Exception) {

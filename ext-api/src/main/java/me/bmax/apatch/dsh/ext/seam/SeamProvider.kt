@@ -25,5 +25,6 @@ interface SeamProvider {
     val device: DeviceSeam?
     val ui: UiSeam?
     val backup: BackupSeam?
+    val themeBackup: ThemeBackupSeam?
     val nativeBridge: NativeBridgeSeam?
 }

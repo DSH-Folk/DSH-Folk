@@ -3,7 +3,7 @@ package me.bmax.apatch.dsh.ext.seam
 import android.content.Context
 import java.io.File
 import kotlinx.coroutines.runBlocking
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.KernelEnv
 import me.bmax.apatch.dsh.backup.BackupScope
 import me.bmax.apatch.dsh.backup.ExportPlan

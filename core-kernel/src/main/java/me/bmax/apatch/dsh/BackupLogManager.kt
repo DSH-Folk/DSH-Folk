@@ -1,4 +1,4 @@
-package me.bmax.apatch.util
+package me.bmax.apatch.dsh
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

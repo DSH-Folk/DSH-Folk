@@ -76,6 +76,10 @@ object SeamRegistry {
             ?: throw IllegalStateException("NativeBridgeSeam 需要 Context：请先 SeamRegistry.install(ctx)")
     }
 
+    fun themeBackup(): ThemeBackupSeam = resolve(ThemeBackupSeam::class.java) {
+        requireProvider().themeBackup ?: UnavailableThemeBackup
+    }
+
     fun backup(): BackupSeam = resolve(BackupSeam::class.java) {
         requireProvider().backup ?: UnavailableBackup
     }
@@ -139,6 +143,7 @@ object SeamRegistry {
         override val ui: UiSeam = UnavailableUi
         override val backup: BackupSeam = UnavailableBackup
         override val nativeBridge: NativeBridgeSeam = UnavailableNativeBridge
+        override val themeBackup: ThemeBackupSeam = UnavailableThemeBackup
     }
 
     private object UnavailableRuntime : RuntimeSeam {
@@ -204,6 +209,12 @@ object SeamRegistry {
         override fun openWebUi() {}
         override fun toast(message: String) {}
         override fun language() = "en"
+    }
+
+    private object UnavailableThemeBackup : ThemeBackupSeam {
+        override fun measureThemeZipBytes(ctx: Context, meta: ThemeBackupSeam.ThemeMetadata) = -1L
+        override fun exportTheme(ctx: Context, target: android.net.Uri, meta: ThemeBackupSeam.ThemeMetadata) = false
+        override fun importTheme(ctx: Context, source: android.net.Uri) = false
     }
 
     private object UnavailableBackup : BackupSeam {

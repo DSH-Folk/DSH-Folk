@@ -40,10 +40,10 @@ import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.dsh.backup.BackupScope
 import me.bmax.apatch.dsh.backup.DshCloudBackup
-import me.bmax.apatch.dsh.DshConfigBackup
+import me.bmax.apatch.dsh.backup.DshConfigBackup
 import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.ui.theme.BackupConfig
-import me.bmax.apatch.util.BackupLogManager
+import me.bmax.apatch.dsh.BackupLogManager
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
