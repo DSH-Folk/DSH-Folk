@@ -1,6 +1,7 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
+import DshPortConfig.RACE_PLUGINS
 import android.net.Uri
 import android.util.Log
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
@@ -1124,7 +1125,7 @@ object DshPluginRepo {
      * 装一个 npm（registry）规格：竞速开着就**先测速选 registry**，用 `--registry` 传给 pnpm。
      *
      * 为什么不写 `.npmrc`：那要动 rootfs 里的全局配置，而且换源得再改回来；`--registry` 只是这一次
-     * 命令的参数，失败就没了副作用（[DshRuntime.RACE_PLUGINS] 关掉时连这个参数都不传，行为与以前
+     * 命令的参数，失败就没了副作用（[DshPortConfig.RACE_PLUGINS] 关掉时连这个参数都不传，行为与以前
      * 完全一致）。npm 规格本身跟 gh-proxy 那套 git 重写无关 —— 插件镜像开关管的是 pnpm 的 registry
      * 线路，国内装 dsh-config-manager / dsh-web-mobile 只能干等官方源，这就是本条要解决的问题。
      *
@@ -1139,7 +1140,7 @@ object DshPluginRepo {
     private suspend fun installRegistrySpec(spec: String, onLine: (String) -> Unit): String {
         // 没绑定 context 就没法读测速缓存：退回原命令（等于竞速未生效），不冒险猜源
         val ctx = DshRuntime.appContextOrNull()
-        if (ctx == null || !DshRuntime.raceEnabled(DshRuntime.RACE_PLUGINS)) {
+        if (ctx == null || !DshRuntime.raceEnabled(DshPortConfig.RACE_PLUGINS)) {
             return dshPlugin("add ${importFlag()}${shellQuoted(spec)}", 900_000, onLine)
         }
         var last = ""
@@ -1189,7 +1190,7 @@ object DshPluginRepo {
         onLine: (String) -> Unit,
     ): String {
         ensureGitCa(onLine)
-        if (!DshRuntime.raceEnabled(DshRuntime.RACE_PLUGINS)) {
+        if (!DshRuntime.raceEnabled(DshPortConfig.RACE_PLUGINS)) {
             // 不绕镜像，但**归一化**仍要有：容器里没有 ssh 凭据，`git+ssh://` 规格直连
             // github 只会得到「Host key verification failed」（见 [GIT_REWRITE_BASES]）。
             applyGitRewrite("")
@@ -1275,7 +1276,7 @@ object DshPluginRepo {
         // 它同样写在 /root/.gitconfig（同样被运行时更新清掉），而 dsh 自身 reconcile、
         // 启动自愈、以及 agent 在会话里跑 `dsh plugin` 都不走 [installGitSpec] —— 只能在这里
         // 兜住：按当前最快的线路（没开竞速就只归一）留一份重写，让任何 git 路径都拿得到。
-        val best = if (DshRuntime.raceEnabled(DshRuntime.RACE_PLUGINS)) {
+        val best = if (DshRuntime.raceEnabled(DshPortConfig.RACE_PLUGINS)) {
             racePrefixes().firstOrNull { it.isNotEmpty() } ?: ""
         } else {
             ""

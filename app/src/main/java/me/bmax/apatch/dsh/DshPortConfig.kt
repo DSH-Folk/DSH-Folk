@@ -1,5 +1,6 @@
 package me.bmax.apatch.dsh
 
+import kotlinx.coroutines.flow.update
 import me.bmax.apatch.res.R as CoreR
 
 /**
@@ -60,16 +61,16 @@ object DshPortConfig {
         if (!K.ready) return
         when (action) {
             PortConflictAction.AUTO -> {
-                setPort(findFreePort())
+                DshRuntime.setPort(findFreePort())
                 K.stateFlow.update { it.copy(portConflict = false) }
-                bootstrap()
+                DshRuntime.bootstrap()
             }
             PortConflictAction.MANUAL -> {
                 val p = newPort ?: return
                 if (p !in 1..65535 || isPortInUse(p)) return // 保留 portConflict，UI 继续提示
-                setPort(p)
+                DshRuntime.setPort(p)
                 K.stateFlow.update { it.copy(portConflict = false) }
-                bootstrap()
+                DshRuntime.bootstrap()
             }
             PortConflictAction.FORCE -> {
                 // 强行启动：跳过端口探测直接拉起（用户明知端口被占仍要用）

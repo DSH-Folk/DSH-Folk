@@ -52,7 +52,8 @@ for (const c of ['RACE_PLUGINS', 'RACE_APP_UPDATE', 'RACE_RUNTIME']) {
 // 3. 插件通道：git 线路按测速排序，npm 规格选 registry 并回落
 must(/DshSource\.rankedSources\(\)/.test(repo),
   'installGitSpec 必须用 DshSource.rankedSources()（测速排序）而不是写死的镜像顺序');
-must(/if \(!DshRuntime\.raceEnabled\(DshRuntime\.RACE_PLUGINS\)\)/.test(repo),
+// 竞速常量随 DshPortConfig 搬走（Checkpoint 1 拆解），两种前缀都认。
+must(/if \(!DshRuntime\.raceEnabled\((?:DshRuntime|DshPortConfig)\.RACE_PLUGINS\)\)/.test(repo),
   '插件通道必须判 raceEnabled(RACE_PLUGINS)（关掉时直连）');
 must(/fun installRegistrySpec\(/.test(repo) && /--registry/.test(repo),
   'npm 规格必须走 installRegistrySpec 且带 --registry（否则 npm 插件永远只用官方源）');
@@ -304,7 +305,8 @@ console.log('check-race-channel: 通过');
   want(/applyGitRewrite\(racePrefixes\(\)/.test(registryBody) && /clearGitRewrite\(\)/.test(registryBody),
     'npm 规格安装也要配 git 重写：pnpm add 会连带重新解析 profile 里别的 git 依赖');
   const gitSpecBody = (repos.match(/private suspend fun installGitSpec\(([\s\S]*?)\n    \}/) || [])[1] || '';
-  want(/raceEnabled\(DshRuntime\.RACE_PLUGINS\)\) \{\n\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*applyGitRewrite\(""\)/.test(gitSpecBody),
+  // 常量随 DshPortConfig 搬走（Checkpoint 1 拆解），两种前缀都认。
+  want(/raceEnabled\((?:DshRuntime|DshPortConfig)\.RACE_PLUGINS\)\) \{\n\s*\/\/[^\n]*\n\s*\/\/[^\n]*\n\s*applyGitRewrite\(""\)/.test(gitSpecBody),
     '竞速关掉的那条路也必须归一 git+ssh（容器里没有 ssh 凭据，直连同样是失败）');
   const startupBody = (repos.match(/fun ensureGitCaAtStartup\(\) \{([\s\S]*?)\n    \}/) || [])[1] || '';
   want(/applyGitRewrite\(/.test(startupBody),

@@ -332,6 +332,12 @@ object DshRuntime : DshRuntimeHost {
         _state.update { it.copy(port = p) }
     }
 
+    // 竞速通道 id 常量随 [DshPortConfig] 一起搬走了，这里保留同名转发
+    // （DshPluginRepo / 设置页都按 DshRuntime.RACE_* 引用）。
+    const val RACE_PLUGINS = DshPortConfig.RACE_PLUGINS
+    const val RACE_APP_UPDATE = DshPortConfig.RACE_APP_UPDATE
+    const val RACE_RUNTIME = DshPortConfig.RACE_RUNTIME
+
     // ────────────────────────── 端口占用检测 ──────────────────────────
     // ────────────────────────── 局域网访问 ──────────────────────────
     // ────────────────────────── 竞速通道（镜像/测速） ──────────────────────────
