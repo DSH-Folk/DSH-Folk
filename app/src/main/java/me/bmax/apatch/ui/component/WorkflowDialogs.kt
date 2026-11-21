@@ -70,18 +70,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
-import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.DshNativeBridge
-import me.bmax.apatch.dsh.WorkflowActionType
-import me.bmax.apatch.dsh.WorkflowCompute
-import me.bmax.apatch.dsh.WorkflowApprovals
-import me.bmax.apatch.dsh.WorkflowDefinition
-import me.bmax.apatch.dsh.WorkflowEdge
-import me.bmax.apatch.dsh.WorkflowNode
-import me.bmax.apatch.dsh.WorkflowNodeType
-import me.bmax.apatch.dsh.WorkflowPatch
+import me.bmax.apatch.dsh.workflow.WorkflowEdge
+import me.bmax.apatch.dsh.workflow.WorkflowPatch
 import me.bmax.apatch.dsh.WorkflowPermissions
-import me.bmax.apatch.dsh.WorkflowValidator
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowApprovals
 import me.bmax.apatch.dsh.workflow.WorkflowCompute

@@ -253,6 +253,12 @@ for (const mod of MODULES) {
   }
 }
 
+// 注：跨模块 smart cast 的检查留在 check-module-boundary.js 里。
+// 这里试过一版「按属性名反查定义模块」的实现，误报率过高（`mutable.value` 是
+// MutableState 的标准属性、`errorMessage` 是局部变量，都会被判成跨模块），
+// 与其加一堆白名单，不如交给已经做对的那个脚本 —— 它按「接收者的声明类型」判断，
+// 不是按属性名猜。
+
 console.log("── 搬迁预检：跨模块符号 ──");
 if (errors === 0) {
   console.log(`  ✓ ${MODULES.length} 个模块没有「缺 import」或「误用 :app 符号」`);

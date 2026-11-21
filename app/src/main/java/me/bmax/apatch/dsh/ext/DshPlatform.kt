@@ -36,7 +36,6 @@ import me.bmax.apatch.dsh.PrivilegedShell
 import me.bmax.apatch.dsh.ScriptMarket
 import me.bmax.apatch.dsh.Userscripts
 import me.bmax.apatch.dsh.WebScripts
-import me.bmax.apatch.dsh.WorkflowApprovals
 import me.bmax.apatch.dsh.WorkflowEngine
 import me.bmax.apatch.ui.theme.ThemeManager
 import me.bmax.apatch.util.DshWebCompat

@@ -36,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import me.bmax.apatch.dsh.WorkflowDefinition
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowDefinition
 import me.bmax.apatch.dsh.workflow.effectiveCaps

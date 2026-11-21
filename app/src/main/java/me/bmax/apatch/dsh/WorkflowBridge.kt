@@ -290,8 +290,12 @@ internal object WorkflowBridge {
         // 用户改过 → 用他那一版，并重算校验与 diff。改坏了就直接回错误，不执行。
         var effective = submitted
         var diff = emptyList<WorkflowPatch>()
-        if (verdict.editedJson != null) {
-            val edited = definitionFromJson(verdict.editedJson)
+        // 先落成局部变量再判空：`editedJson` 是 :ext-workflow 里的 public 属性，
+        // Kotlin 不对跨模块的 public 属性做 smart cast（它可能是自定义 getter，
+        // 每次读都可能不同值）。直接写 `verdict.editedJson != null` 再传进去会编译失败。
+        val editedJson = verdict.editedJson
+        if (editedJson != null) {
+            val edited = definitionFromJson(editedJson)
                 ?: return 400 to err(str(ctx, CoreR.string.dsh_workflow_err_edited_bad), "invalid_definition")
             val recheck = WorkflowValidator.validate(edited, allowedCaps)
             if (!recheck.ok) {

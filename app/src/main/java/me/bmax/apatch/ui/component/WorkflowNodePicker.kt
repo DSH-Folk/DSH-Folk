@@ -51,9 +51,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import me.bmax.apatch.dsh.WorkflowNodeType
-import me.bmax.apatch.dsh.WorkflowPinKind
-import me.bmax.apatch.dsh.WorkflowStore
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.workflow.WorkflowStore
 import me.bmax.apatch.dsh.workflow.WorkflowNodeType
