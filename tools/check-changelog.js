@@ -356,7 +356,9 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   ok(/claimRuntimePrompt\(newVersion\)/.test(mainActivity) &&
     /val newVersion = result\?\.version/.test(mainActivity),
     "自动检查登记提示权");
-  ok(/claimRuntimePrompt\(result\.version\)/.test(settings),
+  // 跨模块属性不做 smart cast，改成局部变量 promptVersion
+  ok(/claimRuntimePrompt\(promptVersion\)/.test(settings) &&
+    /val promptVersion = result\?\.version/.test(settings),
     "设置页手动检查也登记提示权（共用同一闸门）");
   ok(/fun clearPromptedRuntimeVersion\(\)/.test(runtime),
     "提示关掉时放开闸门（否则用户手动再查一次看不到结果）");

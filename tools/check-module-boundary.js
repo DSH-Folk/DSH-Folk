@@ -244,6 +244,81 @@ console.log("\n── internal 跨模块可见性 ──");
   }
 }
 
+// ── 跨模块属性的 smart cast ──
+
+console.log("\n── 跨模块 smart cast ──");
+{
+  // Kotlin 不给「另一个模块的 public 属性」做 smart cast：
+  //   if (r.version != null) use(r.version)   // 编译错误
+  // 报错是 "Smart cast to 'String' is impossible, because 'version' is a public
+  // API property declared in different module"。本地无编译器，只有 CI 才炸。
+  //
+  // 检测：:core-kernel 里 data class 的 val 属性名，在 :app 里出现
+  // `x.prop != null` 之后又裸用 `x.prop` 的模式。这里用简化的启发式：
+  // 同一行或紧邻两行里既有 `.prop != null` 又有 `(` 里传 `.prop`。
+  // 只认**跨模块 data class 的属性**。第一版把所有 :core-kernel 里出现过的 val 名
+  // 都当成候选，结果 `viewModel.errorMessage`（同模块 ViewModel）、`noteProrootFailure`
+  // 之类全被误报 —— 名字撞车而已，跟跨模块无关。
+  //
+  // 改成：先收集 :core-kernel 里的 data class **类名 → 属性名集合**，
+  // 再看 :app 里是否出现 `<某变量>: <类名>` 或 `<类名>(...)` 的局部值，
+  // 然后对该变量检查 smart cast。这样只报真正跨模块的那几处。
+  const kernelClassProps = new Map();
+  for (const f of walkKt(MODULES["core-kernel"])) {
+    const code = stripComments(fs.readFileSync(f, "utf8"));
+    for (const m of code.matchAll(/data class (\w+)\(([\s\S]*?)\n\)/g)) {
+      const props = new Set();
+      for (const v of m[2].matchAll(/val (\w+)\s*:/g)) props.add(v[1]);
+      kernelClassProps.set(m[1], props);
+    }
+  }
+  const kernelVals = new Set();
+  for (const props of kernelClassProps.values()) for (const v of props) kernelVals.add(v);
+
+  const offenders = [];
+  for (const f of walkKt(MODULES.app)) {
+    const raw = fs.readFileSync(f, "utf8");
+    // 先剥字符串字面量：DshRuntime 里有一大段 node -e '...' 脚本，
+    // 里面的 `.webToken` 会被当成属性访问（实测误报 1 处）。
+    const code = stripComments(raw)
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+    const lines = code.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const L = lines[i];
+      for (const prop of kernelVals) {
+        // 必须有**具名接收者**的判空：`x.prop != null` / `x?.prop != null`。
+        // 不能是 `it.exitCode != null`（那是同一个局部对象，同模块内可 smart cast）。
+        const guard = new RegExp("\\b([a-z]\\w*)\\??\\." + prop + " != null");
+        const g = L.match(guard);
+        if (!g) continue;
+        const recv = g[1];
+        // 接收者必须在本文件里被声明成某个 :core-kernel data class 类型，
+        // 否则就是同模块对象（`viewModel.errorMessage`），不存在跨模块 smart cast 问题。
+        const declaredAsKernel = [...kernelClassProps].some(([cls, props]) =>
+          props.has(prop) &&
+          new RegExp("\\b" + recv + "\\s*:\\s*" + cls + "\\b").test(code),
+        );
+        if (!declaredAsKernel) continue;
+        // 同行或下一行里又裸用同一个接收者的该属性
+        const next = L + " " + (lines[i + 1] || "");
+        const bare = new RegExp("\\b" + recv + "\\." + prop + "\\b");
+        if (bare.test(next)) {
+          offenders.push(path.relative(ROOT, f) + ":" + (i + 1) + " " + prop +
+            " —— 跨模块属性不能 smart cast，先取局部变量");
+        }
+      }
+    }
+  }
+
+  if (offenders.length === 0) {
+    ok(":app 里没有对跨模块属性做 smart cast");
+  } else {
+    fail(offenders.length + " 处跨模块 smart cast：");
+    for (const o of offenders.slice(0, 10)) console.log("      " + o);
+  }
+}
+
 // ── 自检：脚本本身得能判红 ──
 
 console.log("\n── 自检 ──");

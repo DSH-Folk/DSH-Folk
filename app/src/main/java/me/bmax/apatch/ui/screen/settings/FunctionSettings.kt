@@ -1184,9 +1184,13 @@ fun FunctionSettingsContent(
                                     // 抢提示权：自动检查（MainActivity 冷启动 2.5s 后那条）可能已经
                                     // 弹过同一个版本了。两边共用 DshRuntime 的闸门，谁先到谁弹。
                                     // 不加这一步的表现是「同一个更新弹两次窗」—— 用户会以为点了两次。
-                                    if (confirmAfterCheck && result?.version != null &&
+                                    // 取局部变量：result.version 是跨模块 public 属性
+                                    // （RuntimeCheckResult 随 DshRuntimeModels 下沉到 :core-kernel），
+                                    // Kotlin 不给跨模块属性做 smart cast。
+                                    val promptVersion = result?.version
+                                    if (confirmAfterCheck && promptVersion != null &&
                                         result.minAppVersion.isEmpty() &&
-                                        DshRuntime.claimRuntimePrompt(result.version)
+                                        DshRuntime.claimRuntimePrompt(promptVersion)
                                     ) {
                                         updateConfirming = true
                                     }
@@ -1215,18 +1219,20 @@ fun FunctionSettingsContent(
                                     }
                                 } else {
                                     latest?.let { result ->
+                                        val localVersion = result.version
                                         val line = when {
-                                            result.version != null && result.minAppVersion.isNotEmpty() ->
+                                            // 同上：跨模块属性不做 smart cast，先取局部值
+                                            localVersion != null && result.minAppVersion.isNotEmpty() ->
                                                 stringResource(CoreR.string.dsh_runtime_update_requires_app, result.minAppVersion)
-                                            result.version != null ->
-                                                stringResource(CoreR.string.dsh_runtime_update_available, result.version)
+                                            localVersion != null ->
+                                                stringResource(CoreR.string.dsh_runtime_update_available, localVersion)
                                             result.failure -> stringResource(CoreR.string.dsh_runtime_check_failed)
                                             else -> stringResource(CoreR.string.dsh_runtime_up_to_date)
                                         }
                                         val color = when {
-                                            result.version != null && result.minAppVersion.isNotEmpty() ->
+                                            localVersion != null && result.minAppVersion.isNotEmpty() ->
                                                 MaterialTheme.colorScheme.error
-                                            result.version != null -> MaterialTheme.colorScheme.primary
+                                            localVersion != null -> MaterialTheme.colorScheme.primary
                                             result.failure -> MaterialTheme.colorScheme.error
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         }
@@ -1264,12 +1270,14 @@ fun FunctionSettingsContent(
                                     onCheckedChange = onRuntimeAutoCheckChange,
                                     onClick = {
                                         val result = latest
+                                        // 跨模块属性不做 smart cast：先取局部值再判空
+                                        val clickVersion = result?.version
                                         when {
                                             // 已经查到有更新：直接弹确认框，别让用户再等一次网络
-                                            result?.version != null && result.minAppVersion.isEmpty() ->
+                                            clickVersion != null && result.minAppVersion.isEmpty() ->
                                                 updateConfirming = true
                                             // 新运行时要求更高 App 版本：点下去也是被闸门拦下，直接指路
-                                            result?.version != null -> onGoUpdateApp()
+                                            clickVersion != null -> onGoUpdateApp()
                                             else -> {
                                                 // 长按菜单之外的这条检查路径：查完真有可装的更新就弹确认框
                                                 confirmAfterCheck = true

@@ -76,7 +76,9 @@ console.log("\n── 卡片：一张开关卡片，点=检查、长按=菜单 �
   // 且 onClick 与里层同一个动作（置 confirmAfterCheck 再 bump revision）。
   ok(/combinedClickable\(onClick = \{\s*\n\s*confirmAfterCheck = true\s*\n\s*onCheckRuntimeUpdateRequested\(\)/.test(card),
     "外层整卡点一下也 = 检查更新（combinedClickable 的 onClick 接 confirmAfterCheck + onCheckRuntimeUpdateRequested）");
-  ok(/result\?\.version != null && result\.minAppVersion\.isEmpty\(\) ->\s*\n\s*updateConfirming = true/.test(toggle),
+  // 跨模块属性不做 smart cast，改成局部变量 clickVersion
+  ok(/clickVersion != null && result\.minAppVersion\.isEmpty\(\) ->\s*\n\s*updateConfirming = true/.test(toggle) &&
+    /val clickVersion = result\?\.version/.test(toggle),
     "已知有可装更新时点一下直接弹确认框（不再白等一次网络）");
   ok(/onLongClick = \{ versionListOpen = true \}/.test(toggle),
     "长按卡片打开版本菜单");
