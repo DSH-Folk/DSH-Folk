@@ -248,8 +248,9 @@ object DshRuntime : DshRuntimeHost {
      * UninitializedPropertyAccessException）。
      */
     fun init(context: Context) {
-        if (!::appContext.isInitialized) {
-            appContext = context.applicationContext
+        if (!DshKernelState.ready) {
+            // 状态统一交给 DshKernelState（拆解后多个职责类共用同一份）。
+            DshKernelState.bind(context)
             // 把「写日志」「在容器里跑命令」两个出口挂到 KernelEnv。
             //
             // 这一步是断环的关键：DshEnv / ContainerRuntime / AdbBridge 走
@@ -268,13 +269,13 @@ object DshRuntime : DshRuntimeHost {
     }
 
     /** Context 是否已绑定。未绑定时所有读接口给默认值而不是抛异常。 */
-    private val ready: Boolean get() = ::appContext.isInitialized
+    private val ready: Boolean get() = DshKernelState.ready
 
     /**
      * 已绑定的 application context（给同在 dsh 包里的兄弟对象用，如 [DshPluginRepo] 要拿它读
      * 竞速通道的测速缓存）。未绑定返回 null —— 调用方自己决定怎么处理，不要在这里抛。
      */
-    fun appContextOrNull(): Context? = if (ready) appContext else null
+    fun appContextOrNull(): Context? = DshKernelState.appContextOrNull()
 
     fun attach(context: Context) {
         init(context)
