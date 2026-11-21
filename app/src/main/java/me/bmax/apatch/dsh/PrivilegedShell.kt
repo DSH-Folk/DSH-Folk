@@ -24,8 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 这一层只管执行与「能不能执行」，**要不要用户同意由 [PrivPolicy] 判定**，两者分开是因为
  * 严格程度是用户的偏好，而通道能力是设备的事实。
  */
-@InternalKernelApi
-object PrivilegedShell {
+internal object PrivilegedShell {
     private const val TAG = "DshPrivilegedShell"
 
     /** 超时默认值与上限。命令卡住时最坏情况是「一次调用白等两分钟」，不会更久。 */

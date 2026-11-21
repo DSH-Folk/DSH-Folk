@@ -1,7 +1,6 @@
 package me.bmax.apatch.dsh.ext
 
 import android.content.Context
-import me.bmax.apatch.dsh.KernelEnv
 import dalvik.system.DexClassLoader
 import me.bmax.apatch.dsh.DshRuntime
 import java.io.File
@@ -167,7 +166,7 @@ object ExtensionLoader {
         if (!required.isNullOrBlank() && !DshRuntime.appSatisfies(required)) {
             ExtLog.log(
                 mf.id + " 要求宿主 >= " + required + "，当前 " +
-                    KernelEnv.appVersionName + "，已跳过加载",
+                    me.bmax.apatch.BuildConfig.VERSION_NAME + "，已跳过加载",
             )
             return null
         }

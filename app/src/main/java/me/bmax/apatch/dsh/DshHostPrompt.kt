@@ -3,6 +3,7 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import android.os.Build
 import androidx.core.content.edit
+import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
@@ -318,7 +319,7 @@ object DshHostPrompt {
             }
             val json = JSONObject()
                 .put("promptEnabled", enabled(ctx))
-                .put("appVersion", KernelEnv.appVersionName)
+                .put("appVersion", BuildConfig.VERSION_NAME)
                 .put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
                 .put("androidRelease", Build.VERSION.RELEASE ?: "")
                 .put("sdkInt", Build.VERSION.SDK_INT)

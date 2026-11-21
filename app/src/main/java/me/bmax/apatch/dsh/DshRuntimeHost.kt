@@ -15,8 +15,7 @@ import java.io.File
  * 与 [DshRuntimeLog] 的关系：那个只管日志（Env/Scripts 用），这个覆盖安装簇要用的全部口子。
  * 两者都保留 —— 只打日志的辅助文件不该拿到状态机的写入口。
  */
-@InternalKernelApi
-interface DshRuntimeHost {
+internal interface DshRuntimeHost {
     /** 运行态（只读订阅）。写入口是 [setState]。 */
     val stateFlow: StateFlow<DshState>
 

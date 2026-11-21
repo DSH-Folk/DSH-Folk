@@ -92,9 +92,7 @@ object DshEnv {
             dst.parentFile?.mkdirs()
             if (dst.exists()) dst.deleteRecursively()
             // 与运行时恢复同一理由：跨挂载点 renameTo 会静默失败 → 认领回来的数据其实没搬过去
-            // 用 LogStore 直接写，不再绕 DshRuntime（DshEnv 要下沉 :core-kernel，
-            // 而 DshRuntime 还在 :app —— 反过来依赖会造成环）
-            renameOrCopy(src, dst) { msg -> LogStore.append("[preserve] $msg") }
+            renameOrCopy(src, dst) { msg -> DshRuntime.appendLog("[preserve] $msg") }
         }
         if (PRESERVED_PATHS.none { File(stash, it).exists() }) {
             runCatching { stash.deleteRecursively() }

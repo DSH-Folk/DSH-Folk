@@ -76,8 +76,7 @@ if (hits.length) {
 }
 
 // appString 这一层本身的不变量
-// LocaleCtx 已下沉到 :core-kernel（Batch C）
-const localeCtx = require("./_paths.js").read("util/LocaleCtx.kt");
+const localeCtx = fs.readFileSync(path.join(SRC, "util/LocaleCtx.kt"), "utf8");
 const invariants = [
   ["config.setLocales(", "必须 setLocales 而不是 setLocale：保留整条回退链（pt-BR → pt → en）"],
   ["createConfigurationContext", "必须真的换一份 Resources"],
