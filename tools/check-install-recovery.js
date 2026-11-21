@@ -45,8 +45,11 @@ must(/pendingLinkname = paxLink/.test(extractor),
   'linkpath 读到了却没交给 pendingLinkname（等于没解析）');
 
 // ---- 3. 恢复路径不得再出现裸 renameTo ----
-must(/internal fun renameOrCopy\(src: File, dst: File, note: \(String\) -> Unit\): Boolean/.test(installer),
-  'renameOrCopy 不是 internal：其它恢复路径没法复用，只能各写一遍裸 renameTo');
+// renameOrCopy 已抽到 :core-kernel 的 FileOps.kt（Batch C）并放宽为 public ——
+// DshEnv 在另一个子模块里要用它。断言改为在 FileOps 里找。
+const fileOps = require("./_paths.js").read("dsh/FileOps.kt");
+must(/fun renameOrCopy\(src: File, dst: File, note: \(String\) -> Unit\): Boolean/.test(fileOps),
+  'renameOrCopy 不可复用：其它恢复路径没法用它，只能各写一遍裸 renameTo');
 const installerCalls = (installer.match(/renameOrCopy\(/g) || []).length;
 must(installerCalls >= 6, 'renameOrCopy 的调用点少于 6 处（恢复路径又漏了）');
 const envBare = /(?<!\/\/.*)\bsrc\.renameTo\(dst\)/.test(env);

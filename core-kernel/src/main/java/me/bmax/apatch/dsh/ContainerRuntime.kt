@@ -305,7 +305,7 @@ interface ContainerRuntime {
             //
             // 模板读不到 / 生成失败都直接回退 proot：一次 chroot 尝试绝不能把启动搞死
             val script = runCatching { buildLaunchScript(rootfs, dir, env, guest) }.getOrElse { e ->
-                DshRuntime.appendLog(
+                KernelEnv.log(
                     "! chroot: 生成 launch.sh 失败（已回退 proot）: " + (e.message ?: e.javaClass.simpleName)
                 )
                 return null
@@ -319,7 +319,7 @@ interface ContainerRuntime {
             // 返回 null 让调用方回退 proot，服务照常能起。
             val syntaxError = checkLaunchScript(launch)
             if (syntaxError != null) {
-                DshRuntime.appendLog(
+                KernelEnv.log(
                     "! chroot: launch.sh 语法检查未通过（已回退 proot）: " + syntaxError
                 )
                 return null

@@ -291,17 +291,18 @@ object DshHostPrompt {
     fun writeFacts(ctx: Context) {
         runCatching {
             val caps = JSONObject()
-            val nativeOn = DshNativeBridge.enabled(ctx)
+            // 宿主状态由 KernelEnv 注入：这几项（原生能力、无障碍、提权时限）
+            // 都存在 :app 侧，DshNativeBridge 还依赖 UI 层，内核够不着。
+            val hf = KernelEnv.hostFacts(ctx)
+            val nativeOn = hf.nativeEnabled
             if (nativeOn) {
-                for ((cap, access) in DshNativeBridge.accessMap(ctx)) {
-                    if (access != DshNativeBridge.Access.OFF) caps.put(cap.id, access.id)
-                }
+                for ((cap, access) in hf.nativeCaps) caps.put(cap, access)
             }
             // 「仅本次」的配额单独一项：它是**一次**调用，不是一项已开启的能力。
             // 混进 nativeCaps 会让 agent 以为可以连着调好几次。
             val once = JSONObject()
             if (nativeOn) {
-                for ((cap, access) in DshNativeBridge.onceGrants()) once.put(cap.id, access.id)
+                for ((cap, access) in hf.onceGrants) once.put(cap, access)
             }
             // 与共享存储同一个开关（2026-10 合并）
             val workspaceStorageMounted = DshFileAccess.mountEnabled(ctx)
@@ -349,8 +350,8 @@ object DshHostPrompt {
                 )
                 // 两个时限写进事实，而不是在提示词里硬写一遍：改一个常量不该还要
                 // 记得去改容器里那段文字（两处写死的版本号迟早会漂移）
-                .put("elevateTtlMs", DshElevationRequests.TTL_MS)
-                .put("onceTtlMs", DshNativeBridge.ONCE_TTL_MS)
+                .put("elevateTtlMs", hf.elevateTtlMs)
+                .put("onceTtlMs", hf.onceTtlMs)
                 .put("notificationPermission", PermissionUtils.hasNotificationPermission(ctx))
                 // 媒体是逐类授权的（Android 13 起）：只给了照片时 agent 该知道音频读不了，
                 // 而不是以为设备上没有音频文件。
@@ -375,11 +376,11 @@ object DshHostPrompt {
                 .put("workspaceStorageMappings", workspaceStorageMappings)
                 .put("storageHardlinkSupported", DshFileAccess.storageLinkSupported(ctx))
                 // 无障碍服务：和相机一样属于「设备上有没有」的事实
-                .put("a11yService", DshA11y.connected())
+                .put("a11yService", hf.a11yConnected)
                 // 「别看本应用」档位：插件按它决定要不要在提示词里明说"现在读不到本应用"。
                 // 这是**状态**不是能力，所以与 a11yService 并列放在事实里（改档位 → 下一轮
                 // 组装就是新的：插件按 mtime 判失效，见类注释）。
-                .put("a11yHideOwn", A11yOwn.mode(ctx))
+                .put("a11yHideOwn", hf.a11yOwnMode)
                 .toString()
             val f = DshEnv.hostFacts(ctx)
             f.parentFile?.mkdirs()

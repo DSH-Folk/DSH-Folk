@@ -242,6 +242,18 @@ object DshRuntime : DshRuntimeHost {
     fun init(context: Context) {
         if (!::appContext.isInitialized) {
             appContext = context.applicationContext
+            // 把「写日志」「在容器里跑命令」两个出口挂到 KernelEnv。
+            //
+            // 这一步是断环的关键：DshEnv / ContainerRuntime / AdbBridge 走
+            // KernelEnv 的回调，而不是反过来引用本单例。环一断，它们才能下沉到
+            // :core-kernel（之前依赖闭包 57 个文件，谁都动不了）。
+            //
+            // 必须在这里挂（而不是 attach）：init 是"只做一次"的入口，
+            // attach 可能被重复调用，重复挂没意义但也不会有害 —— 只是更清楚。
+            KernelEnv.setLogSink(::appendLog)
+            KernelEnv.setContainerExec { bashCommand, timeoutMs ->
+                execRootfsForOutput(bashCommand, timeoutMs)
+            }
             // 上一次运行时替换如果被强杀打断，先恢复可启动的 rootfs，再认领暂存数据。
             recoverInterruptedRuntimeInstall()
             // 进程重启后旧日志不该残留：清一次，让启动日志按「本次运行」呈现。

@@ -1,6 +1,10 @@
 package me.bmax.apatch
 
 import android.app.ActivityManager
+import me.bmax.apatch.dsh.DshA11y
+import me.bmax.apatch.dsh.A11yOwn
+import me.bmax.apatch.dsh.DshElevationRequests
+import me.bmax.apatch.dsh.DshNativeBridge
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -169,6 +173,25 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
         // 真正落盘，而扩展加载是这条路径上最需要日志的一段（加载失败、dex 只读被拒、onLoad 抛异常）。
         // 顺序反了就会出现真机实测到的那种情况：dsh.log 里一条 [ext] 都没有，装没装上、
         // 为什么没生效 —— 全靠猜。这个 bug 实际踩过（beta.238 的 shell 扩展不生效却无任何日志）。
+        // 宿主状态快照：内核写 host-facts.json 时用。这几项都在 :app 侧
+        // （DshNativeBridge 依赖 UI 层与 :app 的 R），内核够不着，只能注入。
+        me.bmax.apatch.dsh.KernelEnv.setHostFactsProvider { c ->
+            val nativeOn = DshNativeBridge.enabled(c)
+            me.bmax.apatch.dsh.KernelEnv.HostFacts(
+                nativeEnabled = nativeOn,
+                nativeCaps = if (nativeOn) DshNativeBridge.accessMap(c)
+                    .filterValues { it != DshNativeBridge.Access.OFF }
+                    .map { (cap, access) -> cap.id to access.id }.toMap()
+                else emptyMap(),
+                onceGrants = if (nativeOn) DshNativeBridge.onceGrants()
+                    .map { (cap, access) -> cap.id to access.id }.toMap()
+                else emptyMap(),
+                elevateTtlMs = DshElevationRequests.TTL_MS,
+                onceTtlMs = DshNativeBridge.ONCE_TTL_MS,
+                a11yConnected = DshA11y.connected(),
+                a11yOwnMode = A11yOwn.mode(c),
+            )
+        }
         ExtensionEngine.bootstrap(this)
         // ③ bootstrap 会跑扩展的 onLoad，而 onLoad 里可以换掉根崩溃处理器（见 [hostCrashHandler]）。
         //    这里立刻复原一次，保证后面所有崩溃仍然回到宿主手里。

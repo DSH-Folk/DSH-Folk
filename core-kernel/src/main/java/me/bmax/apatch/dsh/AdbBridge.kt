@@ -35,7 +35,7 @@ object AdbBridge {
      * 当成「没注入」会导致反复重注入并把状态显示成异常。
      */
     fun injectedState(): String {
-        val r = DshRuntime.execRootfsForOutput(
+        val r = KernelEnv.exec(
             "test -f /root/.dsh/script-version && cat /root/.dsh/script-version || echo NO"
         )
         val v = r.trim()
@@ -55,7 +55,7 @@ object AdbBridge {
         }
         cmds.append("printf '%s' '").append(SCRIPT_VERSION).append("' > /root/.dsh/script-version; ")
         cmds.append("echo INJECT_OK")
-        return DshRuntime.execRootfsForOutput(cmds.toString(), 120_000)
+        return KernelEnv.exec(cmds.toString(), 120_000)
     }
 
     /** 安装 python 依赖：优先离线 wheels（随 APK），失败回落 pip 联网。 */
@@ -76,11 +76,11 @@ object AdbBridge {
             "if [ \"\$M\" = \"1f8b\" ]; then tar xzf /root/.dsh/adb-wheels.tar.gz -C /root/.dsh/wheels/; " +
             "else tar xf /root/.dsh/adb-wheels.tar.gz -C /root/.dsh/wheels/ 2>/dev/null || true; fi; " +
             "bash /root/.dsh/adb-setup.sh 2>&1 | tail -20"
-        return DshRuntime.execRootfsForOutput(cmd, 300_000)
+        return KernelEnv.exec(cmd, 300_000)
     }
 
     /** 依赖是否就绪（新版库从 spake2.spake2 导入，模块名无下划线）。 */
-    fun depsOk(): Boolean = DshRuntime.execRootfsForOutput(
+    fun depsOk(): Boolean = KernelEnv.exec(
         "python3 -c 'import adb_shell_wifi; from spake2.spake2 import Spake2_Alice, Spake2_Bob' 2>/dev/null && echo YES || echo NO"
     ).contains("YES")
 
@@ -97,16 +97,16 @@ object AdbBridge {
         if (host.isNotBlank()) c.append(" --host ").append(host.trim())
         if (pairPort.isNotBlank()) c.append(" --port ").append(pairPort.trim())
         if (connectPort.isNotBlank()) c.append(" --connect-port ").append(connectPort.trim())
-        return DshRuntime.execRootfsForOutput(c.toString(), 180_000)
+        return KernelEnv.exec(c.toString(), 180_000)
     }
 
     /** 用已配对通道执行一条 adb shell 命令。 */
-    fun shell(command: String): String = DshRuntime.execRootfsForOutput(
+    fun shell(command: String): String = KernelEnv.exec(
         "DSH_INTERNAL=1 python3 /root/.dsh/adb-shell.py " + command, 120_000
     )
 
     /** 状态快照：key / deps / connect_port（供 UI 展示）。 */
-    fun status(): String = DshRuntime.execRootfsForOutput(
+    fun status(): String = KernelEnv.exec(
         "K=\$(test -f /root/.dsh/adbkeys/adbkey && echo YES || echo NO); " +
             "D=\$(python3 -c 'import adb_shell_wifi; from spake2.spake2 import Spake2_Alice, Spake2_Bob' 2>/dev/null && echo YES || echo NO); " +
             "P=\$(test -f /root/.dsh/adbkeys/connect_port && cat /root/.dsh/adbkeys/connect_port || echo -); " +
@@ -156,7 +156,7 @@ object AdbBridge {
             hostKeys.listFiles()?.forEach { it.delete() }
             hostKeys.delete()
         }
-        return DshRuntime.execRootfsForOutput(
+        return KernelEnv.exec(
             "rm -rf /root/.dsh/adbkeys 2>/dev/null; echo DISCONNECTED", 30_000,
         )
     }

@@ -26,7 +26,8 @@ function eq(a, b, msg) {
   ok(a === b, msg + (a === b ? "" : `（实际 ${JSON.stringify(a)} 期望 ${JSON.stringify(b)}）`));
 }
 
-const read = (p) => fs.readFileSync(p, "utf8");
+// 走 _paths：Batch C 起 dsh/ 下的一批文件迁进 :core-kernel，写死 app/ 路径会读不到
+const read = (p) => require("./_paths.js").read(p);
 const SRC = {
   models: read("app/src/main/java/me/bmax/apatch/dsh/WorkflowModels.kt"),
   // 节点选择面板（两个入口共用的组件）。抽出来单独读，是为了让「两处选项集必须一致」
@@ -420,8 +421,11 @@ ok(!/workflowDraftDir|saveDraft|loadDraft|clearDraft/.test(SRC.store + read("app
       return !declared && !text.includes("import me.bmax.apatch.dsh." + sym);
     });
     ok(missing.length === 0, name + " 用到的 dsh 符号都导入了" + (missing.length ? "，缺 " + missing.join(",") : ""));
-    if (/R\.(string|drawable|plurals)\./.test(text)) {
-      ok(/import me\.bmax\.apatch\.R\b/.test(text), name + " 引用了 R.* 就必须 import me.bmax.apatch.R");
+    // dsh_strings.xml 已迁到 :core-res（Batch C），引用写成 CoreR.string.*，
+    // 对应 import me.bmax.apatch.res.R as CoreR。两种前缀都要认。
+    if (/(?:Core)?R\.(string|drawable|plurals)\./.test(text)) {
+      ok(/import me\.bmax\.apatch\.(res\.R as CoreR|R)\b/.test(text),
+        name + " 引用了 R.* 就必须 import 对应的 R（app 的 R 或 core-res 的 CoreR）");
     }
   }
 }
@@ -1330,7 +1334,9 @@ console.log("\u2500 #16q 连边即时防成环（任务 2）");
 console.log("\u2500 #16r 解压诊断三联（任务 3 / Issue #12）");
 {
   const ext = read("app/src/main/java/me/bmax/apatch/dsh/TarGzipExtractor.java");
-  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt");
+  // renameOrCopy / copyRecursiveTo 已抽到 :core-kernel 的 FileOps.kt（Batch C），
+  // 两个文件一起读，断言在迁移前后都能验到。
+  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt") + "\n" + read("dsh/FileOps.kt");
   // ① 计数器必须存在**且被读取**：以前 lastSkipped/lastChmodFailures 全仓无人读，
   //    用户只看到一句「rootfs 不完整」，没有任何可判断的线索。
   ok(/public static volatile int lastChmodFailures = 0/.test(ext), 'chmod 失败有计数器');
@@ -1351,7 +1357,9 @@ console.log("\u2500 #16r 解压诊断三联（任务 3 / Issue #12）");
 
 console.log("\u2500 #16s 安装失败必须说清败在哪一步（Issue #12 追因）");
 {
-  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt");
+  // renameOrCopy / copyRecursiveTo 已抽到 :core-kernel 的 FileOps.kt（Batch C），
+  // 两个文件一起读，断言在迁移前后都能验到。
+  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt") + "\n" + read("dsh/FileOps.kt");
   const logEvent = read("app/src/main/java/me/bmax/apatch/util/LogEvent.kt");
   // 核心约束：installRuntimeArchive 里每个 return false 之前都必须有一行 note()/日志。
   // 原先 5 个分支只有 1 个说话，Issue #12 的日志里只剩一句 generic 报错，排查卡了好几天。
@@ -1366,7 +1374,7 @@ console.log("\u2500 #16s 安装失败必须说清败在哪一步（Issue #12 追
   // renameTo 必须有回退：Android 上整目录改名很容易返回 false 而不抛异常
   // 现在提到 internal：恢复路径（recoverInterruptedRuntimeInstall / DshEnv.recoverPreserved）
   // 也要复用它，private 会让那两处只能各写一遍裸 renameTo（评审 P1-3c）。
-  ok(/internal fun renameOrCopy\(src: File, dst: File/.test(inst), '改名失败有复制回退');
+  ok(/fun renameOrCopy\(src: File, dst: File/.test(inst), '改名失败有复制回退');
   ok(/renameOrCopy\(backup, dest, note\)/.test(inst),
     'recoverInterruptedRuntimeInstall 走了 renameOrCopy（不再裸 renameTo 静默失败）');
   ok(/src\.renameTo\(dst\)\) return true/.test(inst), '先试 renameTo');
@@ -1384,14 +1392,17 @@ console.log("\u2500 #16s 安装失败必须说清败在哪一步（Issue #12 追
 
 console.log("\u2500 #16t 回退复制必须保留符号链接（Issue #12 真正的原因）");
 {
-  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt");
+  // renameOrCopy / copyRecursiveTo 已抽到 :core-kernel 的 FileOps.kt（Batch C），
+  // 两个文件一起读，断言在迁移前后都能验到。
+  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt") + "\n" + read("dsh/FileOps.kt");
   // 用户 beta.209 的日志把原因钉死了：
   //   renameTo 失败 → 回退复制 → 15ms 后 ENOENT: .../motd-news.timer
   // rootfs 里到处是悬空符号链接，跟随读取必然 ENOENT。所以复制必须先判链接、原样重建。
   ok(/readSymbolicLink\(toPath\(\)\)/.test(inst), '复制前先读符号链接目标（不跟随）');
   ok(/Os\.symlink\(linkTarget\.toString\(\), dst\.absolutePath\)/.test(inst), '用 Os.symlink 原样重建链接');
   // 可见性从 private 提到 internal（扩展系统安装也要用它，避免复制一份丢了这个链接语义）
-  const copyFn = inst.slice(inst.indexOf('internal fun File.copyRecursiveTo('));
+  // copyRecursiveTo 已迁到 FileOps.kt 并放宽为 public（Batch C）
+  const copyFn = inst.slice(inst.indexOf('fun File.copyRecursiveTo('));
   const linkCheckAt = copyFn.indexOf('readSymbolicLink');
   const isDirAt = copyFn.indexOf('if (isDirectory)');
   ok(linkCheckAt > 0 && isDirAt > 0 && linkCheckAt < isDirAt,
@@ -1407,7 +1418,9 @@ console.log("\u2500 #16t 回退复制必须保留符号链接（Issue #12 真正
 console.log("\u2500 #16u 解压进度（Issue #12 用户反馈：安装像卡死）");
 {
   const ext = read("app/src/main/java/me/bmax/apatch/dsh/TarGzipExtractor.java");
-  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt");
+  // renameOrCopy / copyRecursiveTo 已抽到 :core-kernel 的 FileOps.kt（Batch C），
+  // 两个文件一起读，断言在迁移前后都能验到。
+  const inst = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt") + "\n" + read("dsh/FileOps.kt");
   // 解压要几十秒，界面此前只停在「开始解压安装…」→ 看起来像卡死
   ok(/public interface ProgressListener/.test(ext), '解压器暴露进度回调');
   ok(/void onProgress\(long extractedBytes, long totalTarBytes\)/.test(ext), '回调带已解/总量两个数');
@@ -1573,7 +1586,10 @@ console.log("\u2500 #16z launch.sh 的真凶与启动前自检（issue #12 第�
   ok(/private fun checkLaunchScript\(launch: File\): String\?/.test(rt), '有 launch.sh 语法自检');
   ok(/ProcessBuilder\("\/system\/bin\/sh", "-n", launch\.absolutePath\)/.test(rt), '用 /system/bin/sh -n 检查（就是真正解析脚本的那个 shell）');
   ok(/val syntaxError = checkLaunchScript\(launch\)/.test(rt), 'spawnArgv 返回 argv 之前先自检');
-  ok(/DshRuntime\.appendLog\(/.test(rt) && /已回退 proot/.test(rt), '自检不过：把 shell 原文写进日志并回退 proot');
+  // DshRuntime 内部仍然用 appendLog（它自己就是那个单例）；断环改的是
+  // DshEnv/ContainerRuntime/AdbBridge 三个下游文件。这里验的是 DshRuntime 自己的日志。
+  ok(/(?:DshRuntime\.appendLog|KernelEnv\.log)\(/.test(rt) && /已回退 proot/.test(rt),
+    '自检不过：把 shell 原文写进日志并回退 proot');
   // ── 跨运行时互操作 + 挂载（真机：切回 proot 后 /root/.dsh/... EACCES；工作区列目录 ENOENT）──
   ok(/^\s*binds \+= storageBinds\(ctx\)/m.test(rt) && /^\s*binds \+= workspaceBinds\(ctx\)/m.test(rt),
     "chroot 同时挂「存储」与「工作区」（proot/proroot 都有；缺工作区就是新建工作区 ENOENT）");
@@ -1734,8 +1750,13 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   // APPTOK 同理：分类名里那个 app 与资源前缀是同一个字节序列，直接写字面量会被本机的
   // 显示层改写成另一个同形串 —— 派生出来最稳。
   const APPTOK = String.fromCharCode(100, 115, 104);
-  const resDir = "app/src/main/res";
-  const stringsFileIn = (dir) => path.join(resDir, dir, fs.readdirSync(path.join(resDir, dir)).find((n) => /_strings\.xml$/.test(n)));
+  // dsh_strings.xml 已迁到 :core-res（Batch C）。这里要的是**它** —— 工作流的
+  // 分类文案全在 dsh_strings 里。按名字直取而不是扫目录：扫描会先命中 :app 的
+  // strings.xml，拿到一份不含 wf_* 键的文件（12 条断言全红但看不出原因）。
+  const stringsFileIn = (dir) => {
+    const migrated = path.join("core-res/src/main/res", dir, "dsh_strings.xml");
+    return fs.existsSync(migrated) ? migrated : path.join("app/src/main/res", dir, "dsh_strings.xml");
+  };
   const stringsEn = read(stringsFileIn("values"));
   const stringsZh = read(stringsFileIn("values-zh-rCN"));
   const CP = (stringsEn.match(/name="([^"]+)wf_cat_number"/) || [])[1] || "";
@@ -1756,7 +1777,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   const computeSrc = byName("WorkflowCompute.kt");
 
   // ── 1. 开始卡片必须能被加进来 ──
-  ok(/EditorNodeKind\(WorkflowNodeType\.TRIGGER, R\.string\.\w+workflow_kind_trigger, R\.string\.\w+wf_cat_trigger, defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.editorSurface),
+  ok(/EditorNodeKind\(WorkflowNodeType\.TRIGGER, (?:Core)?R\.string\.\w+workflow_kind_trigger, (?:Core)?R\.string\.\w+wf_cat_trigger, defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.editorSurface),
     "面板里有「开始卡片」（TRIGGER），落在触发器分类、走字段表默认值");
   ok(/data class EditorNodeKind\([\s\S]{0,900}?val catTitleRes: Int,/.test(SRC.editorSurface),
     "目录项自带一级分类（catTitleRes）：分类写在数据里，不按节点类型硬猜");
@@ -1789,7 +1810,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   // 只认 Action 条目的首行（"id", 分类, 标题 三个字段连写）；参数行
   // （"action", R.string.…, ParamKind.…）不能满足"两个 R.string"，所以不会被误当成动作。
   const actionCat = {};
-  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), R\.string\.\w+,/gm)) {
+  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), (?:Core)?R\.string\.\w+,/gm)) {
     actionCat[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
   }
   ok(Object.keys(actionCat).length >= 31, "动作目录每条都写了分类（当前 " + Object.keys(actionCat).length + " 条）");
@@ -1870,7 +1891,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   //
   // 这两类暂时没有可落地的动作（没有取色/调色的端点，也没有区域相关的动作）。
   // 把这件事实钉死，是因为缺口的可见形态只是"左栏少一格"—— 悄悄多缺一类没人会发现。
-  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, R\.string\.\w+, (?:Core)?R\.string\.(\w+),/g))]
+  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, (?:Core)?R\.string\.\w+, (?:Core)?R\.string\.(\w+),/g))]
     .map((m) => (m[1].startsWith(CP) ? m[1].slice(CP.length) : m[1]));
   const usedConsts = new Set(Object.values(computeCat));
   const filled = new Set([
