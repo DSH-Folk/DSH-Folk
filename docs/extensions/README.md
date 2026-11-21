@@ -446,3 +446,53 @@ debug 构建不混淆，所以本地开发、静态门禁、CI 编译全都抓�
   第三方扩展可用的就是本文列出的这些：界面、拦截、SPI、目录、日志。
 - **外壳接管时页面树仍归宿主**。扩展只决定「怎么切页」。
 - **市场分发**目前只指向官方仓库；没有 App 内的开发者侧载以外的安装入口。
+
+---
+
+## 7. 内置扩展与 Seam（宿主侧）
+
+前面几节讲的是**第三方**扩展（打成 `.dshx`、装在 `files/extensions/` 下、可停用）。
+宿主自己还有一批**编译期内建扩展**，它们随 APK 打包、不走安装流程，机制上分两件事：
+
+### 7.1 编译期内建扩展
+
+每个内置扩展是一个 Gradle 模块（`:ext-workflow`、`:ext-display`、`:ext-backup` 等），
+由 `:app` 依赖并打进同一个 APK。它们不是「装进来的」，而是「编译进去的」——
+所以没有 manifest.json、没有 `files/extensions/<id>/` 目录、也没有卸载入口。
+
+依赖方向是单向的：`:ext-* → :core-kernel → :ext-api`，`:app` 依赖全部。
+禁止 `:ext-a → :ext-b`，也禁止任何模块依赖 `:app`。
+
+### 7.2 Seam：内置扩展怎么调宿主
+
+内置扩展要调宿主能力（跑容器命令、读权限状态、发通知），但按上面的依赖方向，
+它够不着 `:app` 里的实现。解法是依赖倒置：
+
+```kotlin
+// 定义在 :ext-api —— 扩展只看得到这一层
+interface RuntimeSeam {
+    fun exec(bashCommand: String): Process
+    fun awaitRunning(timeoutMs: Long): Boolean
+    // ...
+}
+
+// 扩展侧
+val proc = SeamRegistry.runtime().exec("ls /")
+
+// 实现留在 :app
+internal class HostRuntimeSeam : RuntimeSeam {
+    override fun exec(bashCommand: String) = DshRuntime.execRootfs(bashCommand)
+}
+```
+
+`SeamRegistry` 在 `APatchApp.onCreate` 里由宿主 `install()`。**没装时不会崩** ——
+它返回「全部能力不可用」的兜底实现，让扩展降级。这条是有意的：熔断和早期初始化
+都会走到「还没装」的状态，那时候抛异常的代价是整个 App 起不来。
+
+### 7.3 第三方扩展能用 Seam 吗
+
+不能直接用 —— Seam 是 Kotlin 接口，第三方扩展是独立的 dex，拿不到宿主的类实例。
+第三方扩展走的是第 4 节那套 JSON API（`dsh.host.*`），那是跨进程/跨 dex 的契约。
+
+Seam 是**编译期**解耦工具，解决的是「同一个 APK 里模块之间怎么不互相依赖」，
+不是「外部代码怎么调宿主」。两者不要混。
