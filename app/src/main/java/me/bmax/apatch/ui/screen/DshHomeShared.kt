@@ -133,7 +133,7 @@ class DshHomeUiState internal constructor(
         // 不拉起服务（startServer 里还有第二道闸门兜底，这里是为了不白启动一遍）。
         if (appUpdateRequired) {
             requiredAppVersion?.let {
-                showToast(context, me.bmax.apatch.CoreR.string.dsh_runtime_min_app_required, it)
+                showToast(context, CoreR.string.dsh_runtime_min_app_required, it)
             }
             return
         }

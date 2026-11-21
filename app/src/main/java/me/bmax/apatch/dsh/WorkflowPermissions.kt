@@ -95,32 +95,32 @@ internal object WorkflowPermissions {
         // 声明了任何一项会发通知的能力，就要通知权限
         if (capIds.any { it == DshNativeBridge.Cap.NOTIFY.id || it == DshNativeBridge.Cap.FULL_SCREEN_NOTIFY.id }) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                add(runtime(Item.ID_NOTIFY, me.bmax.apatch.CoreR.string.dsh_workflow_perm_notify, Manifest.permission.POST_NOTIFICATIONS))
+                add(runtime(Item.ID_NOTIFY, CoreR.string.dsh_workflow_perm_notify, Manifest.permission.POST_NOTIFICATIONS))
             }
         }
         if (capIds.contains(DshNativeBridge.Cap.FULL_SCREEN_NOTIFY.id) && Build.VERSION.SDK_INT >= 34) {
-            add(special(Item.ID_FULL_SCREEN, me.bmax.apatch.CoreR.string.dsh_workflow_perm_full_screen, Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT))
+            add(special(Item.ID_FULL_SCREEN, CoreR.string.dsh_workflow_perm_full_screen, Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT))
         }
         if (capIds.contains(DshNativeBridge.Cap.CAMERA.id)) {
-            add(runtime(Item.ID_CAMERA_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_camera, Manifest.permission.CAMERA))
+            add(runtime(Item.ID_CAMERA_ALIAS, CoreR.string.dsh_workflow_perm_camera, Manifest.permission.CAMERA))
         }
         if (capIds.contains(DshNativeBridge.Cap.MIC.id)) {
-            add(runtime(Item.ID_MIC_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_mic, Manifest.permission.RECORD_AUDIO))
+            add(runtime(Item.ID_MIC_ALIAS, CoreR.string.dsh_workflow_perm_mic, Manifest.permission.RECORD_AUDIO))
         }
         if (capIds.contains(DshNativeBridge.Cap.CONTACTS.id)) {
-            add(runtime(Item.ID_CONTACTS_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_contacts, Manifest.permission.READ_CONTACTS))
+            add(runtime(Item.ID_CONTACTS_ALIAS, CoreR.string.dsh_workflow_perm_contacts, Manifest.permission.READ_CONTACTS))
         }
         if (capIds.contains(DshNativeBridge.Cap.CALENDAR.id)) {
-            add(runtime(Item.ID_CALENDAR_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_calendar, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
+            add(runtime(Item.ID_CALENDAR_ALIAS, CoreR.string.dsh_workflow_perm_calendar, Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
         }
         if (capIds.contains(DshNativeBridge.Cap.SMS.id)) {
-            add(runtime(Item.ID_SMS_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_sms, Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS))
+            add(runtime(Item.ID_SMS_ALIAS, CoreR.string.dsh_workflow_perm_sms, Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS))
         }
         if (capIds.contains(DshNativeBridge.Cap.LOCATION.id)) {
-            add(runtime(Item.ID_LOCATION_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_location, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+            add(runtime(Item.ID_LOCATION_ALIAS, CoreR.string.dsh_workflow_perm_location, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
         if (capIds.contains(DshNativeBridge.Cap.PHONE.id)) {
-            add(runtime(Item.ID_PHONE_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_phone, Manifest.permission.READ_PHONE_STATE))
+            add(runtime(Item.ID_PHONE_ALIAS, CoreR.string.dsh_workflow_perm_phone, Manifest.permission.READ_PHONE_STATE))
         }
         if (capIds.contains(DshNativeBridge.Cap.MEDIA.id)) {
             val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -128,24 +128,24 @@ internal object WorkflowPermissions {
             } else {
                 listOf(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
-            add(runtime(Item.ID_MEDIA_ALIAS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_media, *perms.toTypedArray()))
+            add(runtime(Item.ID_MEDIA_ALIAS, CoreR.string.dsh_workflow_perm_media, *perms.toTypedArray()))
         }
         if (capIds.contains(DshNativeBridge.Cap.A11Y.id)) {
-            add(special(Item.ID_A11Y, me.bmax.apatch.CoreR.string.dsh_workflow_perm_a11y, Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            add(special(Item.ID_A11Y, CoreR.string.dsh_workflow_perm_a11y, Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
         if (capIds.contains(DshNativeBridge.Cap.USAGE.id)) {
-            add(special(Item.ID_USAGE, me.bmax.apatch.CoreR.string.dsh_workflow_perm_usage, Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            add(special(Item.ID_USAGE, CoreR.string.dsh_workflow_perm_usage, Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
         if (capIds.contains(DshNativeBridge.Cap.SETTINGS.id)) {
-            add(special(Item.ID_SETTINGS, me.bmax.apatch.CoreR.string.dsh_workflow_perm_settings, Settings.ACTION_MANAGE_WRITE_SETTINGS))
+            add(special(Item.ID_SETTINGS, CoreR.string.dsh_workflow_perm_settings, Settings.ACTION_MANAGE_WRITE_SETTINGS))
         }
         if (capIds.contains(DshNativeBridge.Cap.INSTALL.id)) {
-            add(special(Item.ID_INSTALL, me.bmax.apatch.CoreR.string.dsh_workflow_perm_install, Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
+            add(special(Item.ID_INSTALL, CoreR.string.dsh_workflow_perm_install, Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
         }
         if (capIds.contains(DshNativeBridge.Cap.SHELL.id) || capIds.contains(DshNativeBridge.Cap.DISPLAY.id)) {
             // 提权通道不是 Android 权限，而是「设备上到底有没有一条能用的通道」。它同样
             // 只能跳页面（设置 → 安全 → 权限通道），所以归在 SPECIAL。
-            add(special(Item.ID_SHELL, me.bmax.apatch.CoreR.string.dsh_workflow_perm_shell, null))
+            add(special(Item.ID_SHELL, CoreR.string.dsh_workflow_perm_shell, null))
         }
         return out.values.toList()
     }
