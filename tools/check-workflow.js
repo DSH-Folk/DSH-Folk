@@ -26,7 +26,8 @@ function eq(a, b, msg) {
   ok(a === b, msg + (a === b ? "" : `（实际 ${JSON.stringify(a)} 期望 ${JSON.stringify(b)}）`));
 }
 
-const read = (p) => fs.readFileSync(p, "utf8");
+// 走 _paths：dsh_strings.xml 已迁到 :core-res（Batch C），写死 app/ 路径会读不到
+const read = (p) => require("./_paths.js").read(p);
 const SRC = {
   models: read("app/src/main/java/me/bmax/apatch/dsh/WorkflowModels.kt"),
   // 节点选择面板（两个入口共用的组件）。抽出来单独读，是为了让「两处选项集必须一致」
@@ -420,8 +421,11 @@ ok(!/workflowDraftDir|saveDraft|loadDraft|clearDraft/.test(SRC.store + read("app
       return !declared && !text.includes("import me.bmax.apatch.dsh." + sym);
     });
     ok(missing.length === 0, name + " 用到的 dsh 符号都导入了" + (missing.length ? "，缺 " + missing.join(",") : ""));
-    if (/R\.(string|drawable|plurals)\./.test(text)) {
-      ok(/import me\.bmax\.apatch\.R\b/.test(text), name + " 引用了 R.* 就必须 import me.bmax.apatch.R");
+    // dsh_strings.xml 已迁到 :core-res，引用写成 CoreR.string.*，对应
+    // import me.bmax.apatch.res.R as CoreR。两种前缀都要认。
+    if (/(?:Core)?R\.(string|drawable|plurals)\./.test(text)) {
+      ok(/import me\.bmax\.apatch\.(res\.R as CoreR|R)\b/.test(text),
+        name + " 引用了 R.* 就必须 import 对应的 R");
     }
   }
 }
@@ -1734,8 +1738,13 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   // APPTOK 同理：分类名里那个 app 与资源前缀是同一个字节序列，直接写字面量会被本机的
   // 显示层改写成另一个同形串 —— 派生出来最稳。
   const APPTOK = String.fromCharCode(100, 115, 104);
-  const resDir = "app/src/main/res";
-  const stringsFileIn = (dir) => path.join(resDir, dir, fs.readdirSync(path.join(resDir, dir)).find((n) => /_strings\.xml$/.test(n)));
+  // dsh_strings.xml 已迁到 :core-res。这里要的是**它** —— 工作流的分类文案
+  // 全在 dsh_strings 里。按名字直取而不是扫目录：扫描会先命中 :app 的 strings.xml，
+  // 拿到一份不含 wf_* 键的文件（12 条断言全红但看不出原因）。
+  const stringsFileIn = (dir) => {
+    const migrated = path.join("core-res/src/main/res", dir, "dsh_strings.xml");
+    return fs.existsSync(migrated) ? migrated : path.join("app/src/main/res", dir, "dsh_strings.xml");
+  };
   const stringsEn = read(stringsFileIn("values"));
   const stringsZh = read(stringsFileIn("values-zh-rCN"));
   const CP = (stringsEn.match(/name="([^"]+)wf_cat_number"/) || [])[1] || "";
@@ -1756,7 +1765,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   const computeSrc = byName("WorkflowCompute.kt");
 
   // ── 1. 开始卡片必须能被加进来 ──
-  ok(/EditorNodeKind\(WorkflowNodeType\.TRIGGER, R\.string\.\w+workflow_kind_trigger, R\.string\.\w+wf_cat_trigger, defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.editorSurface),
+  ok(/EditorNodeKind\(WorkflowNodeType\.TRIGGER, (?:Core)?R\.string\.\w+workflow_kind_trigger, (?:Core)?R\.string\.\w+wf_cat_trigger, defaultConfigFor\(WorkflowNodeType\.TRIGGER, null\)/.test(SRC.editorSurface),
     "面板里有「开始卡片」（TRIGGER），落在触发器分类、走字段表默认值");
   ok(/data class EditorNodeKind\([\s\S]{0,900}?val catTitleRes: Int,/.test(SRC.editorSurface),
     "目录项自带一级分类（catTitleRes）：分类写在数据里，不按节点类型硬猜");
@@ -1789,7 +1798,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   // 只认 Action 条目的首行（"id", 分类, 标题 三个字段连写）；参数行
   // （"action", R.string.…, ParamKind.…）不能满足"两个 R.string"，所以不会被误当成动作。
   const actionCat = {};
-  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), R\.string\.\w+,/gm)) {
+  for (const m of catalogSrc.matchAll(/^\s+"([a-z0-9_]+)", (?:Core)?R\.string\.(\w+), (?:Core)?R\.string\.\w+,/gm)) {
     actionCat[m[1]] = m[2].startsWith(CP) ? m[2].slice(CP.length) : m[2];
   }
   ok(Object.keys(actionCat).length >= 31, "动作目录每条都写了分类（当前 " + Object.keys(actionCat).length + " 条）");
@@ -1870,7 +1879,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   //
   // 这两类暂时没有可落地的动作（没有取色/调色的端点，也没有区域相关的动作）。
   // 把这件事实钉死，是因为缺口的可见形态只是"左栏少一格"—— 悄悄多缺一类没人会发现。
-  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, R\.string\.\w+, (?:Core)?R\.string\.(\w+),/g))]
+  const baseCats = [...(SRC.editorSurface.matchAll(/EditorNodeKind\(WorkflowNodeType\.[A-Z]+, (?:Core)?R\.string\.\w+, (?:Core)?R\.string\.(\w+),/g))]
     .map((m) => (m[1].startsWith(CP) ? m[1].slice(CP.length) : m[1]));
   const usedConsts = new Set(Object.values(computeCat));
   const filled = new Set([
