@@ -2,6 +2,7 @@ package me.bmax.apatch.dsh
 
 import android.content.Context
 import java.io.File
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.ext.ExtensionEngine
@@ -97,10 +98,10 @@ object DshRuntimeInstall {
         if (!DshEnv.isRuntimeInstalled(K.appContext)) return
         val bin = File(DshEnv.rootfs(K.appContext), "usr/local/bin")
         for ((name, script) in listOf(
-            "dsh-fs" to FS_BRIDGE_CLI_SCRIPT,
-            "dsh-native" to NATIVE_CLI_SCRIPT,
-            "dsh-saf" to SAF_BRIDGE_CLI_SCRIPT,
-            "dsh-workflow" to WORKFLOW_CLI_SCRIPT,
+            "dsh-fs" to DshRuntime.FS_BRIDGE_CLI_SCRIPT,
+            "dsh-native" to DshRuntime.NATIVE_CLI_SCRIPT,
+            "dsh-saf" to DshRuntime.SAF_BRIDGE_CLI_SCRIPT,
+            "dsh-workflow" to DshRuntime.WORKFLOW_CLI_SCRIPT,
         )) {
             runCatching {
                 DshRuntimeFiles.writeScript(File(bin, name), script)
@@ -110,17 +111,17 @@ object DshRuntimeInstall {
         // 按内容比对再写 —— 换应用语言后这份清单必须跟着变，否则 agent 拿到的是上一门语言的步骤。
         runCatching {
             DshRuntimeFiles.writeIfChanged(
-                File(DshEnv.dshHome(K.appContext), TROUBLESHOOT_DOC_NAME),
+                File(DshEnv.dshHome(K.appContext), DshRuntime.TROUBLESHOOT_DOC_NAME),
                 DshRuntime.nativeTroubleshootDocForInstall(),
             )
-        }.onFailure { android.util.Log.w(TAG, "写 $TROUBLESHOOT_DOC_NAME 失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(TAG, "写 ${DshRuntime.TROUBLESHOOT_DOC_NAME} 失败: ${it.message}") }
         // 工作流 DSL 说明：容器里的 `dsh-workflow` 与工具插件的提示词段都读它，写在这儿是为了
         // 「实现改了、文档跟着改」——否则 agent 会照着一份过时说明写定义，然后在校验器那里撞墙。
         // 样例定义：agent 抄一份改，比从零写更不容易漏字段；设置页也拿它当新建模板。
         runCatching {
-            val dir = File(DshEnv.dshHome(K.appContext), WORKFLOW_SAMPLES_DIR)
+            val dir = File(DshEnv.dshHome(K.appContext), DshRuntime.WORKFLOW_SAMPLES_DIR)
             dir.mkdirs()
-            for ((sampleName, sampleText) in WORKFLOW_SAMPLES) {
+            for ((sampleName, sampleText) in DshRuntime.WORKFLOW_SAMPLES) {
                 DshRuntimeFiles.writeIfChanged(File(dir, sampleName + ".json"), sampleText)
             }
         }.onFailure { android.util.Log.w(TAG, "写工作流样例失败: ${it.message}") }
@@ -134,10 +135,10 @@ object DshRuntimeInstall {
         }.onFailure { android.util.Log.w(TAG, "通知扩展容器就绪失败: ${it.message}") }
         runCatching {
             DshRuntimeFiles.writeIfChanged(
-                File(DshEnv.dshHome(K.appContext), WORKFLOW_DSL_DOC_NAME),
-                WORKFLOW_DSL_DOC,
+                File(DshEnv.dshHome(K.appContext), DshRuntime.WORKFLOW_DSL_DOC_NAME),
+                DshRuntime.WORKFLOW_DSL_DOC,
             )
-        }.onFailure { android.util.Log.w(TAG, "写 $WORKFLOW_DSL_DOC_NAME 失败: ${it.message}") }
+        }.onFailure { android.util.Log.w(TAG, "写 $DshRuntime.WORKFLOW_DSL_DOC_NAME 失败: ${it.message}") }
     }
 
     /**
@@ -735,4 +736,26 @@ object DshRuntimeInstall {
         val value = line.substringAfter(':', "").trim().ifEmpty { "?" }
         return DshLogging.str(CoreR.string.dsh_log_pnpm_from_profile, value)
     }
+
+    // ── 给 DshRuntime 内部调用的包装 ──
+    // 这些函数原本是 DshRuntime 的 private 成员，迁到这里后 DshRuntime 内部
+    // 还有调用点，所以暴露 internal 包装（参数只多一个 caller 位置占位）。
+
+    internal fun setupResolvConfFor(caller: Any) = setupResolvConf()
+
+    internal fun ensureContainerDnsFor(caller: Any) = ensureContainerDns()
+
+    internal fun ensureContainerGroupsFor(caller: Any) = ensureContainerGroups()
+
+    internal fun ensureProfilePnpmSettingsFor(caller: Any) = ensureProfilePnpmSettings()
+
+    internal fun removeLegacyNpmrcImportLineFor(caller: Any) = removeLegacyNpmrcImportLine()
+
+    internal fun pnpmImportMethodLineFor(caller: Any): String = pnpmImportMethodLine()
+
+    internal fun pnpmInstalledFor(caller: Any): Boolean = pnpmInstalled()
+
+    internal fun ensureFsBridgeCliFor(caller: Any) = ensureFsBridgeCli()
+
+    internal fun startFsBridgeFor(caller: Any) = startFsBridge()
 }

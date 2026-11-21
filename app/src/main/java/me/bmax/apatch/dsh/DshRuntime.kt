@@ -1236,6 +1236,28 @@ object DshRuntime : DshRuntimeHost {
     /** pnpm 导入方式那一行日志。 */
     internal fun pnpmImportMethodLineForInstall(): String = pnpmImportMethodLine()
 
+    // 下面这些原本是本 object 的 private 函数，随 [DshRuntimeInstall] 迁走了。
+    // 本 object 内部还有调用点（引导流程、日志、设置页），这里补同名转发。
+
+    private fun setupResolvConf() = DshRuntimeInstall.setupResolvConfFor(this)
+
+    private fun ensureContainerDns() = DshRuntimeInstall.ensureContainerDnsFor(this)
+
+    private fun ensureContainerGroups() = DshRuntimeInstall.ensureContainerGroupsFor(this)
+
+    private fun ensureProfilePnpmSettings() = DshRuntimeInstall.ensureProfilePnpmSettingsFor(this)
+
+    private fun removeLegacyNpmrcImportLine() = DshRuntimeInstall.removeLegacyNpmrcImportLineFor(this)
+
+    private fun pnpmImportMethodLine(): String = DshRuntimeInstall.pnpmImportMethodLineFor(this)
+
+    private fun pnpmInstalled(): Boolean = DshRuntimeInstall.pnpmInstalledFor(this)
+
+    private fun ensureFsBridgeCli() = DshRuntimeInstall.ensureFsBridgeCliFor(this)
+
+    private fun startFsBridge() = DshRuntimeInstall.startFsBridgeFor(this)
+
+
     // ────────────────────────── web 服务 ──────────────────────────
 
     /**
