@@ -27,6 +27,7 @@ import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowStore
 import me.bmax.apatch.ui.component.WorkflowDefinitionEditor
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowStore
 
 /**
  * 工作流编辑页 —— **次级页面**（导航进出的那种）。

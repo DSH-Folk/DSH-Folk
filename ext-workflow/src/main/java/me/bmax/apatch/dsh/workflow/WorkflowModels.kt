@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,7 +24,7 @@ import org.json.JSONObject
  * `wait` 是本仓自己加的一类：DSH 冷启动、容器里 apt/pnpm 这类「就是要等」的场合，写成
  * 一个节点比塞进 shell 里 `sleep` 更好 —— 前者可取消、可在状态查询里看见，后者只能干等。
  */
-internal object WorkflowSchema {
+object WorkflowSchema {
     /**
      * 定义格式版本。改结构时用它做迁移，而不是猜。
      *
@@ -329,7 +329,7 @@ private fun pinTypeOf(kind: WorkflowActionCatalog.ParamKind): WorkflowPinType = 
 }
 
 /** 节点类型。`id` 是落盘值，不要改。 */
-internal enum class WorkflowNodeType(val id: String) {
+enum class WorkflowNodeType(val id: String) {
     /** 唯一入口：声明这个工作流在什么前提下才跑（DSH 要不要先起来）。 */
     TRIGGER("trigger"),
 
@@ -354,7 +354,7 @@ internal enum class WorkflowNodeType(val id: String) {
 }
 
 /** `execute` 节点能做的事。只有这三件 —— 宿主能替它做、且能被审计的事。 */
-internal enum class WorkflowActionType(val id: String) {
+enum class WorkflowActionType(val id: String) {
     /** 容器里执行一条 shell 命令（DSH 不要求已启动）。 */
     SHELL("shell"),
 
@@ -395,7 +395,7 @@ internal enum class WorkflowActionType(val id: String) {
 }
 
 /** 节点失败（或超时）之后怎么办。 */
-internal enum class WorkflowOnError(val id: String) {
+enum class WorkflowOnError(val id: String) {
     /** 整个运行失败。默认：静默继续会让「跑完了」变成一句假话。 */
     STOP("stop"),
 
@@ -411,7 +411,7 @@ internal enum class WorkflowOnError(val id: String) {
 }
 
 /** 运行状态。 */
-internal enum class WorkflowRunState(val id: String) {
+enum class WorkflowRunState(val id: String) {
     QUEUED("queued"),
 
     /** 在等 DSH 起来（trigger 要求）。 */
@@ -434,7 +434,7 @@ internal enum class WorkflowRunState(val id: String) {
 }
 
 /** 单个节点的执行结果。 */
-internal enum class WorkflowStepState(val id: String) {
+enum class WorkflowStepState(val id: String) {
     PENDING("pending"),
     RUNNING("running"),
     OK("ok"),
@@ -461,7 +461,7 @@ internal enum class WorkflowStepState(val id: String) {
  * 因为它能表达参考实现表达不了的一件事：**[ANY] 接受一切**。
  * 参考实现靠 PinAny 这种特殊针脚来做同样的事。
  */
-internal enum class WorkflowPinType(val id: String) {
+enum class WorkflowPinType(val id: String) {
     TEXT("text"),
     NUMBER("number"),
     BOOL("bool"),
@@ -487,7 +487,7 @@ internal enum class WorkflowPinType(val id: String) {
     }
 }
 
-internal enum class WorkflowPinKind {
+enum class WorkflowPinKind {
     /** 控制流入口：谁把控制流交给我。 */
     EXEC_IN,
     /** 控制流出口：接着跑谁。 */
@@ -508,7 +508,7 @@ internal enum class WorkflowPinKind {
  * 两个默认值不是可选项：`dataType` 让画布能按类型选控件，`defaultValue` 让未连线时
  * 有东西可显示；都带默认参数，所以旧的构造点一个都不用改。
  */
-internal data class WorkflowPinSpec(
+data class WorkflowPinSpec(
     val id: String,
     val label: String,
     val kind: WorkflowPinKind,
@@ -568,7 +568,7 @@ internal data class WorkflowPinSpec(
  * 否则用户切到 NONE 会以为接线丢了 —— 参考实现里那句
  * `if (pin.getLinks().isEmpty())` 就是为这个存在的。
  */
-internal enum class WorkflowExpandType(val id: String) {
+enum class WorkflowExpandType(val id: String) {
     NONE("none"),
     HALF("half"),
     FULL("full");
@@ -579,7 +579,7 @@ internal enum class WorkflowExpandType(val id: String) {
     }
 }
 
-internal data class WorkflowNode(
+data class WorkflowNode(
     val id: String,
     val type: WorkflowNodeType,
     val name: String = "",
@@ -620,7 +620,7 @@ internal data class WorkflowNode(
  * [whenExpr] 的取值只有三种：`""`（默认出边，前面没有条件命中时走它）、`"true"`、`"false"`
  * （来自 condition / logic 节点）。**不做表达式求值** —— 那等于把 DSL 变成脚本语言。
  */
-internal data class WorkflowEdge(
+data class WorkflowEdge(
     val from: String,
     val to: String,
     val whenExpr: String = "",
@@ -644,7 +644,7 @@ internal data class WorkflowEdge(
  * 数据边只决定"某个参数从哪来"。混在一起的话，一个节点有两条出边时执行器无法判断
  * 哪条是"往下走"、哪条只是"喂个值" —— 这正是 v1 表达不了数据传递的根因。
  */
-internal enum class WorkflowEdgeKind(val id: String) {
+enum class WorkflowEdgeKind(val id: String) {
     FLOW("flow"),
     DATA("data");
 
@@ -662,14 +662,14 @@ internal enum class WorkflowEdgeKind(val id: String) {
  *
  * 两者取并集而不是只认目录：手工声明的能力还覆盖 shell / dsh 节点里直接调端点的写法。
  */
-internal val WorkflowDefinition.effectiveCaps: List<String>
+val WorkflowDefinition.effectiveCaps: List<String>
     get() = (
         declaredCaps +
             nodes.mapNotNull { n -> WorkflowActionCatalog.byId(n.config("bridge"))?.cap?.id }
         ).distinct()
 
 /** 运行级变量：`extract` 节点写入，命令/通知文案里用 `${name}` 读。 */
-internal data class WorkflowDefinition(
+data class WorkflowDefinition(
     val id: String,
     val name: String,
     val description: String = "",
@@ -734,7 +734,7 @@ internal data class WorkflowDefinition(
 }
 
 /** 运行状态与逐节点结果（持久化，进程重启后仍可查）。 */
-internal data class WorkflowStepResult(
+data class WorkflowStepResult(
     val nodeId: String,
     val type: WorkflowNodeType,
     val name: String,
@@ -750,7 +750,7 @@ internal data class WorkflowStepResult(
     val durationMs: Long get() = if (endedAtMs > startedAtMs) endedAtMs - startedAtMs else 0L
 }
 
-internal data class WorkflowRun(
+data class WorkflowRun(
     val runId: String,
     val workflowId: String,
     val workflowName: String,
@@ -775,7 +775,7 @@ internal data class WorkflowRun(
  * 词汇与 Operit 的 `node_patches` 一致（add / remove / update / edge-add / edge-remove）：
  * 用户编辑后的 diff 由此表达；将来若加 `workflow_patch` 工具，同一套 op 直接复用。
  */
-internal data class WorkflowPatch(
+data class WorkflowPatch(
     val op: String,
     val target: String,
     val detail: String = "",
@@ -800,7 +800,7 @@ internal data class WorkflowPatch(
 
 // ────────────────────────── JSON ──────────────────────────
 
-internal fun WorkflowNode.toJson(): JSONObject = JSONObject()
+fun WorkflowNode.toJson(): JSONObject = JSONObject()
     .put("id", id)
     .put("type", type.id)
     .put("name", name)
@@ -842,7 +842,7 @@ internal fun nodeFromJson(o: JSONObject): WorkflowNode? {
  * 而 `kind` 缺省就是 flow，读回来一模一样。这也让 v1 的 JSON 与 v2 的控制流边**逐字相同**，
  * 迁移因此不需要任何"改写旧文件"的动作。
  */
-internal fun WorkflowEdge.toJson(): JSONObject = JSONObject()
+fun WorkflowEdge.toJson(): JSONObject = JSONObject()
     .put("from", from)
     .put("to", to)
     .put("when", whenExpr)
@@ -874,7 +874,7 @@ internal fun edgeFromJson(o: JSONObject): WorkflowEdge? {
     )
 }
 
-internal fun WorkflowDefinition.toJson(): JSONObject = JSONObject()
+fun WorkflowDefinition.toJson(): JSONObject = JSONObject()
     .put("schemaVersion", schemaVersion)
     .put("id", id)
     .put("name", name)
@@ -911,15 +911,15 @@ internal fun migrateToCurrent(raw: Int): Int = when {
 }
 
 /** 定义是否为旧格式（已失效，不能跑但也不删）。 */
-internal fun WorkflowDefinition.isStaleFormat(): Boolean =
+fun WorkflowDefinition.isStaleFormat(): Boolean =
     schemaVersion < WorkflowSchema.MIN_SUPPORTED_VERSION
 
 /** 解析定义；结构不合法（缺字段/类型不认识）时返回 null，由调用方回 `invalid_definition`。 */
-internal fun definitionFromJson(raw: String): WorkflowDefinition? = runCatching {
+fun definitionFromJson(raw: String): WorkflowDefinition? = runCatching {
     definitionFromJson(JSONObject(raw))
 }.getOrNull()
 
-internal fun definitionFromJson(o: JSONObject): WorkflowDefinition? {
+fun definitionFromJson(o: JSONObject): WorkflowDefinition? {
     val id = o.optString("id").trim()
     val name = o.optString("name").trim()
     // 只有 id 是硬要求：它是文件名，没有 id 就无从定位。
@@ -974,7 +974,7 @@ internal fun definitionFromJson(o: JSONObject): WorkflowDefinition? {
     )
 }
 
-internal fun WorkflowStepResult.toJson(): JSONObject = JSONObject()
+fun WorkflowStepResult.toJson(): JSONObject = JSONObject()
     .put("nodeId", nodeId)
     .put("type", type.id)
     .put("name", name)
@@ -1003,13 +1003,13 @@ internal fun stepFromJson(o: JSONObject): WorkflowStepResult? {
     )
 }
 
-internal fun WorkflowPatch.toJson(): JSONObject =
+fun WorkflowPatch.toJson(): JSONObject =
     JSONObject().put("op", op).put("target", target).put("detail", detail)
 
 internal fun patchFromJson(o: JSONObject): WorkflowPatch =
     WorkflowPatch(o.optString("op"), o.optString("target"), o.optString("detail"))
 
-internal fun WorkflowRun.toJson(includeDefinition: Boolean = true): JSONObject = JSONObject()
+fun WorkflowRun.toJson(includeDefinition: Boolean = true): JSONObject = JSONObject()
     .put("runId", runId)
     .put("workflowId", workflowId)
     .put("workflowName", workflowName)
@@ -1062,7 +1062,7 @@ internal fun runFromJson(raw: String): WorkflowRun? = runCatching {
  * 只比结构：节点/边的增删改。节点内的具体字段变化按 `name/type/timeout/onError/config`
  * 逐项列出，值一律写明「旧 → 新」—— 用户改了超时时间这种事，只说「修改了节点」等于没说。
  */
-internal fun workflowDiff(before: WorkflowDefinition, after: WorkflowDefinition): List<WorkflowPatch> {
+fun workflowDiff(before: WorkflowDefinition, after: WorkflowDefinition): List<WorkflowPatch> {
     val out = mutableListOf<WorkflowPatch>()
     val beforeNodes = before.nodes.associateBy { it.id }
     val afterNodes = after.nodes.associateBy { it.id }
@@ -1111,7 +1111,7 @@ internal fun workflowDiff(before: WorkflowDefinition, after: WorkflowDefinition)
  * 未定义的变量**保持原样**（不换成空串）：静默替换成空串会让 `rm -rf ${dir}/` 变成
  * `rm -rf /`，而这种错误在日志里看不出来。
  */
-internal fun interpolate(text: String, vars: Map<String, String>): String {
+fun interpolate(text: String, vars: Map<String, String>): String {
     if (text.isEmpty() || vars.isEmpty() || !text.contains("\${")) return text
     val sb = StringBuilder(text.length)
     var i = 0

@@ -55,6 +55,7 @@ import me.bmax.apatch.dsh.WorkflowNodeType
 import me.bmax.apatch.dsh.WorkflowPinKind
 import me.bmax.apatch.dsh.WorkflowStore
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowStore
 
 /** 面板顶部的三段标签：预设 / 任务 / 变量（对齐参考实现 SelectActionDialog 的 GroupType）。 */
 private val PICKER_TABS = listOf(

@@ -46,6 +46,7 @@ import me.bmax.apatch.util.SoundEffectManager
 import me.bmax.apatch.util.UpdateChecker
 import me.bmax.apatch.util.VibrationManager
 import java.io.File
+import me.bmax.apatch.dsh.workflow.WorkflowApprovals
 
 /**
  * 给扩展用的「全功能门面」：把宿主已有的各个 object 单例原样摆出来。

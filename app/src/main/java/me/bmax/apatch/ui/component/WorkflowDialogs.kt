@@ -86,6 +86,9 @@ import me.bmax.apatch.dsh.definitionFromJson
 import me.bmax.apatch.dsh.toJson
 import me.bmax.apatch.dsh.workflowDiff
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowApprovals
+import me.bmax.apatch.dsh.workflow.WorkflowCompute
+import me.bmax.apatch.dsh.workflow.WorkflowValidator
 
 /**
  * 工作流的两个弹窗 + 编辑页。

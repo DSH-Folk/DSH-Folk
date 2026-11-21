@@ -343,7 +343,9 @@ const server = http.createServer((req, res) => {
   // 用户点了卡片却会被权限检查拦下 —— 那比没有卡片更糟。
   {
     const catalog = read("app/src/main/java/me/bmax/apatch/dsh/NativeCapCatalog.kt");
-    const bridge = read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt");
+    // Cap 枚举已抽到 :core-kernel 的 NativeCap.kt（Checkpoint 2）。
+    const bridge = read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt") +
+      "\n" + read("core-kernel/src/main/java/me/bmax/apatch/dsh/NativeCap.kt");
     // 用 \b 边界：否则 "Cap.ALERT" 这类（分组枚举）会被截成 "A" 混进来。
     const used = new Set([...catalog.matchAll(/cap = DshNativeBridge\.Cap\.([A-Z_]+)\b/g)].map((m) => m[1]));
     const declared = new Set(

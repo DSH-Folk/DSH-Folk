@@ -105,6 +105,9 @@ import me.bmax.apatch.dsh.WorkflowSchema
 import me.bmax.apatch.dsh.WorkflowValidator
 import me.bmax.apatch.dsh.workflowDiff
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowCompute
+import me.bmax.apatch.dsh.workflow.WorkflowValidator
+import me.bmax.apatch.dsh.workflow.WorkflowActionCatalog
 
 /** 自动保存的可见状态。 */
 private enum class SaveState { IDLE, SAVING, SAVED, FAILED }

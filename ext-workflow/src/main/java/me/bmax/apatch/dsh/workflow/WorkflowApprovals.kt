@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicLong
  * 那不是安全设计，那是坑人。所以 [startEditing] 撤掉到期任务，[stopEditing] 回来后
  * **重新给一个完整的 TTL**（弹窗上的倒计时也从头开始）。
  */
-internal object WorkflowApprovals {
+object WorkflowApprovals {
 
     /** 这次问的是「建」还是「跑」。 */
     enum class Kind(val id: String) {

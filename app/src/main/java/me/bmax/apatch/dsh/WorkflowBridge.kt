@@ -6,6 +6,12 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowApprovals
+import me.bmax.apatch.dsh.workflow.WorkflowCompute
+import me.bmax.apatch.dsh.workflow.WorkflowGrants
+import me.bmax.apatch.dsh.workflow.WorkflowStore
+import me.bmax.apatch.dsh.workflow.WorkflowValidator
+import me.bmax.apatch.dsh.workflow.WorkflowActionCatalog
 
 /**
  * 自动化工作流的 HTTP 端点族（`/workflow/…`），挂在 [DshFsBridge] 的同一个回环 socket 上。

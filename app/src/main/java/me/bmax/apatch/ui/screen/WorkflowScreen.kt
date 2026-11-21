@@ -79,6 +79,9 @@ import me.bmax.apatch.ui.component.WorkflowDetailDialog
 import me.bmax.apatch.ui.component.WorkflowGraphPreview
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowApprovals
+import me.bmax.apatch.dsh.workflow.WorkflowStore
+import me.bmax.apatch.dsh.workflow.WorkflowValidator
 
 /**
  * 设置 → 功能 → 自动化工作流。

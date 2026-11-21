@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * 同一时刻允许多个运行各自持有授权（运行之间互不影响）：命中判据因此是「**任意**一个活动
  * 授权覆盖了这次调用」。这是有意的宽松 —— 两个并行工作流本就都是用户批准的。
  */
-internal object WorkflowGrants {
+object WorkflowGrants {
 
     data class Grant(
         val runId: String,

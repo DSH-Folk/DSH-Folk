@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 /**
  * 工作流定义的**校验器**：把一份可能失控的 JSON 收敛成「宿主敢执行」的东西。
@@ -15,7 +15,7 @@ package me.bmax.apatch.dsh
  *
  * 校验**不执行任何东西**，也不访问设备：它是纯函数，便于单测与反向验证。
  */
-internal object WorkflowValidator {
+object WorkflowValidator {
 
     /** 校验结果：errors 是「为什么不行」的人类可读短句（会原样回给 AI）。 */
     data class Result(val ok: Boolean, val errors: List<String>) {

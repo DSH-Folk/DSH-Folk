@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import android.content.Context
 import org.json.JSONArray
@@ -22,7 +22,7 @@ import java.util.UUID
  * 追加都重写整份状态（长流程里这是每秒一次的全量写）。分开之后，`workflow_status`
  * 支持按行号续读（`fromLine`），不会因为日志变大而变慢。
  */
-internal object WorkflowStore {
+object WorkflowStore {
     private const val RUN_LOG_MAX_BYTES = 2L * 1024 * 1024
 
     /** 定义文件名即 id；只允许校验器认过的 id 形状，顺带挡住路径穿越。 */

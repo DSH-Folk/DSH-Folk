@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.concurrent.Semaphore
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.workflow.WorkflowGrants
 
 /**
  * 宿主侧回环桥：一个只绑 127.0.0.1 的最小 HTTP 服务。

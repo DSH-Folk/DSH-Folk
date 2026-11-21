@@ -1,6 +1,6 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
-import me.bmax.apatch.R
+import me.bmax.apatch.dsh.Cap
 import me.bmax.apatch.res.R as CoreR
 
 /**
@@ -25,7 +25,7 @@ import me.bmax.apatch.res.R as CoreR
  * 两者的 Cap 集合必须一致，但粒度不同：例如 A11Y 在文案目录里是一条，
  * 这里拆成读树 / 点击 / 滑动 / 输入 / 全局操作 / 截图六条。
  */
-internal object WorkflowActionCatalog {
+object WorkflowActionCatalog {
 
     /** 参数的种类。决定编辑器渲染什么控件、怎么校验。 */
     enum class ParamKind { TEXT, NUMBER, CHOICE, BOOL }
@@ -66,7 +66,7 @@ internal object WorkflowActionCatalog {
         val groupTitleRes: Int,
         val titleRes: Int,
         val descRes: Int,
-        val cap: DshNativeBridge.Cap,
+        val cap: me.bmax.apatch.dsh.Cap,
         val method: String,
         val path: String,
         val params: List<Param> = emptyList(),
@@ -103,16 +103,16 @@ internal object WorkflowActionCatalog {
     val ACTIONS: List<Action> = listOf(
         Action(
             "a11y_tree", CoreR.string.dsh_wf_cat_widget, CoreR.string.dsh_wf_act_a11y_tree, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "GET", "/native/a11y/tree",
+            me.bmax.apatch.dsh.Cap.A11Y, "GET", "/native/a11y/tree",
         ),
         Action(
             "a11y_click", CoreR.string.dsh_wf_cat_widget, CoreR.string.dsh_wf_act_a11y_click, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/click",
+            me.bmax.apatch.dsh.Cap.A11Y, "POST", "/native/a11y/click",
             listOf(p("text", CoreR.string.dsh_wf_param_text, required = true)),
         ),
         Action(
             "a11y_tap", CoreR.string.dsh_wf_cat_position, CoreR.string.dsh_wf_act_a11y_tap, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/tap",
+            me.bmax.apatch.dsh.Cap.A11Y, "POST", "/native/a11y/tap",
             listOf(
                 p("x", CoreR.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
                 p("y", CoreR.string.dsh_wf_param_y, ParamKind.NUMBER, required = true),
@@ -120,7 +120,7 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "a11y_swipe", CoreR.string.dsh_wf_cat_position, CoreR.string.dsh_wf_act_a11y_swipe, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/swipe",
+            me.bmax.apatch.dsh.Cap.A11Y, "POST", "/native/a11y/swipe",
             listOf(
                 p("x1", CoreR.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
                 p("y1", CoreR.string.dsh_wf_param_y, ParamKind.NUMBER, required = true),
@@ -131,12 +131,12 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "a11y_text", CoreR.string.dsh_wf_cat_widget, CoreR.string.dsh_wf_act_a11y_text, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/text",
+            me.bmax.apatch.dsh.Cap.A11Y, "POST", "/native/a11y/text",
             listOf(p("text", CoreR.string.dsh_wf_param_text, required = true)),
         ),
         Action(
             "a11y_global", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_a11y_global, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "POST", "/native/a11y/global",
+            me.bmax.apatch.dsh.Cap.A11Y, "POST", "/native/a11y/global",
             listOf(
                 p(
                     "action", CoreR.string.dsh_wf_param_action, ParamKind.CHOICE, required = true,
@@ -146,15 +146,15 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "a11y_shot", CoreR.string.dsh_wf_cat_image, CoreR.string.dsh_wf_act_a11y_shot, CoreR.string.dsh_cap_a11y_title,
-            DshNativeBridge.Cap.A11Y, "GET", "/native/a11y/screenshot",
+            me.bmax.apatch.dsh.Cap.A11Y, "GET", "/native/a11y/screenshot",
         ),
         Action(
             "display_shot", CoreR.string.dsh_wf_cat_image, CoreR.string.dsh_wf_act_display_shot, CoreR.string.dsh_cap_display_title,
-            DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/screenshot",
+            me.bmax.apatch.dsh.Cap.DISPLAY, "POST", "/native/display/screenshot",
         ),
         Action(
             "display_tap", CoreR.string.dsh_wf_cat_position, CoreR.string.dsh_wf_act_display_tap, CoreR.string.dsh_cap_display_title,
-            DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/tap",
+            me.bmax.apatch.dsh.Cap.DISPLAY, "POST", "/native/display/tap",
             listOf(
                 p("x", CoreR.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
                 p("y", CoreR.string.dsh_wf_param_y, ParamKind.NUMBER, required = true),
@@ -162,7 +162,7 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "display_swipe", CoreR.string.dsh_wf_cat_position, CoreR.string.dsh_wf_act_display_swipe, CoreR.string.dsh_cap_display_title,
-            DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/swipe",
+            me.bmax.apatch.dsh.Cap.DISPLAY, "POST", "/native/display/swipe",
             listOf(
                 p("x1", CoreR.string.dsh_wf_param_x, ParamKind.NUMBER, required = true),
                 p("y1", CoreR.string.dsh_wf_param_y, ParamKind.NUMBER, required = true),
@@ -172,26 +172,26 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "display_key", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_display_key, CoreR.string.dsh_cap_display_title,
-            DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/key",
+            me.bmax.apatch.dsh.Cap.DISPLAY, "POST", "/native/display/key",
             listOf(p("key", CoreR.string.dsh_wf_param_key, required = true)),
         ),
         Action(
             "display_stop", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_display_stop, CoreR.string.dsh_cap_display_title,
-            DshNativeBridge.Cap.DISPLAY, "POST", "/native/display/stop",
+            me.bmax.apatch.dsh.Cap.DISPLAY, "POST", "/native/display/stop",
         ),
         Action(
             "toast", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_toast, CoreR.string.dsh_cap_toast_title,
-            DshNativeBridge.Cap.TOAST, "POST", "/native/toast",
+            me.bmax.apatch.dsh.Cap.TOAST, "POST", "/native/toast",
             listOf(p("text", CoreR.string.dsh_wf_param_text, required = true)),
         ),
         Action(
             "vibrate", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_vibrate, CoreR.string.dsh_cap_vibrate_title,
-            DshNativeBridge.Cap.VIBRATE, "POST", "/native/vibrate",
+            me.bmax.apatch.dsh.Cap.VIBRATE, "POST", "/native/vibrate",
             listOf(p("ms", CoreR.string.dsh_wf_param_ms, ParamKind.NUMBER, default = "300")),
         ),
         Action(
             "notify_full", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_notify_full, CoreR.string.dsh_cap_fullscreens_title,
-            DshNativeBridge.Cap.FULL_SCREEN_NOTIFY, "POST", "/native/notify/full-screen",
+            me.bmax.apatch.dsh.Cap.FULL_SCREEN_NOTIFY, "POST", "/native/notify/full-screen",
             listOf(
                 p("title", CoreR.string.dsh_wf_param_notify_title, required = true),
                 p("body", CoreR.string.dsh_wf_param_notify_body),
@@ -199,17 +199,17 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "clip_set", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_clip_set, CoreR.string.dsh_cap_clip_title,
-            DshNativeBridge.Cap.CLIPBOARD, "POST", "/native/clipboard",
+            me.bmax.apatch.dsh.Cap.CLIPBOARD, "POST", "/native/clipboard",
             listOf(p("text", CoreR.string.dsh_wf_param_text, required = true)),
         ),
         Action(
             "torch", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_torch, CoreR.string.dsh_cap_torch_title,
-            DshNativeBridge.Cap.TORCH, "POST", "/native/torch",
+            me.bmax.apatch.dsh.Cap.TORCH, "POST", "/native/torch",
             listOf(p("on", CoreR.string.dsh_wf_param_on, ParamKind.CHOICE, choices = listOf("on", "off"))),
         ),
         Action(
             "volume", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_volume, CoreR.string.dsh_cap_volume_title,
-            DshNativeBridge.Cap.VOLUME, "POST", "/native/volume",
+            me.bmax.apatch.dsh.Cap.VOLUME, "POST", "/native/volume",
             listOf(
                 p("level", CoreR.string.dsh_wf_param_level, ParamKind.NUMBER, required = true),
                 p(
@@ -220,7 +220,7 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "ringer", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_ringer, CoreR.string.dsh_cap_volume_title,
-            DshNativeBridge.Cap.VOLUME, "POST", "/native/ringer",
+            me.bmax.apatch.dsh.Cap.VOLUME, "POST", "/native/ringer",
             listOf(
                 p(
                     "mode", CoreR.string.dsh_wf_param_mode, ParamKind.CHOICE, required = true,
@@ -230,27 +230,27 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "brightness", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_brightness, CoreR.string.dsh_cap_settings_title,
-            DshNativeBridge.Cap.SETTINGS, "POST", "/native/settings/brightness",
+            me.bmax.apatch.dsh.Cap.SETTINGS, "POST", "/native/settings/brightness",
             listOf(p("value", CoreR.string.dsh_wf_param_value, ParamKind.NUMBER, required = true)),
         ),
         Action(
             "rotation", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_rotation, CoreR.string.dsh_cap_settings_title,
-            DshNativeBridge.Cap.SETTINGS, "POST", "/native/settings/rotation",
+            me.bmax.apatch.dsh.Cap.SETTINGS, "POST", "/native/settings/rotation",
             listOf(p("locked", CoreR.string.dsh_wf_param_locked, ParamKind.CHOICE, choices = listOf("0", "1"))),
         ),
         Action(
             "camera", CoreR.string.dsh_wf_cat_image, CoreR.string.dsh_wf_act_camera, CoreR.string.dsh_cap_camera_title,
-            DshNativeBridge.Cap.CAMERA, "POST", "/native/camera/photo",
+            me.bmax.apatch.dsh.Cap.CAMERA, "POST", "/native/camera/photo",
             listOf(p("facing", CoreR.string.dsh_wf_param_facing, ParamKind.CHOICE, default = "back", choices = listOf("back", "front"))),
         ),
         Action(
             "tts", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_tts, CoreR.string.dsh_cap_tts_title,
-            DshNativeBridge.Cap.TTS, "POST", "/native/tts/speak",
+            me.bmax.apatch.dsh.Cap.TTS, "POST", "/native/tts/speak",
             listOf(p("text", CoreR.string.dsh_wf_param_text, required = true)),
         ),
         Action(
             "media_list", CoreR.string.dsh_wf_cat_list, CoreR.string.dsh_wf_act_media_list, CoreR.string.dsh_cap_media_title,
-            DshNativeBridge.Cap.MEDIA, "GET", "/native/media/list",
+            me.bmax.apatch.dsh.Cap.MEDIA, "GET", "/native/media/list",
             listOf(
                 p("type", CoreR.string.dsh_wf_param_type, ParamKind.CHOICE, default = "image", choices = listOf("image", "video", "audio")),
                 p("limit", CoreR.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10"),
@@ -258,16 +258,16 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "sensors_read", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_sensors_read, CoreR.string.dsh_cap_sensors_title,
-            DshNativeBridge.Cap.SENSORS, "GET", "/native/sensors/read",
+            me.bmax.apatch.dsh.Cap.SENSORS, "GET", "/native/sensors/read",
             listOf(p("id", CoreR.string.dsh_wf_param_id, required = true)),
         ),
         Action(
             "network", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_network, CoreR.string.dsh_cap_network_title,
-            DshNativeBridge.Cap.NETWORK, "GET", "/native/network",
+            me.bmax.apatch.dsh.Cap.NETWORK, "GET", "/native/network",
         ),
         Action(
             "usage", CoreR.string.dsh_wf_cat_system, CoreR.string.dsh_wf_act_usage, CoreR.string.dsh_cap_usage_title,
-            DshNativeBridge.Cap.USAGE, "GET", "/native/usage/list",
+            me.bmax.apatch.dsh.Cap.USAGE, "GET", "/native/usage/list",
             listOf(
                 p("days", CoreR.string.dsh_wf_param_days, ParamKind.NUMBER, default = "1"),
                 p("limit", CoreR.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10"),
@@ -275,21 +275,21 @@ internal object WorkflowActionCatalog {
         ),
         Action(
             "calendar_list", CoreR.string.dsh_wf_cat_list, CoreR.string.dsh_wf_act_calendar_list, CoreR.string.dsh_cap_calendar_title,
-            DshNativeBridge.Cap.CALENDAR, "GET", "/native/calendar/list",
+            me.bmax.apatch.dsh.Cap.CALENDAR, "GET", "/native/calendar/list",
             listOf(p("days", CoreR.string.dsh_wf_param_days, ParamKind.NUMBER, default = "7")),
         ),
         Action(
             "contacts_list", CoreR.string.dsh_wf_cat_list, CoreR.string.dsh_wf_act_contacts_list, CoreR.string.dsh_cap_contacts_title,
-            DshNativeBridge.Cap.CONTACTS, "GET", "/native/contacts/list",
+            me.bmax.apatch.dsh.Cap.CONTACTS, "GET", "/native/contacts/list",
             listOf(p("limit", CoreR.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "20")),
         ),
         Action(
             "location", CoreR.string.dsh_wf_cat_position, CoreR.string.dsh_wf_act_location, CoreR.string.dsh_cap_location_title,
-            DshNativeBridge.Cap.LOCATION, "GET", "/native/location",
+            me.bmax.apatch.dsh.Cap.LOCATION, "GET", "/native/location",
         ),
         Action(
             "sms_list", CoreR.string.dsh_wf_cat_list, CoreR.string.dsh_wf_act_sms_list, CoreR.string.dsh_cap_sms_title,
-            DshNativeBridge.Cap.SMS, "GET", "/native/sms/list",
+            me.bmax.apatch.dsh.Cap.SMS, "GET", "/native/sms/list",
             listOf(p("limit", CoreR.string.dsh_wf_param_limit, ParamKind.NUMBER, default = "10")),
         ),
     )

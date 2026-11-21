@@ -14,13 +14,15 @@
 const fs = require("fs");
 const { read, exists } = require("./_paths.js");
 
+// Cap 枚举已抽到 :core-kernel 的 NativeCap.kt（Checkpoint 2）。
 const BRIDGE = "app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt";
+const CAPS = "core-kernel/src/main/java/me/bmax/apatch/dsh/NativeCap.kt";
 const UI = "app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt";
 const MANIFEST = "app/src/main/AndroidManifest.xml";
 const STRINGS = "app/src/main/res/values/dsh_strings.xml";
 const PROMPT = "app/src/main/assets/dsh-folk-host.mjs";
 
-const bridge = read(BRIDGE);
+const bridge = read(BRIDGE) + "\n" + read(CAPS);
 const ui = read(UI);
 const manifest = read(MANIFEST);
 const strings = read(STRINGS);

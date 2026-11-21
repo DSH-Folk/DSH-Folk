@@ -411,7 +411,9 @@ for (const f of SHARED) {
 // isWriteRequest（读档位能不能碰）、以及 handler 自己的 when。少一处的后果都不报编译错：
 // 少 capOf 就是 unknown_endpoint，少分派就是 404，少 isWriteRequest 就是读档位能动手。
 {
-  const bridge = code(read('app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt'));
+  // Cap 枚举已抽到 :core-kernel 的 NativeCap.kt（Checkpoint 2）。
+  const bridge = code(read('app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt') +
+    "\n" + read('core-kernel/src/main/java/me/bmax/apatch/dsh/NativeCap.kt'));
   const disp = code(read('app/src/main/java/me/bmax/apatch/dsh/DshDisplay.kt'));
 
   must(/DISPLAY\("display"\)/.test(bridge), 'Cap 枚举里必须有 DISPLAY("display")');

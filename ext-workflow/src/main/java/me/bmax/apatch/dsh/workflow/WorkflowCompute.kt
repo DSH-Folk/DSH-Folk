@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.workflow
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,7 +27,7 @@ import me.bmax.apatch.res.R as CoreR
  * `bean/action/map`、`bean/action/bool` 下，同样不需要系统权限。
  * 这里按"用户想干什么"分组，与目录其余部分保持一致的两级结构。
  */
-internal object WorkflowCompute {
+object WorkflowCompute {
 
     /** 参数的控件类型。与 [WorkflowActionCatalog.ParamKind] 同构，但这里不依赖它。 */
     enum class Kind { TEXT, NUMBER, MULTILINE }
