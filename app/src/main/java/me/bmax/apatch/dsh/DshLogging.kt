@@ -152,7 +152,10 @@ object DshLogging {
      * 这里**不再**声称 pnpm 的导入方式：那是 [pnpmImportMethodLine] 的事，它读
      * 真实配置。v1.3 在这行里写「pnpm 已切为 copy 导入」，而那一版的配置压根没生效。
      */
-    private fun hardlinkLogLine(): String {
+    /**
+     * 硬链接状态的日志行。启动日志要写它，所以对 DshRuntime 可见（internal）。
+     */
+    internal fun hardlinkLogLine(): String {
         val ok = supported()
         val detail = detail()
         return buildString {

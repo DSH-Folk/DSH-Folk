@@ -2370,7 +2370,7 @@ object DshRuntime : DshRuntimeHost {
             DshSource.runtimeArch(),
             android.os.Build.SUPPORTED_ABIS.joinToString("/"),
         )
-        logInfo(CoreR.string.dsh_log_hardlink, hardlinkLogLine())
+        logInfo(CoreR.string.dsh_log_hardlink, DshLogging.hardlinkLogLine())
         logInfo(CoreR.string.dsh_log_pnpm_import, pnpmImportMethodLine())
         logInfo(CoreR.string.dsh_log_starting_web, port)
         if (lan) {
