@@ -58,7 +58,7 @@ object DshRuntime : DshRuntimeHost {
 
 
     /** web profile 在 rootfs 内的相对路径（guest 侧是 /root/.dsh/profiles/web）。 */
-    private const val PROFILE_GUEST_REL = DshRuntimeEnv.PROFILE_GUEST_REL
+    internal const val PROFILE_GUEST_REL = DshRuntimeEnv.PROFILE_GUEST_REL
 
     /** 权限桥疑难解答在容器里的文件名（与 CLI 里那个路径必须一致）。 */
     // ── 容器侧脚本与文档 ──────────────────────────────────────────────────────
