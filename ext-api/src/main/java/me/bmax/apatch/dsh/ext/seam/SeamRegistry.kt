@@ -34,14 +34,6 @@ import me.bmax.apatch.dsh.ext.ExtensionServiceRegistry
 object SeamRegistry {
 
     @Volatile
-    @Volatile
-    private var provider: SeamProvider? = null
-
-    /**
-     * 宿主默认实现。
-     *
-     * [FsSeam] 不在这里：它带 `extensionDir`，每个扩展一份，由 [HostSeams] 直接 new。
-     */
     private var provider: SeamProvider? = null
 
     /**
@@ -152,9 +144,9 @@ object SeamRegistry {
     private object UnavailableRuntime : RuntimeSeam {
         override fun state() = RuntimeState(installed = false, running = false, installing = false)
         override fun observe(handler: (RuntimeState) -> Unit): () -> Unit = { }
-        override fun exec(bashCommand: String) = throw IllegalStateException("runtime 未就绪")
+        override fun exec(bashCommand: String): Process = throw IllegalStateException("runtime 未就绪")
         override fun execCapture(bashCommand: String, timeoutMs: Long) = ""
-        override fun execStreaming(bashCommand: String, timeoutMs: Long, onLine: (String) -> Unit) = -1
+        override fun execStreaming(bashCommand: String, timeoutMs: Long, onLine: (String) -> Unit) = ""
         override fun attach(context: Context) { }
         override fun awaitRunning(timeoutMs: Long) = false
         override fun start(context: Context) = false
@@ -215,7 +207,7 @@ object SeamRegistry {
     }
 
     private object UnavailableBackup : BackupSeam {
-        override fun exportConfig(password: String) = null
+        override fun exportConfig(password: String): java.io.File? = null
         override fun importConfig(archive: java.io.File, password: String) = false
         override fun checkUpdate() {}
         override fun currentVersion() = "unknown"
