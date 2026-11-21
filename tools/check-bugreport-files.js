@@ -192,11 +192,15 @@ ok(!/system\/dropbox \/sys\/fs\/pstore[\s\S]{0,80}head -1/.test(code),
 
 console.log("── 诊断来源：dsh 的日志都要能进归档 ──");
 // 起服务时会清空 dsh 的日志，所以必须轮转留一份 —— 否则「重启之后再采集」只有本次运行的内容
-const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
+// 日志职责已迁到 DshLogging.kt（Checkpoint 1 拆解）；DshRuntime 只留同名转发。
+const runtime = (read("app/src/main/java/me/bmax/apatch/dsh/DshLogging.kt") + "\n" +
+  read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+  read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt"));
 const env = read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt");
 ok(/fun serverLogPrev\(ctx: Context\): File = File\(ctx\.filesDir, "logs\/dsh-web\.prev\.log"\)/.test(env),
   "DshEnv 提供「上一次运行」的日志路径");
-ok(/fun clearLog\(\)[\s\S]{0,500}?copyTo\(DshEnv\.serverLogPrev\(appContext\), overwrite = true\)/.test(runtime),
+// 下沉后 Context 走 DshKernelState（`K.appContext`），断言两种写法都认。
+ok(/fun clearLog\(\)[\s\S]{0,800}?copyTo\(DshEnv\.serverLogPrev\((?:K\.)?appContext\), overwrite = true\)/.test(runtime),
   "clearLog 先轮转再清空（清空发生在每次起服务时）");
 ok(/fun tailPrevLog\(lines: Int = 2000\)/.test(runtime), "DshRuntime 能读回上一次运行的日志");
 
@@ -208,7 +212,7 @@ ok(!/dsh-prev\.log/.test(code) && !/tailPrevLog\(2000\)/.test(code),
 ok(findable("dsh/DshLogWindow.kt") &&
   /me\.bmax\.apatch\.dsh\.DshRuntime\.windowedLog\(window\.minutes\)/.test(code),
   "归档的 dsh.log 改走新的窗口裁切（DshLogWindow 存在，并且被 LogEvent 的 windowedLog 调用）");
-ok(/fun appLogFiles\(\)[\s\S]{0,200}?DshEnv\.logFiles\(appContext\)/.test(runtime) &&
+ok(/fun appLogFiles\(\)[\s\S]{0,300}?DshEnv\.logFiles\((?:K\.)?appContext\)/.test(runtime) &&
   /windowedLog\(minutes: Int\): DshLogWindow\.Result = DshLogWindow\.read\(appLogFiles\(\), minutes\)/.test(runtime),
   "参与裁切的是全部日志文件（DshEnv.logFiles / appLogFiles()），不是单独某一份");
 ok(/val dshHomeLogFile = File\(bugreportDir, "dsh-home-logs\.txt"\)/.test(code), "归档带容器内 dsh 自己的日志");

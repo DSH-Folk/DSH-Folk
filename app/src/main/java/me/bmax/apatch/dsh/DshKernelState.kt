@@ -1,0 +1,76 @@
+package me.bmax.apatch.dsh
+
+import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+
+/**
+ * `DshRuntime` 拆成多个职责类之后，它们共用的那一小块状态。
+ *
+ * ## 为什么要单独抽出来
+ *
+ * 拆分前 `DshRuntime` 是一个 3487 行的 object，148 个函数里有 83 处读 `appContext`、
+ * 51 处写 `_state`。如果每个职责类各自持有一份，就会出现「装到一半的进度只有
+ * 安装器知道、首页看不到」这类问题 —— 状态必须**只有一份**。
+ *
+ * 这个类就是那一份。各职责类通过它读写，不再各自 `lateinit var appContext`。
+ *
+ * ## 为什么不是 interface + 多实现
+ *
+ * 这里没有多实现的需求，只有"一处写、多处读"。做成普通 object 更直白，
+ * 也避免为每个字段写一遍委托。
+ *
+ * ## `ready` 的意义
+ *
+ * `appContext` 在 [APatchApp.onCreate] 之前是未绑定的。所有读接口都要能在
+ * 未绑定时给默认值而不是抛异常 —— 首页第一次 composition 就跑在这个窗口里
+ * （真机实测：早先版本在这里撞 UninitializedPropertyAccessException）。
+ */
+object DshKernelState {
+
+    @Volatile
+    private var _appContext: Context? = null
+
+    /** 宿主 Context。未绑定时抛 —— 只在确定已绑定处用。 */
+    val appContext: Context
+        get() = _appContext ?: error("DshKernelState.appContext 未绑定：APatchApp.onCreate 里要先调 bind()")
+
+    /** Context 是否已绑定。未绑定时读接口给默认值。 */
+    val ready: Boolean get() = _appContext != null
+
+    /** 未绑定返回 null，调用方自己决定怎么处理。 */
+    fun appContextOrNull(): Context? = _appContext
+
+    fun bind(context: Context) {
+        if (_appContext == null) _appContext = context.applicationContext
+    }
+
+    /** 运行状态。**全仓库唯一一份**。 */
+    val stateFlow = MutableStateFlow(DshState())
+
+    val state: StateFlow<DshState> = stateFlow.asStateFlow()
+
+    val current: DshState get() = stateFlow.value
+
+    fun setState(update: (DshState) -> DshState) {
+        stateFlow.update(update)
+    }
+
+    // ── 服务进程句柄 ──
+
+    @Volatile
+    var serverProcess: Process? = null
+
+    @Volatile
+    var startedAt: Long = 0L
+
+    // ── 硬链接探测结果（一次探测，全程复用）──
+
+    @Volatile
+    var hardlinkOk: Boolean? = null
+
+    @Volatile
+    var hardlinkDetail: String = ""
+}

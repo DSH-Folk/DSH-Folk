@@ -232,7 +232,8 @@ must(/minAppVersion/.test(loader) && /DshRuntime\.appSatisfies\(required\)/.test
 
 // 这条不是洁癖：beta.238 的 shell 扩展不生效，而 dsh.log 里一条 [ext] 都没有，
 // 根因是 bootstrap 排在 DshRuntime.init 之前，appendLog 在没有 Context 时静默丢弃。
-const dshRuntimeSrc = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+// appendLog 的实现已迁到 DshLogging.kt（Checkpoint 1 拆解）。
+const dshRuntimeSrc = read("app/src/main/java/me/bmax/apatch/dsh/DshLogging.kt");
 must(/android\.util\.Log\.i\(\"DSH-Folk\", line\)/.test(dshRuntimeSrc),
   "appendLog 在 Context 未绑定时会静默丢弃：启动期日志（扩展加载）会凭空消失");
 {
