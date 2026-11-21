@@ -3,6 +3,9 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import java.io.File
 import java.nio.charset.StandardCharsets
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.ext.ExtensionEngine
@@ -229,12 +232,12 @@ object DshRuntimeInstall {
         // 只改 phase 与 message：webUrl 是**计算属性**（由 port + token 拼出来），
         // 不是构造参数，写不了；pid / webToken 也不该在这里清 ——
         // 装完不启动时它们本来就是空的。
-        K.current = K.current.copy(
+        K.setState { it.copy(
             phase = DshPhase.NOT_READY,
             progress = 0f,
             speedBytesPerSec = 0L,
             message = "",
-        )
+        ) }
     }
 
     fun updateRuntime(preserveData: Boolean = true, autoStart: Boolean = true) {
