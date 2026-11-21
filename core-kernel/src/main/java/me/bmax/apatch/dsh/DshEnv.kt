@@ -26,11 +26,28 @@ object DshEnv {
      *
      * 只接受 rootfs 内的路径：非绝对、或含 `..` 逃逸段的一律返回 null（防越界写到 rootfs 之外）。
      */
-    fun containerToHost(ctx: Context, containerPath: String): File? {
+    fun containerToHost(ctx: Context, containerPath: String): File? =
+        containerRelPath(containerPath)?.let { File(rootfs(ctx), it) }
+
+    /**
+     * 容器内绝对路径 → rootfs 内的相对路径；不合规返回 null。
+     *
+     * 从 [containerToHost] 里抽出来单独成函数，是为了能**不依赖 Context 做单元测试**
+     * —— 越界判定是安全边界，写错一个 `..` 判断就能让插件往 rootfs 外写文件。
+     * 依赖 Context 的版本只能在真机或 Robolectric 里测，成本太高、跑得太慢。
+     *
+     * 三条规则：
+     * 1. 必须是绝对路径（容器视角以 `/` 开头）；
+     * 2. 任何一段是 `..` 就拒绝 —— 不看它能不能"规范化回内部"，因为
+     *    `/a/../../b` 这种在符号链接存在时行为不可预测；
+     * 3. 空路径、只有 `/` 也拒绝（映射到 rootfs 本身没有意义，且容易误删）。
+     */
+    fun containerRelPath(containerPath: String): String? {
         if (!containerPath.startsWith("/")) return null
         val rel = containerPath.removePrefix("/")
+        if (rel.isEmpty()) return null
         if (rel.split('/').any { it == ".." }) return null
-        return File(rootfs(ctx), rel)
+        return rel
     }
 
     /**
