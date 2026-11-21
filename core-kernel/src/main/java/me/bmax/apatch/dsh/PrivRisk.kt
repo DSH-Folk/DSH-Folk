@@ -1,6 +1,5 @@
 package me.bmax.apatch.dsh
 
-import me.bmax.apatch.dsh.InternalKernelApi
 
 /**
  * 一条特权命令的风险等级。
