@@ -351,7 +351,10 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   // 修法是让两边共用一份「已经提示过这个版本」的事实。
   ok(/fun claimRuntimePrompt\(version: String\): Boolean/.test(runtime),
     "DshRuntime 有提示去重闸门（否则自动+手动各弹一次）");
-  ok(/claimRuntimePrompt\(result\.version\)/.test(mainActivity),
+  // 改成局部变量再传：result.version 现在是跨模块 public 属性，
+  // Kotlin 不给它做 smart cast，所以先取到 newVersion。
+  ok(/claimRuntimePrompt\(newVersion\)/.test(mainActivity) &&
+    /val newVersion = result\?\.version/.test(mainActivity),
     "自动检查登记提示权");
   ok(/claimRuntimePrompt\(result\.version\)/.test(settings),
     "设置页手动检查也登记提示权（共用同一闸门）");

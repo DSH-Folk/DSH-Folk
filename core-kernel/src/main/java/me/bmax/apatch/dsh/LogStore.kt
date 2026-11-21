@@ -53,7 +53,8 @@ object LogStore {
             .withResolverStyle(ResolverStyle.STRICT)
 
     /** 当前时刻 → 行首时间戳。formatter 不可变且线程安全，所以全局复用一份。 */
-    internal fun stamp(millis: Long): String =
+    @InternalKernelApi
+    fun stamp(millis: Long): String =
         STAMP_FORMATTER.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     /**

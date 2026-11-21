@@ -220,8 +220,10 @@ console.log("\n── internal 跨模块可见性 ──");
     if (mod === "app" || !ALLOWED[mod]) continue;
     for (const f of walkKt(dir)) {
       const code = stripComments(fs.readFileSync(f, "utf8"));
+      // 允许缩进：object 内部的成员（`    internal fun wsHostDir`）同样是模块级可见性，
+      // 且 :app 一样够不着。第一版只扫顶格，漏了 DshFileAccess 的 8 个成员。
       for (const m of code.matchAll(
-        /^internal (?:object|class|interface|fun|val|const val) +([A-Za-z_][A-Za-z0-9_]*)/gm,
+        /^\s*internal (?:object|class|interface|fun|val|const val) +([A-Za-z_][A-Za-z0-9_]*)/gm,
       )) {
         const sym = m[1];
         if (!new RegExp("(?:^|[^A-Za-z0-9_])" + sym + "(?:[^A-Za-z0-9_]|$)").test(appSrc)) continue;

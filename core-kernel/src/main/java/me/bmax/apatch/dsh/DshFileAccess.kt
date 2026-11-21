@@ -198,7 +198,8 @@ object DshFileAccess {
      * null 时，externalstorage 的目录是"卷/目录此刻不成立"（比如卡没插、目录已不存在），别的
      * authority 才是"这个提供器根本没有本地路径"（云盘 / 相册）。
      */
-    internal fun isExternalStorageTree(uri: Uri?): Boolean =
+    @InternalKernelApi
+    fun isExternalStorageTree(uri: Uri?): Boolean =
         EXT_STORAGE_AUTHORITY.equals(uri?.authority, ignoreCase = true)
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -274,7 +275,8 @@ object DshFileAccess {
      * [pickerDiagnostics] 那段诊断一起给用户 —— authority / document id / 根信息 / 我们走到
      * 哪一步，一次截图就能把现场交回来。
      */
-    internal fun resolvePickerHostDir(ctx: Context, uri: Uri?): PickerHostDir {
+    @InternalKernelApi
+    fun resolvePickerHostDir(ctx: Context, uri: Uri?): PickerHostDir {
         if (uri == null) return PickerHostDir.NoPath
         val authority = uri.authority ?: return PickerHostDir.NoPath
         val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
@@ -513,7 +515,8 @@ object DshFileAccess {
      * - 为 null → 路径是真的，但这个进程无权访问（别的应用的私有数据、或没拿到「所有文件
      *   访问」）：挂进容器只会是个空目录，调用方据此给"用不了"的提示，**不静默挂上去**。
      */
-    internal fun hostDirReadable(hostPath: String): Boolean =
+    @InternalKernelApi
+    fun hostDirReadable(hostPath: String): Boolean =
         runCatching { File(hostPath).listFiles() }.getOrNull() != null
 
     /** SAF 那棵树自己的显示名（列不出来 / 提供器没报 → null）。**只用于诊断**，不参与是否接受。 */
@@ -614,7 +617,8 @@ object DshFileAccess {
      * 只在**失败**时调用（它要跑好几个 query）；返回值直接给界面贴小字号那一段，
      * 所以"用户截到的图"与"日志里的那段"逐字相同。
      */
-    internal fun pickerDiagnostics(ctx: Context, uri: Uri?): String {
+    @InternalKernelApi
+    fun pickerDiagnostics(ctx: Context, uri: Uri?): String {
         val authority = uri?.authority
         // treeId 一律取成非空字符串（空串 = 没拿到），后面所有调用都吃 String —— 不依赖
         // 编译器对可空类型的智能转换。
@@ -896,7 +900,8 @@ object DshFileAccess {
      * bind 组装（[workspaceBinds]）与容器→宿主反查（`DshFileHandoff.guestToHost`）都走这一个
      * 换算 —— 两处各写一份必然有一天对不上（SD 卡那条路就是这么冒出来的）。
      */
-    internal fun wsHostDir(src: String): String =
+    @InternalKernelApi
+    fun wsHostDir(src: String): String =
         when {
             isHostPath(src) -> src
             src.isEmpty() -> HOST_ROOT
@@ -904,7 +909,8 @@ object DshFileAccess {
         }
 
     /** 映射源在界面上的显示形态：绝对路径照原样，相对路径写成 `/sdcard[/…]`。 */
-    internal fun wsSourceLabel(src: String): String =
+    @InternalKernelApi
+    fun wsSourceLabel(src: String): String =
         when {
             isHostPath(src) -> src
             src.isEmpty() -> "/sdcard"
@@ -923,7 +929,8 @@ object DshFileAccess {
      * canonicalize 后再比：`/sdcard`、`/storage/self/primary` 这些软链归一到同一个根。
      * 含空段 / `.` / `..` 的路径返回 null（调用方按原绝对路径继续走既有校验）。
      */
-    internal fun relativeUnderHostRoot(raw: String): String? {
+    @InternalKernelApi
+    fun relativeUnderHostRoot(raw: String): String? {
         val p = raw.trim().replace('\\', '/')
         if (!p.startsWith("/")) return null
         val root = runCatching { File(HOST_ROOT).canonicalPath }.getOrNull() ?: return null
@@ -989,7 +996,8 @@ object DshFileAccess {
      * 规整 dest（工作区下的相对子路径）：转 `/`、去首尾 `/`、丢弃 `.`/`..` 段（禁止越界），
      * 结果为空则回落 `sdcard`。
      */
-    internal fun normalizeDest(input: String): String {
+    @InternalKernelApi
+    fun normalizeDest(input: String): String {
         val segs = input.trim().replace('\\', '/').split('/')
             .map { it.trim() }
             .filter { it.isNotEmpty() && it != "." && it != ".." }

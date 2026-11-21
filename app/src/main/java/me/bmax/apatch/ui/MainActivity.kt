@@ -707,8 +707,12 @@ class MainActivity : AppCompatActivity() {
                         // 更新也不弹 —— 弹了也装不上，设置页那张运行时卡会说明该怎么办。
                         // 抢提示权：设置页的手动检查可能已经弹过同一个版本了。
                         // 两边共用 DshRuntime 的闸门，谁先到谁弹，后到的不重复弹。
-                        if (result?.version != null && result.minAppVersion.isEmpty() &&
-                            DshRuntime.claimRuntimePrompt(result.version)
+                        // 取到局部变量再判空：`result.version` 现在是跨模块的 public
+                        // 属性（RuntimeCheckResult 已随 DshRuntimeModels 下沉到
+                        // :core-kernel），Kotlin 不给跨模块属性做 smart cast。
+                        val newVersion = result?.version
+                        if (newVersion != null && result.minAppVersion.isEmpty() &&
+                            DshRuntime.claimRuntimePrompt(newVersion)
                         ) {
                             runtimePrompt.value = result
                         }
