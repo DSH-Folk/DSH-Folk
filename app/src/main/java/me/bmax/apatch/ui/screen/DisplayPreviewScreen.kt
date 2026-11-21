@@ -52,9 +52,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.ui.component.DisplayChannelGuideDialog
 import me.bmax.apatch.ui.component.displayChannelReady
-import me.bmax.apatch.dsh.DisplayMirror
-import me.bmax.apatch.dsh.DisplayServer
-import me.bmax.apatch.dsh.DisplayVideoSink
+import me.bmax.apatch.dsh.display.DisplayMirror
+import me.bmax.apatch.dsh.display.DisplayServer
+import me.bmax.apatch.dsh.display.DisplayVideoSink
 import kotlin.math.hypot
 import me.bmax.apatch.res.R as CoreR
 

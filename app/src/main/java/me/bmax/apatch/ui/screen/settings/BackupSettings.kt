@@ -38,11 +38,10 @@ import me.bmax.apatch.ui.component.ExpressiveCard
 import me.bmax.apatch.ui.component.ExtensionSettingItems
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
-import me.bmax.apatch.dsh.BackupScope
-import me.bmax.apatch.dsh.DshBackupArchive
-import me.bmax.apatch.dsh.DshCloudBackup
+import me.bmax.apatch.dsh.backup.BackupScope
+import me.bmax.apatch.dsh.backup.DshCloudBackup
 import me.bmax.apatch.dsh.DshConfigBackup
-import me.bmax.apatch.dsh.ExportPlan
+import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.ui.theme.BackupConfig
 import me.bmax.apatch.util.BackupLogManager
 import androidx.compose.foundation.layout.size
@@ -50,8 +49,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import java.security.SecureRandom
 import me.bmax.apatch.res.R as CoreR
-import me.bmax.apatch.dsh.backup.ExportPlan
-import me.bmax.apatch.dsh.backup.BackupScope
 import me.bmax.apatch.dsh.backup.DshBackupArchive
 
 /**

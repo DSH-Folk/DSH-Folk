@@ -42,7 +42,7 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.dsh.DisplayServer
+import me.bmax.apatch.dsh.display.DisplayServer
 import me.bmax.apatch.res.R as CoreR
 
 /**

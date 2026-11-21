@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import me.bmax.apatch.R
-import me.bmax.apatch.dsh.DshBackupCrypto
+import me.bmax.apatch.dsh.backup.DshBackupCrypto
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshAppDataSnapshot
 import me.bmax.apatch.dsh.DshPluginRepo
@@ -63,7 +63,7 @@ import me.bmax.apatch.ui.screen.PluginProgressHost
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.ui.theme.BackupConfig
 import me.bmax.apatch.ui.viewmodel.DshPluginViewModel
-import me.bmax.apatch.dsh.DshCloudBackup
+import me.bmax.apatch.dsh.backup.DshCloudBackup
 import me.bmax.apatch.util.ui.LocalSnackbarHost
 import me.bmax.apatch.util.ui.NavigationBarsSpacer
 import me.bmax.apatch.res.R as CoreR

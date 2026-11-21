@@ -38,7 +38,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.dsh.DshBackupCrypto
+import me.bmax.apatch.dsh.backup.DshBackupCrypto
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshImportWizard
 import me.bmax.apatch.dsh.DshRuntime

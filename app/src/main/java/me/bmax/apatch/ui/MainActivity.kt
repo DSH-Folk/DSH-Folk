@@ -163,7 +163,7 @@ import me.bmax.apatch.ui.component.ElevationRequestDialogHost
 import me.bmax.apatch.ui.component.WorkflowDialogHosts
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.A11yOwn
-import me.bmax.apatch.dsh.DshBackupCrypto
+import me.bmax.apatch.dsh.backup.DshBackupCrypto
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshPhase
 import me.bmax.apatch.dsh.HarnessService

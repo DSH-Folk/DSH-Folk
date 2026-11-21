@@ -95,7 +95,20 @@ const KNOWN = {
   // 本项目里经常忘了 import 的对象
   DshAppDataSnapshot: 'me.bmax.apatch.dsh.DshAppDataSnapshot',
   DshImportWizard: 'me.bmax.apatch.dsh.DshImportWizard',
-  DshBackupArchive: 'me.bmax.apatch.dsh.DshBackupArchive',
+  // 已迁 :ext-backup（Checkpoint 3）。
+  DshBackupArchive: 'me.bmax.apatch.dsh.backup.DshBackupArchive',
+  DshBackupCrypto: 'me.bmax.apatch.dsh.backup.DshBackupCrypto',
+  DshCloudBackup: 'me.bmax.apatch.dsh.backup.DshCloudBackup',
+  ExportPlan: 'me.bmax.apatch.dsh.backup.ExportPlan',
+  BackupScope: 'me.bmax.apatch.dsh.backup.BackupScope',
+  // 已迁 :ext-display。
+  DisplayServer: 'me.bmax.apatch.dsh.display.DisplayServer',
+  DisplayMirror: 'me.bmax.apatch.dsh.display.DisplayMirror',
+  DisplayVideoSink: 'me.bmax.apatch.dsh.display.DisplayVideoSink',
+  // 已迁 :ext-userscripts（Checkpoint 2）。
+  Userscripts: 'me.bmax.apatch.dsh.userscripts.Userscripts',
+  WebScripts: 'me.bmax.apatch.dsh.userscripts.WebScripts',
+  ScriptMarket: 'me.bmax.apatch.dsh.userscripts.ScriptMarket',
   ThemeManager: 'me.bmax.apatch.ui.theme.ThemeManager',
 };
 let bad = 0;

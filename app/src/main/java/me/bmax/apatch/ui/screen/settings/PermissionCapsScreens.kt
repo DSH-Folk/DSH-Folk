@@ -70,7 +70,7 @@ import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.DshSafSources
 import me.bmax.apatch.dsh.PrivPolicy
 import me.bmax.apatch.ui.component.A11yRecoveryCard
-import me.bmax.apatch.dsh.DisplayMirror
+import me.bmax.apatch.dsh.display.DisplayMirror
 import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.res.R as CoreR
 

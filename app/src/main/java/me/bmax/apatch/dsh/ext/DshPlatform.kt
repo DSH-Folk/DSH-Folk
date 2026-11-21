@@ -12,12 +12,12 @@ package me.bmax.apatch.dsh.ext
 import android.content.Context
 import kotlinx.coroutines.flow.StateFlow
 import me.bmax.apatch.dsh.AdbBridge
-import me.bmax.apatch.dsh.DisplayServer
+import me.bmax.apatch.dsh.display.DisplayServer
 import me.bmax.apatch.dsh.DshA11y
 import me.bmax.apatch.dsh.DshAutostart
 import me.bmax.apatch.dsh.DshBridgeGuard
 import me.bmax.apatch.dsh.DshCamera
-import me.bmax.apatch.dsh.DshCloudBackup
+import me.bmax.apatch.dsh.backup.DshCloudBackup
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshDeepClean
 import me.bmax.apatch.dsh.DshDeviceSense

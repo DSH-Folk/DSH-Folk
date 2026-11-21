@@ -253,6 +253,38 @@ for (const mod of MODULES) {
   }
 }
 
+// ── 指向旧包的残留 import ──
+//
+// 搬迁时最容易漏的一类：文件已经移到新包，但某个调用方的 import 还写着旧路径
+// （`import me.bmax.apatch.dsh.DisplayServer`）。这个 import 在**旧包里已经不存在**，
+// Kotlin 报 "Unresolved reference"，但上面的符号扫描看不出来 ——
+// 它看到 `import` 语句就认为该名字已解析（imps.has(name) 为真）。
+//
+// 所以单独查一遍：每个 import 的完整路径，如果包段对应的模块里找不到这个符号，
+// 而另一个模块里有 → 报错并给出正确路径。
+{
+  const importRe = /^import\s+([\w.]+)$/gm;
+  for (const mod of MODULES) {
+    for (const f of moduleFiles.get(mod)) {
+      const raw = fs.readFileSync(f, "utf8");
+      let im;
+      while ((im = importRe.exec(raw)) !== null) {
+        const fq = im[1];
+        if (!fq.startsWith("me.bmax.apatch.")) continue;
+        const simple = fq.split(".").pop();
+        const pkg = fq.slice(0, fq.length - simple.length - 1);
+        const hits = index.get(simple);
+        if (!hits) continue;                       // 平台类或未索引
+        if (hits.some((h) => h.pkg === pkg)) continue; // 路径正确
+        const rel = path.relative(ROOT, f);
+        const right = hits.map((h) => h.pkg + "." + simple).filter((x, i, a) => a.indexOf(x) === i);
+        errors++;
+        report.push(`  ${rel}: import ${fq} 指向旧包（该包里没有 ${simple}）；应为 ${right[0]}`);
+      }
+    }
+  }
+}
+
 // 注：跨模块 smart cast 的检查留在 check-module-boundary.js 里。
 // 这里试过一版「按属性名反查定义模块」的实现，误报率过高（`mutable.value` 是
 // MutableState 的标准属性、`errorMessage` 是局部变量，都会被判成跨模块），

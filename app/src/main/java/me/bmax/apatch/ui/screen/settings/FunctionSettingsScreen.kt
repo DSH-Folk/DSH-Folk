@@ -69,7 +69,7 @@ import me.bmax.apatch.dsh.DshAutostart
 import me.bmax.apatch.dsh.DshConfigBackup
 import me.bmax.apatch.dsh.DshEnv
 import me.bmax.apatch.dsh.DshFileAccess
-import me.bmax.apatch.dsh.ExportPlan
+import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.dsh.DshHostPrompt
 import me.bmax.apatch.dsh.DshNativeBridge
 import me.bmax.apatch.dsh.DshRuntime
