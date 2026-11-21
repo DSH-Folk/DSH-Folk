@@ -59,9 +59,9 @@ import me.bmax.apatch.dsh.DshFileAccess
 import me.bmax.apatch.dsh.DshFileAccess.PickerHostDir
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.dsh.DshSafSources
-import me.bmax.apatch.util.ui.showToast
 import java.io.File
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 /**
  * 「文件访问范围」子页：管理容器可访问手机目录的黑白名单。

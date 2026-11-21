@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import me.bmax.apatch.util.ui.showToast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -36,6 +35,7 @@ import me.bmax.apatch.ui.component.rememberLoadingDialog
 import me.bmax.apatch.util.*
 import me.bmax.apatch.ui.screen.settings.general.*
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 @Composable
 fun GeneralSettingsContent(

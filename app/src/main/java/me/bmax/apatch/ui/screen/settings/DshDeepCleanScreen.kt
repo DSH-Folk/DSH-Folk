@@ -60,8 +60,8 @@ import kotlinx.coroutines.withContext
 import me.bmax.apatch.R
 import me.bmax.apatch.dsh.DshDeepClean
 import me.bmax.apatch.ui.component.ExpressiveCard
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 /**
  * 「深度清理」页：功能页那张「清理资源和缓存」卡片**长按**进来的。

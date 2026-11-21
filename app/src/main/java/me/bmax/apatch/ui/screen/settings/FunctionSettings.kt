@@ -107,9 +107,9 @@ import me.bmax.apatch.ui.component.ModuleLabel
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.util.DshDocsAccess
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.ui.screen.settings.general.CleanStorageDialog
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 /**
  * 「功能」页的一级分类：一个分类 = 入口页上的一行 + 次级页里的一组卡片。

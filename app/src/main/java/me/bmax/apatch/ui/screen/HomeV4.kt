@@ -92,8 +92,8 @@ import me.bmax.apatch.ui.theme.BackgroundManager
 import me.bmax.apatch.util.PermissionUtils
 import me.bmax.apatch.util.SystemInfoCollector
 import me.bmax.apatch.util.ui.HomeBottomSpacer
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 /**
  * Dashboard Pro 风格首页布局。

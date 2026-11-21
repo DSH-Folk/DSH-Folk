@@ -18,7 +18,7 @@ import me.bmax.apatch.ui.component.SliderSettingCard
 import me.bmax.apatch.ui.component.SplicedColumnGroup
 import me.bmax.apatch.ui.component.ToggleSettingCard
 import me.bmax.apatch.ui.theme.BackgroundConfig
-import me.bmax.apatch.util.ui.showToast
+import me.bmax.apatch.dsh.showToast
 
 @Composable
 fun AppearanceBannerSection(

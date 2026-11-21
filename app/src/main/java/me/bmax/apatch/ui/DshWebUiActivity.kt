@@ -120,10 +120,10 @@ import me.bmax.apatch.ui.component.WorkflowDialogHosts
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.LauncherIconUtils
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.WebScripts
+import me.bmax.apatch.dsh.showToast
 
 /**
  * WebUI 打开方式。

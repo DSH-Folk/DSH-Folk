@@ -91,6 +91,17 @@ const MOVED = {
     "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshBackupArchive.kt",
   "app/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt":
     "core-kernel/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt",
+  // Batch D-3（Checkpoint 4）：原生桥拆分 + 若干共享件下沉 :core-kernel。
+  "app/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/PrivPolicy.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshElevationRequests.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshElevationRequests.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshNotificationListener.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshNotificationListener.kt",
+  "app/src/main/java/me/bmax/apatch/util/AppLaunchIntent.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/AppLaunchIntent.kt",
+  "app/src/main/java/me/bmax/apatch/util/ui/ToastExt.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/ToastExt.kt",
   "app/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt":
     "core-kernel/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt",
 };

@@ -53,8 +53,8 @@ import me.bmax.apatch.dsh.DshFileHandoff
 import me.bmax.apatch.dsh.DshPhase
 import me.bmax.apatch.dsh.DshRuntime
 import me.bmax.apatch.ui.DshWebUi
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.showToast
 
 /**
  * 「分享/以…打开 → 用途选择 → 交给 DSH 处理」的**弹窗**（方案 A，全程不离开本页）。

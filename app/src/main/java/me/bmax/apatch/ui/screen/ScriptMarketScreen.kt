@@ -56,10 +56,10 @@ import me.bmax.apatch.ui.component.SearchAppBar
 import me.bmax.apatch.ui.component.UserscriptInstallConfirmHost
 import me.bmax.apatch.ui.component.rememberUserscriptPendingInstall
 import me.bmax.apatch.util.ui.HomeBottomSpacer
-import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.ScriptMarket
+import me.bmax.apatch.dsh.showToast
 
 /**
  * 脚本市场（GreasyFork 搜索 + 一键安装）。

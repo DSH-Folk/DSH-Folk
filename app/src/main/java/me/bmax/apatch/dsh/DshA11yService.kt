@@ -2,6 +2,7 @@ package me.bmax.apatch.dsh
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
+import me.bmax.apatch.dsh.DshNotificationListener
 
 /**
  * 给原生能力桥用的无障碍服务：**读屏幕 + 操作界面**。
