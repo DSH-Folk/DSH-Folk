@@ -17,7 +17,13 @@ const must = (c, m) => { if (!c) errors.push(m); };
 
 const env = read('app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt');
 // 模型类型已搬到 DshRuntimeModels.kt（同包，纯搬家）：读源码做断言的地方要一起拼上。
-const runtime = (read('app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt'));
+// 竞速通道的实现在 DshPortConfig.kt（Checkpoint 1 拆解），常量在 DshRuntimeConstants.kt。
+const runtime = (read('app/src/main/java/me/bmax/apatch/dsh/DshPortConfig.kt') + "\n" +
+  read('app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt') + "\n" +
+  read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt') + "\n" +
+  read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt') + "\n" +
+  read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt') + "\n" +
+  read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt'));
 const source = read('app/src/main/java/me/bmax/apatch/dsh/DshSource.kt');
 const repo = read('app/src/main/java/me/bmax/apatch/dsh/DshPluginRepo.kt');
 const appUpdater = read('app/src/main/java/me/bmax/apatch/util/AppUpdater.kt');

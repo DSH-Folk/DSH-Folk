@@ -58,6 +58,16 @@ object DshKernelState {
         stateFlow.update(update)
     }
 
+    /**
+     * 宿主 prefs（`config`）。
+     *
+     * 名字必须与 [APatchApp.SP_NAME] 一致 —— 早先 KernelEnv 里硬编码过一个
+     * 别的名字，结果读的是另一份空文件，迁移记录写了下次启动看不见，每版重跑。
+     * 这里统一走 DshEnv.PREF（与 DshRuntime.prefs() 同一个常量）。
+     */
+    fun prefs(): android.content.SharedPreferences =
+        appContext.getSharedPreferences(DshEnv.PREF, android.content.Context.MODE_PRIVATE)
+
     // ── 服务进程句柄 ──
 
     @Volatile
