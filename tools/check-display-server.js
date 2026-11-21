@@ -463,7 +463,7 @@ for (const f of SHARED) {
 // 另一半是送达：dsh-native 是 App 自己写进容器的。如果只在引导路径写，升级 App 而沿用旧 rootfs
 // 的用户永远拿不到新子命令。所以既要有"每次启动对一遍"的调用点，也要按内容比对再写。
 {
-  const rt = code((read('app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt')));
+  const rt = code((read('app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt') + "\n" + read('app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt')));
   const host = read('app/src/main/assets/dsh-folk-host.mjs');
 
   must(/cmd === 'display'/.test(rt), 'dsh-native CLI 必须有 display 子命令分支');

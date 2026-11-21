@@ -30,7 +30,7 @@ const SRC = {
   pd: read("app/src/main/java/me/bmax/apatch/dsh/DshPersonalData.kt"),
   ds: read("app/src/main/java/me/bmax/apatch/dsh/DshDeviceSense.kt"),
   bridge: read("app/src/main/java/me/bmax/apatch/dsh/DshNativeBridge.kt"),
-  rt: (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt")),
+  rt: (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt")),
 };
 const CODE = Object.fromEntries(Object.entries(SRC).map(([k, v]) => [k, code(v)]));
 
@@ -278,7 +278,8 @@ const freshOld = simulate({ preseeded: false, builtinFrom: 99, fixed: true, star
 eq(freshOld.pnpmInstalls, 4, "全新安装在没有内置的运行时上：四个都装");
 
 // 结构断言：这类「决策分散在多处」的 bug 靠模拟只能盖住已想到的组合
-const seedBody = SRC.rt.slice(SRC.rt.indexOf("private suspend fun seedPlugins"), SRC.rt.indexOf("private fun applySeedRepair"));
+// seedPlugins 已放宽为 internal（DshRuntimeInstall 要调它）。
+const seedBody = SRC.rt.slice(SRC.rt.indexOf("suspend fun seedPlugins"), SRC.rt.indexOf("fun applySeedRepair"));
 ok(!/attempted\.addAll\(\s*shadowed|attempted\.addAll\(\s*mappedShadowed/.test(seedBody),
   "【上游已内置】不能写进 attempted（写进去就会被补修逻辑当成失败项重装）");
 ok(seedBody.includes("attempted.removeAll(shadowed.toSet())"), "反而要把历史遗留的记账摘掉（换回旧运行时才会重新预装）");
@@ -358,12 +359,12 @@ try {
 }
 
 // 结构断言：这条自愈必须同时挂在「启动前」与「启动失败后」两条路径上
-const seedForPrune = SRC.rt.slice(SRC.rt.indexOf("private suspend fun seedPlugins"), SRC.rt.indexOf("private fun applySeedRepair"));
+const seedForPrune = SRC.rt.slice(SRC.rt.indexOf("suspend fun seedPlugins"), SRC.rt.indexOf("fun applySeedRepair"));
 ok(seedForPrune.includes("pruneUnresolvableBundles(managedSeedPackages())"),
   "启动前先清理声明残留（不让用户先看一轮「服务进程已退出」）");
-ok(/private fun managedSeedPackages\(\)[\s\S]{0,120}SEED_PLUGINS \+ RETIRED_SEED_PLUGINS\.keys/.test(SRC.rt),
+ok(/(?:private )?fun managedSeedPackages\(\)[\s\S]{0,120}SEED_PLUGINS \+ RETIRED_SEED_PLUGINS\.keys/.test(SRC.rt),
   "清理范围 = 在装的 + 退役的（退役包声明残留同样会让 dsh 拒绝启动）");
-const startBody = SRC.rt.slice(SRC.rt.indexOf("private suspend fun startAndAwait"), SRC.rt.indexOf("private suspend fun repairUnresolvableBundles"));
+const startBody = SRC.rt.slice(SRC.rt.indexOf("suspend fun startAndAwait"), SRC.rt.indexOf("suspend fun repairUnresolvableBundles"));
 ok(startBody.includes("repairUnresolvableBundles()"), "启动失败后也会尝试清理并重试一次");
 ok(/if \(repairDuplicateLoaderEntry\(\)\) repaired = true/.test(startBody) && /if \(repairUnresolvableBundles\(\)\) repaired = true/.test(startBody),
   "两种自愈各查各的：同时存在时一轮修完");

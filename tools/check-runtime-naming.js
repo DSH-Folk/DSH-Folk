@@ -27,7 +27,8 @@ const path = require("path");
 const ROOT = path.join(__dirname, "..");
 const read = (p) => require("./_paths.js").read(p);
 
-const RT = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+// 运行时安装/更新已迁到 DshRuntimeInstall.kt（Checkpoint 1 拆解）。
+const RT = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt"));
 const MODELS = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt");
 const CONSTS = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt");
 const BUILDER = read("runtime-builder/build-rootfs.sh");

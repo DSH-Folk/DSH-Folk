@@ -68,6 +68,22 @@ object DshKernelState {
     fun prefs(): android.content.SharedPreferences =
         appContext.getSharedPreferences(DshEnv.PREF, android.content.Context.MODE_PRIVATE)
 
+    /**
+     * 引导/重启/重装共用的串行锁：三者都会动 rootfs 与服务进程。
+     *
+     * 放在共享状态里而不是各职责类各持一份 —— 两份锁等于没有锁，
+     * 两条路径仍会同时动 rootfs。
+     */
+    val bootMutex = kotlinx.coroutines.sync.Mutex()
+
+    /** 运行时更新检查的锁（避免自动检查与手动检查同时打 GitHub API）。 */
+    val updateCheckMutex = kotlinx.coroutines.sync.Mutex()
+
+    /** 长期存活的 IO 作用域（引导、安装、重启都在上面跑）。 */
+    val scope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+    )
+
     // ── 服务进程句柄 ──
 
     @Volatile

@@ -273,7 +273,7 @@ ok(webui.includes("addDocumentStartJavaScript") && webui.includes("DOCUMENT_STAR
 
 console.log("\n── dsh-file-upload 退役 ──");
 
-const rt = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt"));
+const rt = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeConstants.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstaller.kt"));
 const seedLine = rt.match(/val SEED_PLUGINS =\s*\n?\s*listOf\(([^)]*)\)/);
 ok(seedLine !== null, "SEED_PLUGINS 可解析");
 ok(seedLine && !seedLine[1].includes("dsh-file-upload"),
@@ -296,7 +296,8 @@ ok(/DshRuntime\.updateRuntime\(true\)/.test(read("app/src/main/java/me/bmax/apat
 ok(/fun updateRuntime\(preserveData: Boolean = true(, autoStart: Boolean = true)?\)/.test(rt) &&
   /downloadAndInstall\(preserveData, newest = true\)/.test(rt),
   "「更新」走候选取最新，与「重装」分道（更新曾借用重装那条，下载的还是旧通道）");
-ok(/if \(autoStart\) startAndAwait\(\) else markInstalledIdle\(\)/.test(rt),
+// startAndAwait 由 DshRuntime 持有（引导流程），这里通过 ForInstall 包装调用。
+ok(/if \(autoStart\) (?:DshRuntime\.)?startAndAwait(?:ForInstall)?\(\) else markInstalledIdle\(\)/.test(rt),
   "装完不一定启动：autoStart=false 时落回「已安装未运行」（首页安装流程要用）");
 // downloadAndInstall 现在是 DshRuntime 的扩展函数（同包搬家），内部调用带 this. 前缀。
 ok(/internal suspend fun DshRuntime\.downloadAndInstall\(preserveData: Boolean = true, newest: Boolean = true\)/.test(rt) &&
@@ -723,7 +724,9 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   const webuiRaw = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
   const envRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshEnv.kt");
   const scriptsRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt");
-  const rtRaw = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  // 运行时安装/文件桥配置已迁到 DshRuntimeInstall.kt（Checkpoint 1 拆解）。
+  const rtRaw = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+    read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt"));
 
   // 调试通道**不是宿主开关**，而是由「已启用的扩展声明了能力」推导。
   // 做成开关会留下半生效状态：开着却没扩展用、或装了扩展但开关没开。
@@ -787,7 +790,7 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "运行时没装好时不写（否则留下永远用不上的空壳）");
   ok(/private fun isValidName\(name: String\): Boolean/.test(contRaw),
     "命令名校验（名字会被拼进路径）");
-  ok(/notifyContainerReady\(appContext\)/.test(rtRaw),
+  ok(/notifyContainerReady\((?:K\.)?appContext\)/.test(rtRaw),
     "运行时就绪时通知扩展（装完运行时不必重启应用）");
 }
 

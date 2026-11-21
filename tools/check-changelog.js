@@ -76,7 +76,11 @@ const stringsEn = read("app/src/main/res/values/strings.xml");
 const stringsZh = read("app/src/main/res/values-zh-rCN/strings.xml");
 const checker = code(read("app/src/main/java/me/bmax/apatch/util/UpdateChecker.kt"));
 const folkClient = code(read("app/src/main/java/me/bmax/apatch/util/FolkApiClient.kt"));
-const runtime = code(read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt"));
+// 运行时安装/更新已迁到 DshRuntimeInstall.kt（Checkpoint 1 拆解）。
+// 运行时安装/更新在 DshRuntimeInstall.kt，共享状态（含两把锁）在 DshKernelState.kt。
+const runtime = code(read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" +
+  read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeInstall.kt") + "\n" +
+  read("app/src/main/java/me/bmax/apatch/dsh/DshKernelState.kt"));
 const mainActivity = code(read("app/src/main/java/me/bmax/apatch/ui/MainActivity.kt"));
 const settings = code(read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt"));
 /** 剥 YAML 注释：注释里解释某个 flag 为什么重要，不能算作那个 flag 存在。 */
@@ -342,7 +346,8 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
     "手动检查只取消应用更新这条链，不动运行时那条");
   // 只查"文件里有这两个词"不够：注释里提到 updateCheckMutex 就会假绿。
   // 钉住**声明**与**包裹**两处，且必须是 checkRuntimeUpdate 这个函数。
-  ok(/private val updateCheckMutex = kotlinx\.coroutines\.sync\.Mutex\(\)/.test(runtime),
+  // Mutex 已移到 DshKernelState（拆解后多个职责类共用同一把锁）。
+  ok(/(?:private val updateCheckMutex = kotlinx\.coroutines\.sync\.Mutex\(\)|val updateCheckMutex = kotlinx\.coroutines\.sync\.Mutex\(\))/.test(runtime),
     "运行时更新检查有 Mutex 声明（自动与手动并发时不重复请求、不互相覆盖结果）");
   // ── 运行时更新提示：自动与手动不能各弹一次 ──
   //
@@ -434,7 +439,8 @@ ok(/val isMandatoryBridge: Boolean = false/.test(checker),
   ok(/showExtLinkInstall/.test(plug) && /pickExtZip/.test(plug),
     "扩展页有链接与文件两个入口");
 }
-  ok(/suspend fun checkRuntimeUpdate\(\): RuntimeCheckResult = updateCheckMutex\.withLock/.test(runtime),
+  // checkRuntimeUpdate 已迁到 DshRuntimeInstall，锁走 DshKernelState（`K.updateCheckMutex`）。
+  ok(/suspend fun checkRuntimeUpdate\(\): RuntimeCheckResult = (?:K\.)?updateCheckMutex\.withLock/.test(runtime),
     "checkRuntimeUpdate 真的被 withLock 包住（只声明不用等于没锁）");
 }
 {
