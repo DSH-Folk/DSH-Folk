@@ -35,7 +35,7 @@ import androidx.core.content.edit
  * 在展示前调 [applyToWindow] / [applyToView]；`DshA11y` 每读一次现查 [hidesAgent]，
  * 所以**改档位立刻生效**（不需要重启，也不需要重开页面）。
  */
-internal object A11yOwn {
+object A11yOwn {
 
     /** 不拦：agent 照常读/操作本应用自己的界面。 */
     const val MODE_OFF = "off"

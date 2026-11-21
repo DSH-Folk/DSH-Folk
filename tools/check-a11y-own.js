@@ -47,7 +47,8 @@ function ok(cond, label) {
 
 console.log("\n── 三档与默认 ──");
 {
-  ok(/internal object A11yOwn \{/.test(OWN), "A11yOwn 在（而不是把档位散在各调用点）");
+  // 已放宽为 public：A11yOwn 下沉到 :core-kernel，:app 与 :ext-display 都要用。
+  ok(/object A11yOwn \{/.test(OWN), "A11yOwn 在（而不是把档位散在各调用点）");
   ok(/const val MODE_OFF = "off"/.test(OWN) &&
      /const val MODE_AGENT = "agent"/.test(OWN) &&
      /const val MODE_ALL = "all"/.test(OWN),

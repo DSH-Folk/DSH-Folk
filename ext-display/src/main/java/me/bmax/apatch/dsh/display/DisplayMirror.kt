@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.display
 
 import android.animation.ValueAnimator
 import android.content.Context
@@ -86,6 +86,9 @@ import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.DshEnv
+import me.bmax.apatch.dsh.OverlayLifecycleOwner
+import me.bmax.apatch.dsh.A11yOwn
 
 /**
  * 虚拟屏的**悬浮小窗**。

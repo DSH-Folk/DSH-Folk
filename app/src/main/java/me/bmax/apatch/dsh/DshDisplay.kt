@@ -7,6 +7,8 @@ import org.json.JSONObject
 import java.io.File
 import java.util.Locale
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.display.DisplayMirror
+import me.bmax.apatch.dsh.display.DisplayServer
 
 /**
  * 虚拟屏能力的工具面（`/native/display/…`），接进 [DshNativeBridge] 既有的能力档、

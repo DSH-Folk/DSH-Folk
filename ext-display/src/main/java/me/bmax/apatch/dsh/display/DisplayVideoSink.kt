@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.display
 
 import android.media.MediaCodec
 import android.media.MediaFormat

@@ -1,4 +1,4 @@
-package me.bmax.apatch.dsh
+package me.bmax.apatch.dsh.display
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -14,6 +14,7 @@ import me.bmax.apatch.display.IDisplayService
 import org.json.JSONArray
 import java.security.MessageDigest
 import java.security.SecureRandom
+import me.bmax.apatch.dsh.PrivilegedShell
 
 /**
  * 虚拟屏服务端的**宿主侧**：把 dex jar 送到设备上、以特权身份把它拉起来、拿回 Binder，

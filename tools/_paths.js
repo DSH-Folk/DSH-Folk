@@ -75,6 +75,22 @@ const MOVED = {
     "core-kernel/src/main/java/me/bmax/apatch/dsh/DshKernelState.kt",
   "app/src/main/java/me/bmax/apatch/util/DshWebCompat.kt":
     "core-kernel/src/main/java/me/bmax/apatch/dsh/DshWebCompat.kt",
+  // Batch D-2（Checkpoint 3）：Display → :ext-display，Backup → :ext-backup。
+  // 同批下沉 OverlayLifecycleOwner / A11yOwn（投屏浮层要用，:ext-display 够不着 :app）。
+  "app/src/main/java/me/bmax/apatch/dsh/DisplayMirror.kt":
+    "ext-display/src/main/java/me/bmax/apatch/dsh/display/DisplayMirror.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DisplayServer.kt":
+    "ext-display/src/main/java/me/bmax/apatch/dsh/display/DisplayServer.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DisplayVideoSink.kt":
+    "ext-display/src/main/java/me/bmax/apatch/dsh/display/DisplayVideoSink.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshBackupCrypto.kt":
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshBackupCrypto.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/DshCloudBackup.kt":
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshCloudBackup.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/OverlayLifecycleOwner.kt",
+  "app/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt":
+    "core-kernel/src/main/java/me/bmax/apatch/dsh/A11yOwn.kt",
 };
 
 /** 源码根目录候选（重构前一个，重构后逐模块增加）。 */

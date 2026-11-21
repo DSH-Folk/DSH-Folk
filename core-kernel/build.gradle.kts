@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.androidx.appcompat)
     // DshWebCompat 要用 WebViewCompat 查内核特性（:ext-userscripts 依赖它）。
     implementation(libs.androidx.webkit)
+    // OverlayLifecycleOwner 要用 LifecycleRegistry（:ext-display 的投屏浮层靠它）。
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.com.github.topjohnwu.libsu.core)
     implementation(libs.com.github.topjohnwu.libsu.service)

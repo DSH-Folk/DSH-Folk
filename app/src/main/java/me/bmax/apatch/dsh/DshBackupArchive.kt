@@ -11,6 +11,7 @@ import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import me.bmax.apatch.dsh.backup.DshBackupCrypto
 
 /**
  * 导出范围。**枚举顺序就是滑块的档位顺序**，界面上不要另外排一遍。

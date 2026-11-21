@@ -24,6 +24,7 @@ import me.bmax.apatch.util.getSafeDownloadsDir
 import org.json.JSONArray
 import org.json.JSONObject
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.backup.DshBackupCrypto
 
 /**
  * DSH 配置备份 / 迁移。
