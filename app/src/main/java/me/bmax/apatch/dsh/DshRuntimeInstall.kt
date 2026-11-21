@@ -50,7 +50,7 @@ object DshRuntimeInstall {
 
     /** 取（或首先生成）文件桥 token。 */
     internal fun ensureFsToken(): String {
-        val p = prefs()
+        val p = K.prefs()
         p.getString(DshEnv.KEY_FS_TOKEN, null)?.takeIf { it.isNotEmpty() }?.let { return it }
         val t = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
             .joinToString("") { b -> "%02x".format(b.toInt() and 0xff) }
@@ -331,7 +331,7 @@ object DshRuntimeInstall {
      * 换 rootfs = 容器里的预装插件没了：清掉预装记账，让下一轮 [seedPlugins] 重新来一遍。
      */
     internal fun clearSeedLedger() {
-        prefs().edit()
+        K.prefs().edit()
             .remove(DshEnv.KEY_SEEDED_PLUGINS)
             .remove(@Suppress("DEPRECATION") DshEnv.KEY_SEED_PLUGINS_DONE)
             .apply()
@@ -365,7 +365,7 @@ object DshRuntimeInstall {
                     DshLogging.fail(DshLogging.str(CoreR.string.dsh_err_extract_failed))
                     return@withLock
                 }
-                prefs().edit()
+                K.prefs().edit()
                     .remove(DshEnv.KEY_SEEDED_PLUGINS)
                     .remove(@Suppress("DEPRECATION") DshEnv.KEY_SEED_PLUGINS_DONE)
                     .putString(DshEnv.KEY_RUNTIME_VERSION, "imported")
@@ -544,7 +544,7 @@ object DshRuntimeInstall {
         withContext(Dispatchers.IO) {
         if (!DshEnv.isRuntimeInstalled(K.appContext)) return@withContext RuntimeCheckResult()
         val meta = fetchNewestMeta() ?: return@withContext RuntimeCheckResult(failure = true)
-        val local = prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
+        val local = K.prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
         // 本地版本未知（早期版本装的，没记过）时不谎报有更新：重装要重下 150MB，
         // 不能靠猜就让用户付这个代价；也没法说「已是最新」——那同样是猜的
         if (local.isEmpty()) return@withContext RuntimeCheckResult(failure = true)
