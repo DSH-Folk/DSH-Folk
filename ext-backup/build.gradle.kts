@@ -56,6 +56,7 @@ dependencies {
     implementation(project(":ext-api"))
     implementation(project(":core-res"))
     implementation(project(":core-kernel"))
+    implementation("androidx.core:core-ktx:1.17.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

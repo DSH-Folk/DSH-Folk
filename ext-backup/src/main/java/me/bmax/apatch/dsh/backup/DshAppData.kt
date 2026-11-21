@@ -174,7 +174,7 @@ object DshAppData {
         val audit = JSONArray()
         for (f in auditFiles(ctx)) audit.put(f.name)
         return JSONObject().apply {
-            put(KEY_APP, me.bmax.apatch.KernelEnv.VERSION_NAME)
+            put(KEY_APP, KernelEnv.appVersionName)
             put(KEY_SCHEMA, SCHEMA_V2)
             put(KEY_PREFS, prefsByFile)
             put(KEY_EXCLUDED, excludedByFile)
