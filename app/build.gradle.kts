@@ -485,8 +485,10 @@ val buildDisplayServerJar = tasks.register<BuildDisplayServerJar>("buildDisplayS
     group = "build"
     description = "把 displayserver/ 编成只含 classes.dex 的 jar，供 app_process 以特权身份加载"
     serverSources.set(rootProject.layout.projectDirectory.dir("displayserver/src/main/java"))
+    // 三个 Binder 协议类已迁 :ext-display（Checkpoint 3）：App 侧与 displayserver 侧
+    // 必须逐字一致（DESCRIPTOR 字符串），所以两边都从 :ext-display 取同一份源码。
     sharedSources.from(
-        fileTree("src/main/java/me/bmax/apatch/display") {
+        fileTree("../ext-display/src/main/java/me/bmax/apatch/display") {
             include("IDisplayService.java", "IDisplayVideoSink.java", "DisplayBinderContainer.java")
         },
     )
