@@ -76,12 +76,17 @@ object DshNativeBridge {
     @Volatile private var channelReady = false
 
     /**
-     * [Access] 已迁到 :core-kernel 的 NativeAccess.kt。
+     * 可分项开关的能力。
      *
-     * 保留别名，全仓 `DshNativeBridge.Access.XXX` 调用点零改动。
+     * [id] 会出现在设置项、prefs 与 `/native/capabilities` 的响应里，不要改。
      */
-    typealias Access = me.bmax.apatch.dsh.Access
-
+    enum class Access(val id: String) {
+        OFF("off"),
+        WRITE("write"),
+        READ("read"),
+        READ_WRITE("read_write"),
+        CONTROL("control"),
+    }
 
 
     /**

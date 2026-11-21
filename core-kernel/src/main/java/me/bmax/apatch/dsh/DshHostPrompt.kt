@@ -3,12 +3,12 @@ package me.bmax.apatch.dsh
 import android.content.Context
 import android.os.Build
 import androidx.core.content.edit
+import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.util.PermissionUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.nio.charset.StandardCharsets
-import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 
 /**
  * 宿主能力提示词注入：让容器里的 agent 知道自己跑在 DSH-Folk 里、能用哪些宿主命令。

@@ -13,6 +13,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.Access
 
 /**
  * 原生能力申请的**两段式**状态机，桥在这里阻塞等用户。

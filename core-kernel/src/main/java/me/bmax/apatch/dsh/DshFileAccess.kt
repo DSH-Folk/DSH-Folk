@@ -5,11 +5,11 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
+import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.nio.file.Files
-import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 
 /**
  * 手机文件访问的黑白名单策略，直接作用在**容器 bind 挂载**这一层。

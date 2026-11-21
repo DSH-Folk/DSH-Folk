@@ -1,6 +1,8 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
+import me.bmax.apatch.dsh.Cap
+import me.bmax.apatch.dsh.Access
 
 /**
  * 一条特权操作的风险等级。
