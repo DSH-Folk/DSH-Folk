@@ -296,7 +296,9 @@ console.log("\n── README（用户看到的说明） ──");
     const env = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeEnv.kt");
     const wf = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeFiles.kt");
     const rt = (read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeScripts.kt") + "\n" + read("app/src/main/java/me/bmax/apatch/dsh/DshRuntimeModels.kt"));
-    ok(/internal object DshRuntimeEnv/.test(env) && /internal object DshRuntimeFiles/.test(wf),
+    // 这两个对象已下沉到 :core-kernel 并放宽为 public + @InternalKernelApi
+    // （:app 的 DshRuntime 要用它们，而 Kotlin 的 internal 是模块级）。
+    ok(/@InternalKernelApi\s*\nobject DshRuntimeEnv/.test(env) && /@InternalKernelApi\s*\nobject DshRuntimeFiles/.test(wf),
       "DNS 落地与「内容变了才写」已抽成同包对象");
     ok(/= DshRuntimeEnv\.setupResolvConf\(appContext\)/.test(rt) &&
       /= DshRuntimeEnv\.ensureDns\(appContext\)/.test(rt),

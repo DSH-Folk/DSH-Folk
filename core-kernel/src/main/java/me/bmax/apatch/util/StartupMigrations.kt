@@ -3,9 +3,7 @@ package me.bmax.apatch.util
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import me.bmax.apatch.APApplication
-import me.bmax.apatch.BuildConfig
-import me.bmax.apatch.dsh.PermissionManager
+import me.bmax.apatch.dsh.KernelEnvimport me.bmax.apatch.dsh.PermissionManager
 import me.bmax.apatch.dsh.PrivPolicy
 
 /**
@@ -85,8 +83,8 @@ object StartupMigrations {
         // 但"从哪个版本升上来"是有价值的诊断信息：用户报"设置莫名重置"时，
         // 第一件事就是确认他跨了哪个版本。所以这里**记下来**，不改行为。
         val previous = lastVersion(context)
-        if (previous != null && previous != BuildConfig.VERSION_NAME) {
-            Log.i(TAG, "版本变化 " + previous + " -> " + BuildConfig.VERSION_NAME + "，开始跑启动迁移")
+        if (previous != null && previous != KernelEnv.appVersionName) {
+            Log.i(TAG, "版本变化 " + previous + " -> " + KernelEnv.appVersionName + "，开始跑启动迁移")
         }
         for (m in MIGRATIONS) {
             try {
@@ -111,8 +109,8 @@ object StartupMigrations {
     private fun recordVersion(context: Context) {
         try {
             prefs(context).edit()
-                .putString(KEY_LAST_VERSION, BuildConfig.VERSION_NAME)
-                .putInt(KEY_LAST_VERSION_CODE, BuildConfig.VERSION_CODE)
+                .putString(KEY_LAST_VERSION, KernelEnv.appVersionName)
+                .putInt(KEY_LAST_VERSION_CODE, KernelEnv.appVersionCode)
                 .apply()
         } catch (t: Throwable) {
             Log.w(TAG, "记录版本号失败", t)
@@ -124,11 +122,14 @@ object StartupMigrations {
         prefs(context).getString(KEY_LAST_VERSION, null)
 
     private fun prefs(context: Context): SharedPreferences {
-        // sharedPreferences 挂在 APApplication 的 **companion** 上，是伴生成员而不是实例成员，
-        // 所以要走 APApplication.sharedPreferences（全限定），不能用实例访问。
-        // lateinit 在 Application.onCreate 里赋值；若这里被更早调用会抛异常，
-        // 因此兜底走 getSharedPreferences —— 同一个 SP_NAME，读到的仍是同一份数据。
-        return runCatching { APApplication.sharedPreferences }
-            .getOrElse { context.applicationContext.getSharedPreferences(APApplication.SP_NAME, Context.MODE_PRIVATE) }
+        // 宿主在 KernelEnv.install 里注入 APApplication.sharedPreferences。
+        //
+        // 为什么不直接调 APApplication.sharedPreferences：本模块不能引用 :app 的
+        // Application 子类（它带 UI、崩溃处理等一堆依赖，方向反了）。
+        // 但两边必须用**同一份** prefs 文件，否则迁移记录在宿主和内核之间看不见。
+        //
+        // 兜底：若注入晚于首次调用，用同一个 SP_NAME 自己开一份 —— 读到的是同一份数据。
+        return KernelEnv.hostPrefs
+            ?: context.applicationContext.getSharedPreferences(KernelEnv.hostPrefsName, Context.MODE_PRIVATE)
     }
 }

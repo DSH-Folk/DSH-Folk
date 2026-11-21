@@ -30,7 +30,8 @@ import org.json.JSONObject
  * 600 次/分钟 ≈ 每秒 10 次。批量同步 1 万个小文件会到十倍于它 —— 也就是说正常批量操作**会**
  * 触发记录但不被拦截，这正是「先观测」的意思。
  */
-internal object DshBridgeGuard {
+@InternalKernelApi
+object DshBridgeGuard {
     private const val TAG = "DshBridgeGuard"
 
     /** 滑动窗口长度与窗口内允许的请求数（默认 600/分钟）。 */

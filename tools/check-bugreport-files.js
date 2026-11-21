@@ -18,7 +18,7 @@
 "use strict";
 
 const fs = require("fs");
-const { read, exists } = require("./_paths.js");
+const { read, exists, findable } = require("./_paths.js");
 const PATH = "app/src/main/java/me/bmax/apatch/util/LogEvent.kt";
 
 let failed = 0;
@@ -204,7 +204,9 @@ ok(/fun tailPrevLog\(lines: Int = 2000\)/.test(runtime), "DshRuntime 能读回�
 // 文件、按行首时间戳合并、按 [now − 用户选择窗口, 最新一条] 闭区间裁切」的 dsh.log 覆盖。
 ok(!/dsh-prev\.log/.test(code) && !/tailPrevLog\(2000\)/.test(code),
   "归档不再单独放 dsh-prev.log（按行数 tail(2000) 那条旧路已撤）");
-ok(exists("app/src/main/java/me/bmax/apatch/dsh/DshLogWindow.kt") &&
+// DshLogWindow 已下沉到 :core-kernel（Batch C）：exists 按设计不跨模块回退，
+// 这里要的是"它在某处存在"，所以用 findable。
+ok(findable("dsh/DshLogWindow.kt") &&
   /me\.bmax\.apatch\.dsh\.DshRuntime\.windowedLog\(window\.minutes\)/.test(code),
   "归档的 dsh.log 改走新的窗口裁切（DshLogWindow 存在，并且被 LogEvent 的 windowedLog 调用）");
 ok(/fun appLogFiles\(\)[\s\S]{0,200}?DshEnv\.logFiles\(appContext\)/.test(runtime) &&

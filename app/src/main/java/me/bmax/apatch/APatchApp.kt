@@ -169,6 +169,17 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
         // 真正落盘，而扩展加载是这条路径上最需要日志的一段（加载失败、dex 只读被拒、onLoad 抛异常）。
         // 顺序反了就会出现真机实测到的那种情况：dsh.log 里一条 [ext] 都没有，装没装上、
         // 为什么没生效 —— 全靠猜。这个 bug 实际踩过（beta.238 的 shell 扩展不生效却无任何日志）。
+        // 内核需要的宿主常量：:core-kernel 不能引用 :app 的 BuildConfig / APApplication，
+        // 但版本号、APATCH_FOLDER、以及**同一份** prefs 必须由宿主给出。
+        // 必须排在 bootstrap 之前 —— 扩展加载路径上就会用到这些值。
+        me.bmax.apatch.dsh.KernelEnv.install(
+            appVersionName = BuildConfig.VERSION_NAME,
+            isDebugBuild = BuildConfig.DEBUG,
+            apatchFolder = APATCH_FOLDER,
+            appVersionCode = BuildConfig.VERSION_CODE,
+            hostPrefs = sharedPreferences,
+            hostPrefsName = SP_NAME,
+        )
         ExtensionEngine.bootstrap(this)
         // ③ bootstrap 会跑扩展的 onLoad，而 onLoad 里可以换掉根崩溃处理器（见 [hostCrashHandler]）。
         //    这里立刻复原一次，保证后面所有崩溃仍然回到宿主手里。

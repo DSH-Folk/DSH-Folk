@@ -15,7 +15,8 @@ import me.bmax.apatch.res.R as CoreR
  * 那样虽然「调用点零改动」，却把整个单例的内部面摊平了 —— 这里改成显式接口，只交出需要的
  * 那几个口子（和 DshRuntimeFiles/DshRuntimeScripts 同一套做法）。
  */
-internal interface DshRuntimeLog {
+@InternalKernelApi
+interface DshRuntimeLog {
     fun info(resId: Int, vararg args: Any)
     fun warn(resId: Int, vararg args: Any)
 }
@@ -27,7 +28,8 @@ internal interface DshRuntimeLog {
  * DshRuntime 的 private 成员。上一轮这两个函数搬不动，原因就是没把它们的依赖闭包一起带走
  * （`androidGroupName`、`supplementaryGids`、`AID` 表、`joinForLog`、两个常量）。
  */
-internal object DshRuntimeEnv {
+@InternalKernelApi
+object DshRuntimeEnv {
     /** profile 在容器里的相对路径（`allowProfileBuilds` 与 DshRuntime 里另外两处都要用）。 */
     const val PROFILE_GUEST_REL = "root/.dsh/profiles/web"
 
