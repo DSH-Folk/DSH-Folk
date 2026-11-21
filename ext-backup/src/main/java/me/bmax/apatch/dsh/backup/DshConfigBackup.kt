@@ -28,7 +28,7 @@ import me.bmax.apatch.dsh.backup.ExportPlan
 import me.bmax.apatch.dsh.backup.DshBackupArchive
 import me.bmax.apatch.dsh.ext.seam.SeamRegistry
 import me.bmax.apatch.dsh.DshEnv
-import me.bmax.apatch.dsh.DshAppData
+import me.bmax.apatch.dsh.backup.DshAppData
 
 /**
  * DSH 配置备份 / 迁移。

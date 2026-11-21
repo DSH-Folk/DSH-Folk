@@ -42,7 +42,7 @@ const MOVED = {
   "app/src/main/java/me/bmax/apatch/dsh/DshConfigBackup.kt":
     "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshConfigBackup.kt",
   "app/src/main/java/me/bmax/apatch/dsh/DshAppData.kt":
-    "core-kernel/src/main/java/me/bmax/apatch/dsh/DshAppData.kt",
+    "ext-backup/src/main/java/me/bmax/apatch/dsh/backup/DshAppData.kt",
   "app/src/main/java/me/bmax/apatch/util/BackupLogManager.kt":
     "core-kernel/src/main/java/me/bmax/apatch/dsh/BackupLogManager.kt",
   // 收口轮（务实策略）：不硬拆 DshNativeBridge，改用 NativeBridgeSeam 隔离后搬迁。

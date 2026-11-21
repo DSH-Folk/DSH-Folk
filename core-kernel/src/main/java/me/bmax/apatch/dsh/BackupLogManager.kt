@@ -2,7 +2,6 @@ package me.bmax.apatch.dsh
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.bmax.apatch.apApp
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -13,7 +12,9 @@ object BackupLogManager {
 
     /** 超过它就把旧内容砍掉一半（导出/导入每一步都记账，日志会长得很快）。 */
     private const val MAX_BYTES = 512L * 1024L
-    private val logFile: File by lazy { File(apApp.filesDir, LOG_FILE_NAME) }
+    // 不用 apApp（:app 的全局）：:core-kernel 够不着它。DshKernelState 的
+    // appContext 就是同一个 Application，且它本来就负责「宿主上下文从哪来」。
+    private val logFile: File by lazy { File(DshKernelState.appContext.filesDir, LOG_FILE_NAME) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     /**

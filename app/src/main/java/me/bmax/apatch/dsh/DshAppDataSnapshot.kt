@@ -9,6 +9,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import org.json.JSONObject
 import me.bmax.apatch.dsh.backup.DshBackupArchive
+import me.bmax.apatch.dsh.backup.DshAppData
 
 /**
  * 软件设置的本地快照（「恢复快照」能不能把设置也退回去的关键）。
