@@ -315,7 +315,7 @@ const server = http.createServer((req, res) => {
     ok(/const doc = '\/root\/\.dsh\/dsh-native-troubleshoot\.txt'/.test(script),
       "清单路径固定在容器内 /root/.dsh/dsh-native-troubleshoot.txt");
     ok(/TROUBLESHOOT_DOC_NAME = "dsh-native-troubleshoot\.txt"/.test(kt) &&
-      /File\(DshEnv\.dshHome\((?:K\.)?appContext\), TROUBLESHOOT_DOC_NAME\)/.test(kt) &&
+      /File\(DshEnv\.dshHome\((?:K\.)?appContext\), (?:DshRuntime\.)?TROUBLESHOOT_DOC_NAME\)/.test(kt) &&
       /DshRuntimeFiles\.writeIfChanged\(/.test(kt),
       "App 侧把清单写进 rootfs/root/.dsh（DshEnv.dshHome），与 CLI 的路径一致");
     // 实现在 DshRuntimeScripts（ctx 参数），DshRuntime 只留一行委托。
