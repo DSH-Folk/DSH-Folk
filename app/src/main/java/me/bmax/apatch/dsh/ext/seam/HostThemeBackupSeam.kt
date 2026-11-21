@@ -12,16 +12,23 @@ import me.bmax.apatch.ui.theme.ThemeManager
  */
 internal object HostThemeBackupSeam : ThemeBackupSeam {
     override fun measureThemeZipBytes(ctx: Context, meta: ThemeBackupSeam.ThemeMetadata): Long =
-        runCatching { ThemeIO.measureThemeZip(ctx, meta.toHost()) }.getOrDefault(-1L)
+        // 三个 Theme 方法都是 suspend（内部切 IO、可能要压缩几十 MB）。
+        // seam 接口是同步的：调用方（备份管线）本来就是阻塞式的一步步走，
+        // 给它 suspend 会逼整条链改成协程。runBlocking 桥一下，语义是「等它算完」。
+        runCatching { kotlinx.coroutines.runBlocking { ThemeIO.measureThemeZip(ctx, meta.toHost()) } }
+            .getOrDefault(-1L)
 
     override fun exportTheme(
         ctx: Context,
         target: Uri,
         meta: ThemeBackupSeam.ThemeMetadata,
-    ): Boolean = runCatching { ThemeManager.exportTheme(ctx, target, meta.toHost()) }.getOrDefault(false)
+    ): Boolean = runCatching {
+        kotlinx.coroutines.runBlocking { ThemeManager.exportTheme(ctx, target, meta.toHost()) }
+    }.getOrDefault(false)
 
     override fun importTheme(ctx: Context, source: Uri): Boolean =
-        runCatching { ThemeManager.importTheme(ctx, source) }.getOrDefault(false)
+        runCatching { kotlinx.coroutines.runBlocking { ThemeManager.importTheme(ctx, source) } }
+            .getOrDefault(false)
 
     private fun ThemeBackupSeam.ThemeMetadata.toHost() = ThemeManager.ThemeMetadata(
         name = name,
