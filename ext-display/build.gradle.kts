@@ -66,6 +66,10 @@ dependencies {
     // 之前能编过是靠 :app 的传递依赖，迁进独立模块后必须显式声明。
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.savedstate)
+    // `androidx.core.graphics.drawable.toBitmap` / `androidx.core.view.*` ——
+    // 之前靠 :app 的传递依赖，迁进独立模块后必须显式声明。
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation(libs.androidx.lifecycle.viewmodel)
 
     // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
     // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。

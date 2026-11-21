@@ -35,7 +35,8 @@ const exists = (p) => require("./_paths.js").exists(p);
 const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const SERVER_DIR = 'displayserver/src/main/java/me/bmax/apatch/display';
-const APP_PROTO_DIR = 'app/src/main/java/me/bmax/apatch/display';
+// 协议类已迁 :ext-display（Checkpoint 3）。保留常量名兼容，但指向新位置。
+const APP_PROTO_DIR = 'ext-display/src/main/java/me/bmax/apatch/display';
 
 // ── 1. 服务端源码清单 ──
 // 只保留 app_process 真正需要的类：没有 MainActivity、没有 ui/theme（那是 Compose）。
@@ -74,9 +75,12 @@ for (const f of actualServer) {
 // ── 2. 两端共享的 Binder 协议类必须在 app 源码树里 ──
 // 它们在 App 侧与服务端侧都要存在（Binder 的 DESCRIPTOR 必须逐字一致），
 // 但又不能把 13 个服务端专属类也编进 App 的 dex。
+// 协议类已迁 :ext-display（Checkpoint 3）：:app 与投屏服务端共用它们，
+// 但两端都要编进各自模块。位置从 app 换到 ext-display。
 const SHARED = ['IDisplayService.java', 'IDisplayVideoSink.java', 'DisplayBinderContainer.java'];
+const EXT_PROTO_DIR = 'ext-display/src/main/java/me/bmax/apatch/display';
 for (const f of SHARED) {
-  must(exists(`${APP_PROTO_DIR}/${f}`), `app 侧缺协议类 ${f}`);
+  must(exists(`${EXT_PROTO_DIR}/${f}`), `ext-display 侧缺协议类 ${f}`);
   must(!exists(`${SERVER_DIR}/${f}`), `${f} 应只存在于 app 源码树（服务端构建时引用它），不该在 displayserver 里`);
 }
 
