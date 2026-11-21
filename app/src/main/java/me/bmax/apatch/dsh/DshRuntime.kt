@@ -620,6 +620,11 @@ object DshRuntime : DshRuntimeHost {
      * 而 HarnessService 在 DOWNLOADING / EXTRACTING 阶段依然会放行 bootstrap，
      * 连点两次启动就会开两条 135MB 下载。用互斥锁 + 阶段判定拦住。
      */
+    /** 强行启动：跳过端口探测，直接走引导（[DshPortConfig] 的 FORCE 分支要用）。 */
+    internal fun bootstrapForced() {
+        scope.launch { bootMutex.withLock { startAndAwait() } }
+    }
+
     override fun bootstrap() {
         scope.launch {
             if (busy()) return@launch

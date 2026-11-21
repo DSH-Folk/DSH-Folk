@@ -1,7 +1,6 @@
 package me.bmax.apatch.dsh
 
 import android.content.Context
-import DshPortConfig.RACE_PLUGINS
 import android.net.Uri
 import android.util.Log
 import me.bmax.apatch.dsh.ext.ExtensionHookRegistry

@@ -75,9 +75,8 @@ object DshPortConfig {
             PortConflictAction.FORCE -> {
                 // 强行启动：跳过端口探测直接拉起（用户明知端口被占仍要用）
                 K.stateFlow.update { it.copy(portConflict = false) }
-                scope.launch {
-                    bootMutex.withLock { startAndAwait() }
-                }
+                // 强制启动要走引导流程的串行锁（三者共用一把，防止并发动 rootfs）。
+                DshRuntime.bootstrapForced()
             }
         }
     }
@@ -86,7 +85,7 @@ object DshPortConfig {
 
     /** 局域网访问开关（默认关）。 */
     fun lanEnabled(): Boolean =
-        ready && K.prefs().getBoolean(DshEnv.KEY_LAN, false)
+        K.ready && K.prefs().getBoolean(DshEnv.KEY_LAN, false)
 
     fun setLanEnabled(enabled: Boolean) {
         if (!K.ready) return
@@ -102,7 +101,7 @@ object DshPortConfig {
 
     /** 竞速通道**总开关**（默认开）。关掉时 [raceEnabled] 一律返回 false。 */
     fun raceMasterEnabled(): Boolean =
-        !ready || K.prefs().getBoolean(DshEnv.KEY_RACE_MASTER, true)
+        !K.ready || K.prefs().getBoolean(DshEnv.KEY_RACE_MASTER, true)
 
     fun setRaceMasterEnabled(enabled: Boolean) {
         if (!K.ready) return
@@ -122,7 +121,7 @@ object DshPortConfig {
             RACE_RUNTIME -> DshEnv.KEY_RACE_RUNTIME
             else -> return false
         }
-        return !ready || K.prefs().getBoolean(key, true)
+        return !K.ready || K.prefs().getBoolean(key, true)
     }
 
     fun setRaceEnabled(channel: String, enabled: Boolean) {
@@ -145,7 +144,7 @@ object DshPortConfig {
      * 独立成立 —— 有人只在手动打开时必须自动跑起来，不想让它在后台常驻到开机。
      */
     fun autoStartOnLaunch(): Boolean =
-        ready && K.prefs().getBoolean(DshEnv.KEY_AUTO_START_ON_LAUNCH, false)
+        K.ready && K.prefs().getBoolean(DshEnv.KEY_AUTO_START_ON_LAUNCH, false)
 
     fun setAutoStartOnLaunch(enabled: Boolean) {
         if (!K.ready) return
@@ -154,7 +153,7 @@ object DshPortConfig {
 
     /** 服务就绪后是否自动打开 DSH 页面（默认关）。 */
     fun autoOpenWebUi(): Boolean =
-        ready && K.prefs().getBoolean(DshEnv.KEY_AUTO_OPEN_WEBUI, false)
+        K.ready && K.prefs().getBoolean(DshEnv.KEY_AUTO_OPEN_WEBUI, false)
 
     fun setAutoOpenWebUi(enabled: Boolean) {
         if (!K.ready) return
