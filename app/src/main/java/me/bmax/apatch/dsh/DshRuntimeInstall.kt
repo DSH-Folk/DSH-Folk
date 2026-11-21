@@ -7,6 +7,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
@@ -38,6 +39,16 @@ object DshRuntimeInstall {
 
     /** 短名，避免每行都写 [DshKernelState]。 */
     private val K get() = DshKernelState
+
+    /**
+     * 自身引用。
+     *
+     * `withLock { }` 的 lambda 接收者是 `Mutex`，把外层 object 的 `this` 遮住了 ——
+     * 于是 lambda 里直接写 `clearSeedLedger()` 会报 "receiver type mismatch"。
+     * `DshRuntimeInstall.clearSeedLedger()` 也不行（同样受遮蔽影响）。
+     * 用一个普通属性拿到自身引用最可靠。
+     */
+    private val self get() = this
 
 
     /** 取（或首先生成）文件桥 token。 */
@@ -250,17 +261,17 @@ object DshRuntimeInstall {
         K.scope.launch {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
-                DshRuntimeInstall.clearSeedLedger()
+                self.clearSeedLedger()
                 downloadAndInstall(preserveData, newest = true)
                 if (K.current.phase != DshPhase.ERROR) {
-                    DshRuntimeInstall.setupResolvConf()
+                    self.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    DshRuntimeInstall.ensureFsBridgeCli()
+                    self.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     // 装完**不一定要**立刻拉起来：首页那条「安装」路径要把「装完」与
                     // 「启动」拆成两步，由用户在弹窗里自己决定。不拆的话，用户点「安装」
                     // 之后容器直接跑起来，而他想先看一眼装了什么的机会就没有了。
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else self.markInstalledIdle()
                 }
             }
         }
@@ -271,15 +282,15 @@ object DshRuntimeInstall {
             K.bootMutex.withLock {
                 DshRuntime.stopServer()
                 // 重装等于换了一套全新 rootfs，容器里的插件确实没了，该重新预装
-                DshRuntimeInstall.clearSeedLedger()
+                self.clearSeedLedger()
                 // 重装 = 装回已装那一份，不跟着通道走（否则「重装」会变成静默升级）
                 downloadAndInstall(preserveData, newest = false)
                 if (K.current.phase != DshPhase.ERROR) {
-                    DshRuntimeInstall.setupResolvConf()
+                    self.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    DshRuntimeInstall.ensureFsBridgeCli()
+                    self.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
-                    if (autoStart) DshRuntime.startAndAwaitForInstall() else DshRuntimeInstall.markInstalledIdle()
+                    if (autoStart) DshRuntime.startAndAwaitForInstall() else self.markInstalledIdle()
                 }
             }
         }
@@ -298,7 +309,7 @@ object DshRuntimeInstall {
                 DshLogging.clearLog()
                 DshLogging.logInfo(CoreR.string.dsh_log_switch_runtime, entry.version, entry.tag)
                 DshRuntime.stopServer()
-                DshRuntimeInstall.clearSeedLedger()
+                self.clearSeedLedger()
                 K.stateFlow.update {
                     it.copy(
                         phase = DshPhase.DOWNLOADING,
@@ -309,9 +320,9 @@ object DshRuntimeInstall {
                 }
                 installMeta(entry.toMeta(), preserveData)
                 if (K.current.phase != DshPhase.ERROR) {
-                    DshRuntimeInstall.setupResolvConf()
+                    self.setupResolvConf()
                     DshRuntime.seedPluginsForInstall()
-                    DshRuntimeInstall.ensureFsBridgeCli()
+                    self.ensureFsBridgeCli()
                     if (DshRuntime.checkPortConflictForInstall()) return@withLock
                     DshRuntime.startAndAwaitForInstall()
                 }
@@ -372,9 +383,9 @@ object DshRuntimeInstall {
                     )
                 }
                 DshRuntime.refreshRootfsSize()
-                DshRuntimeInstall.setupResolvConf()
+                self.setupResolvConf()
                 DshRuntime.seedPluginsForInstall()
-                DshRuntimeInstall.ensureFsBridgeCli()
+                self.ensureFsBridgeCli()
                 if (!DshRuntime.checkPortConflictForInstall()) DshRuntime.startAndAwaitForInstall()
             }
         }
@@ -574,7 +585,7 @@ object DshRuntimeInstall {
         val suffix = if (want == "arm64-v8a") "" else "-x86_64"
         // version 去重：同一个版本串可能同时挂在滚动 tag 与历史 tag 上，保留通道权重高的那份
         val found = LinkedHashMap<String, RuntimeVersion>()
-        internal fun keep(entry: RuntimeVersion) {
+        fun keep(entry: RuntimeVersion) {
             val prev = found[entry.version]
             if (prev == null ||
                 RuntimeVersion.channelRank(entry.channel) < RuntimeVersion.channelRank(prev.channel)
@@ -582,7 +593,7 @@ object DshRuntimeInstall {
                 found[entry.version] = entry
             }
         }
-        internal fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
+        fun entryOf(tag: String, published: String, meta: DshMeta) = RuntimeVersion(
             version = meta.version,
             tag = tag,
             channel = RuntimeVersion.channelOf(tag),
@@ -610,7 +621,7 @@ object DshRuntimeInstall {
             }
             for ((tag, published, meta) in metas) {
                 if (meta.arch.isNotEmpty() && meta.arch != want) continue
-                DshRuntimeInstall.keep(DshRuntimeInstall.entryOf(tag, published, meta))
+                self.keep(self.entryOf(tag, published, meta))
             }
         }
 
