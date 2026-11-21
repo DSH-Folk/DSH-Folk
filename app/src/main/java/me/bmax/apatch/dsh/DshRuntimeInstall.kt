@@ -131,7 +131,7 @@ object DshRuntimeInstall {
         // 统一汇合点（安装、重装、切通道、启动都会走到）。扩展的命令因此不会出现
         // "装完运行时还得重启一次应用才生效"的窗口。
         runCatching {
-            me.bmax.apatch.dsh.ext.ExtensionEngine.me.bmax.apatch.dsh.ext.ExtensionEngine.notifyContainerReady(K.appContext)
+            ExtensionEngine.notifyContainerReady(K.appContext)
         }.onFailure { android.util.Log.w(DshRuntime.TAG, "通知扩展容器就绪失败: ${it.message}") }
         runCatching {
             DshRuntimeFiles.writeIfChanged(

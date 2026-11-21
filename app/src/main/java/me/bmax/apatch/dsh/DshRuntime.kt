@@ -36,7 +36,7 @@ import me.bmax.apatch.res.R as CoreR
 
 /** 运行时阶段。 */
 object DshRuntime : DshRuntimeHost {
-    private const val TAG = "DSH-Folk"
+    internal const val TAG = "DSH-Folk"
 
 
 
