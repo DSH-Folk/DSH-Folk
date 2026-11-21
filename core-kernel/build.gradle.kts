@@ -73,6 +73,9 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.com.github.topjohnwu.libsu.core)
     implementation(libs.com.github.topjohnwu.libsu.service)
+    // Shizuku：PermissionManager 判权限时要用 rikka.shizuku.Shizuku
+    implementation(libs.dev.rikka.shizuku.api)
+    implementation(libs.dev.rikka.shizuku.provider)
 
     // 单测：Batch B 起每个模块都要有真正的测试（熔断、迁移幂等、路径穿越、加密往返、
     // 工作流环检测、能力路由）。整个仓库此前零单测，这是从 0 开始的那一步。

@@ -211,7 +211,15 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
                 effectiveRuntimeId = DshRuntime.effectiveRuntimeId(),
                 restrictMode = PrivPolicy.restrictMode(c),
                 restrictedCaps = if (nativeOn) PrivPolicy.restrictedCaps(c).sorted() else emptyList(),
-                elevationJson = reach?.let { me.bmax.apatch.dsh.DshHostPrompt.elevationJsonFor(c) },
+                // 提权通道由宿主序列化成 JSON：PrivilegedShell 依赖 :app 的 AIDL，
+                // 内核拿不到结构化对象。
+                elevationJson = reach?.let {
+                    org.json.JSONObject()
+                        .put("channel", it.channel.name.lowercase())
+                        .put("uid", it.uid)
+                        .put("canRoot", it.canRoot)
+                        .toString()
+                },
                 rootChannelActive = reach?.channel == PermissionManager.Channel.ROOT,
                 suPath = PrivilegedShell.resolveSuPath(c),
             )

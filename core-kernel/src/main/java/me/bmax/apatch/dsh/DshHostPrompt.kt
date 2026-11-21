@@ -414,10 +414,9 @@ object DshHostPrompt {
      * 调用会不会弹出确认框。没有通道时返回 null。
      */
     private fun elevationJson(ctx: Context): Any {
-        val reach = hf.elevationJson ?: return JSONObject.NULL
-        return JSONObject()
-            .put("channel", reach.channel.name.lowercase())
-            .put("uid", reach.uid)
-            .put("canRoot", reach.canRoot)
+        // 提权通道存在 :app 侧（PrivilegedShell 依赖 AIDL），内核拿不到结构化对象，
+        // 所以宿主把已经序列化好的 JSON 放进 HostFacts。这里原样透传。
+        val json = KernelEnv.hostFacts(ctx).elevationJson ?: return JSONObject.NULL
+        return runCatching { JSONObject(json) }.getOrElse { JSONObject.NULL }
     }
 }
