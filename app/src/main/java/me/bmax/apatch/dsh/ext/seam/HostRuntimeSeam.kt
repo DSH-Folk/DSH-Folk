@@ -62,8 +62,13 @@ internal class HostRuntimeSeam : RuntimeSeam {
         DshRuntime.attach(context)
     }
 
+    // DshRuntime.awaitRunning 是 suspend（它内部真的在挂起等待运行时起来），
+    // 而 seam 接口是同步的 —— 调用方（工作流节点）本来就在自己的一轮同步逻辑里，
+    // 给它 suspend 会逼整条链改成协程。这里 runBlocking 桥一下：
+    // 代价是阻塞当前线程直到就绪或超时，而这正是「等工作流依赖的运行时」该有的语义。
     override fun awaitRunning(timeoutMs: Long): Boolean =
-        runCatching { DshRuntime.awaitRunning(timeoutMs) }.getOrDefault(false)
+        runCatching { kotlinx.coroutines.runBlocking { DshRuntime.awaitRunning(timeoutMs) } }
+            .getOrDefault(false)
 
     override fun start(context: android.content.Context): Boolean =
         runCatching { me.bmax.apatch.dsh.HarnessService.start(context); true }.getOrDefault(false)
