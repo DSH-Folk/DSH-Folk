@@ -126,8 +126,6 @@ import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.WebScripts
 import androidx.core.view.WindowCompat
 import androidx.core.view.ViewCompat
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 
 /**
  * WebUI 打开方式。
@@ -330,14 +328,16 @@ class DshWebUiActivity : AppCompatActivity() {
      */
     private var cssInsetTop = 0
 
-    /**
-     * WebView 在**窗口**里的实际顶边偏移（px）。
-     *
-     * 正常是 0（WebView 铺满到窗口最顶）。但退出画中画、多窗口、或某些 ROM 强制
-     * 把 decorView 下推之后，它会变成一个正数 —— 那时窗口顶部已经有系统在避让，
-     * CSS 就不该再垫同样的高度。见 [restoreEdgeToEdge] 与 cssTop 的扣减。
-     */
-    private var webViewTopPx by mutableIntStateOf(0)
+    /** 上一次布局回调里 View 的 top，用来去重（同一次布局会被回调多次）。 */
+    private var lastLayoutTop = Int.MIN_VALUE
+
+    /** 系统状态栏高度（px）。由 Compose 侧写入，[syncInsetsFromLayout] 读取。 */
+    @Volatile
+    private var statusBarTopPx = 0
+
+    /** 当前 density。同上，给 [syncInsetsFromLayout] 做 px→dp 换算。 */
+    @Volatile
+    private var statusBarDensity = 1f
     private var cssInsetRight = 0
     private var cssInsetBottom = 0
     private var cssInsetLeft = 0
@@ -375,6 +375,14 @@ class DshWebUiActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 显式声明 edge-to-edge，不依赖系统隐式强制。
+        //
+        // Android 15+ 对 targetSdk 35 的应用会强制 edge-to-edge，主题里不写也是这个效果 ——
+        // 但"隐式强制"在退出画中画、多窗口切换这类窗口重建时机并不可靠：系统会按普通窗口
+        // 重算一次 fitsSystemWindows，把内容往下推。自己声明一次，等于给系统一个明确状态，
+        // 后面 [restoreEdgeToEdge] 的再次声明才是"恢复"而不是"第一次设置"。
+        runCatching { WindowCompat.setDecorFitsSystemWindows(window, false) }
 
         val url = intent?.getStringExtra(EXTRA_URL)?.takeIf { it.isNotBlank() }
             ?: DshRuntime.webUrl()
@@ -505,14 +513,6 @@ class DshWebUiActivity : AppCompatActivity() {
                 )
                 // CSS 像素就是 dp，WebView 的视口按 dp 计
                 fun toCss(px: Int): Int = (px / density.density).roundToInt()
-                // 扣掉 WebView 自身在窗口里的顶边偏移。
-                //
-                // 正常情况下 webViewTopPx = 0，结果就是 insetTopPx 本身，行为不变。
-                // 但一旦窗口被系统往下推了（退出 PiP 后个别 ROM 会这么做），原生已经
-                // 避让过一次，CSS 再垫同样高度就是双倍 —— 这里扣成 0 兜住。
-                // 用 coerceAtLeast(0) 而不是直接相减：两个值来自不同的分发时机，
-                // 中间态可能出现 webViewTopPx > insetTopPx，负数 padding 会让页面塌掉。
-                val cssTop = toCss((insetTopPx - webViewTopPx).coerceAtLeast(0))
                 val cssLeft = toCss(insetLeftPx)
                 val cssRight = toCss(insetRightPx)
                 // 键盘弹起时 WebView 会被抬到键盘上方（键盘本身盖住了手势条），再让页面留一条
@@ -520,18 +520,22 @@ class DshWebUiActivity : AppCompatActivity() {
                 // 开始就到位）而非 ime（逐帧插值），与下面 windowInsetsPadding 的抬升保持同步。
                 val cssBottom = if (WindowInsets.imeAnimationTarget.getBottom(density) > 0) 0 else toCss(insetBottomPx)
                 SideEffect {
-                    cssInsetTop = cssTop
                     cssInsetRight = cssRight
                     cssInsetBottom = cssBottom
                     cssInsetLeft = cssLeft
                 }
-                // 尺寸变了（转屏、折叠、键盘）就同步给页面。首次组合时 WebView 还没建，
-                // 那一次没关系：factory 会把这几个值直接写进 document-start 脚本。
-                LaunchedEffect(cssTop, cssRight, cssBottom, cssLeft) {
-                    webView?.evaluateJavascript(
-                        insetUpdateScript(cssTop, cssRight, cssBottom, cssLeft),
-                        null,
-                    )
+                // 顶部**不在这里算**：它要扣掉窗口被系统下推的量，而那个量只有
+                // View.getLocationOnScreen 测得到（见 [syncInsetsFromLayout]）。
+                // 这里只把系统状态栏高度交给那个函数，并触发一次同步。
+                SideEffect {
+                    statusBarTopPx = insetTopPx
+                    statusBarDensity = density.density
+                }
+                // 尺寸变了（转屏、折叠、键盘、状态栏显隐）就同步给页面。
+                // 顶部高度在 [syncInsetsFromLayout] 里按屏幕坐标重算，这里传的是
+                // 它算好的结果（首次组合时 WebView 还没建，factory 会写进 document-start 脚本）。
+                LaunchedEffect(insetTopPx, cssRight, cssBottom, cssLeft) {
+                    syncInsetsFromLayout()
                 }
 
                 Box(
@@ -547,17 +551,7 @@ class DshWebUiActivity : AppCompatActivity() {
                             // 改 WebView 高度，WebView 117 每帧重排又慢又卡，输入框「慢半拍才跟上」。
                             // 目标高度让 WebView 只重排一次、一步抬到键盘上方（这是壳侧能做到的最优；
                             // 逐帧跟随需 WebView M139 的 visual-viewport IME 支持，本机内核给不了）。
-                            .windowInsetsPadding(WindowInsets.imeAnimationTarget)
-                            // 记下 WebView 在窗口里的实际顶边。
-                            //
-                            // 这是"防双倍顶栏"的第二层保险：即便某个 ROM 在退出 PiP 后
-                            // 坚持把窗口下推，cssTop 也会按这个偏移扣成 0，而不是叠加。
-                            // 用 onGloballyPositioned 而不是读 layoutParams：后者拿到的是
-                            // 相对父容器的坐标，父容器本身可能已经被下推了。
-                            .onGloballyPositioned { coords ->
-                                val top = coords.positionInWindow().y.roundToInt()
-                                if (top != webViewTopPx) webViewTopPx = top
-                            },
+                            .windowInsetsPadding(WindowInsets.imeAnimationTarget),
                         factory = { ctx ->
                             WebView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
@@ -839,7 +833,21 @@ class DshWebUiActivity : AppCompatActivity() {
                                 // 补一次恢复：本页 WebView 是在 Compose factory 里创建的，而 onStart 早于
                                 // 第一次组合 —— 若上一轮 onStop 暂停了全局定时器之后本页被系统回收重建，
                                 // onStart 那次 resumeTimers() 会打在 null 上，新实例就停在「已暂停」状态。
-                                // resumeWebView() 幂等，在新实例上调用也无害。
+                                // resumeWebView()
+                                // 布局一变就按屏幕坐标重算顶部内边距。
+                                //
+                                // 这是防双倍顶栏的主力：系统改窗口布局（退出 PiP、多窗口、
+                                // 转屏）都会走到这里，而那一刻 getLocationOnScreen 量到的
+                                // 才是"窗口被推下去多少"。用 View 的监听而不是 Compose 的
+                                // onGloballyPositioned —— 后者给的是相对窗口的坐标，窗口整体
+                                // 下推时它仍是 0，扣减会完全失效（第一版就是这么错的）。
+                                addOnLayoutChangeListener { _, _, top, _, _, _, _, _, _ ->
+                                    if (top != lastLayoutTop) {
+                                        lastLayoutTop = top
+                                        syncInsetsFromLayout()
+                                    }
+                                }
+ 幂等，在新实例上调用也无害。
                                 resumeWebView()
                                 loadUrl(url)
                                 loadedWebToken = DshRuntime.state.value.webToken
@@ -1103,7 +1111,73 @@ class DshWebUiActivity : AppCompatActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPip.value = isInPictureInPictureMode
-        if (!isInPictureInPictureMode) restoreEdgeToEdge()
+        if (!isInPictureInPictureMode) {
+            restoreEdgeToEdge()
+            // 立刻同步一次：让页面尽快回到正确状态，用户不会先看到双倍顶栏再跳回来。
+            window.decorView.post { syncInsetsFromLayout() }
+            // 再补一次（350ms）：PiP 放大动画通常 200–400ms，动画结束的瞬间系统会
+            // 再刷一次窗口布局 —— 那一下会把我们刚设的 decorFitsSystemWindows 冲掉。
+            // 只做一次 post（16ms）必然早于动画结束，这正是第一版没生效的原因。
+            window.decorView.postDelayed({
+                if (!isInPictureInPictureMode) {
+                    restoreEdgeToEdge()
+                    syncInsetsFromLayout()
+                }
+            }, PIP_RESTORE_DELAY_MS)
+        }
+    }
+
+    /**
+     * 按 WebView 的**屏幕坐标**重算顶部内边距并下发给页面。
+     *
+     * ## 为什么单独一个函数，而不是在 Compose 里算
+     *
+     * 触发时机有三个，且都不受 Compose 控制：
+     *  1. 布局变化（WebView 的 OnLayoutChangeListener）；
+     *  2. 退出画中画（窗口被系统重排）；
+     *  3. PiP 放大动画结束后（约 350ms，系统可能在那时又刷一次布局）。
+     *
+     * 等 Compose 重组再算，可能已经晚了一帧，用户看到的是"先双倍、再跳回来"。
+     * 这里命令式地量、命令式地下发，是唯一能跟上的做法。
+     *
+     * ## 为什么必须用屏幕坐标（getLocationOnScreen），不能用窗口坐标
+     *
+     * 第一版用的是 Compose 的 `positionInWindow().y`，**扣减完全没生效** —— 真机复现
+     * 确认。原因是坐标系选错了：退出画中画后，系统是把**整个 Window**（连同内容帧）
+     * 推到状态栏下方的，而 WebView 在**窗口内部**依然贴顶，所以
+     * `positionInWindow().y` 仍然返回 0。减 0 等于没减。
+     *
+     * 只有 `getLocationOnScreen` 量得到「WebView 顶边离物理屏幕最上沿多远」——
+     * 窗口被下推多少，它就是多少。扣掉它，CSS 就只补系统**没**避让的那部分，
+     * 两者相加恰好等于状态栏高度。
+     */
+    private fun syncInsetsFromLayout() {
+        val wv = webView ?: return
+        // 还没量过状态栏：首次布局回调可能早于 Compose 的 SideEffect 写入这两个值。
+        // 那时按 0 算会把 cssTop 也算成 0 —— 页面顶栏直接贴到状态栏后面。
+        // 直接返回，等 Compose 那边写好再触发（它的 LaunchedEffect 会调一次）。
+        if (statusBarDensity <= 0f || statusBarTopPx <= 0) return
+        val loc = IntArray(2)
+        runCatching { wv.getLocationOnScreen(loc) }.onFailure { return }
+        val y = loc[1]
+        // 原生已避让的量与状态栏高度取差，负数归零：两个值来自不同分发时机，
+        // 中间态可能出现 y > statusBarTopPx，负数 padding 会让页面塌掉。
+        val effectiveTopPx = (statusBarTopPx - y).coerceAtLeast(0)
+        val cssTop = (effectiveTopPx / statusBarDensity).roundToInt()
+        cssInsetTop = cssTop
+        // 诊断日志：真机再出异常时，这一行能直接区分「原生没下推」(y=0)、
+        // 「下推了但没扣」(y>0 且 cssTop 没变)、「扣了但页面没收到」。
+        Log.i(
+            TAG,
+            "inset sync: statusTop=$statusBarTopPx screenY=$y cssTop=$cssTop " +
+                "inPip=" + isInPictureInPictureMode,
+        )
+        runCatching {
+            wv.evaluateJavascript(
+                insetUpdateScript(cssTop, cssInsetRight, cssInsetBottom, cssInsetLeft),
+                null,
+            )
+        }
     }
 
     /**
@@ -1128,7 +1202,11 @@ class DshWebUiActivity : AppCompatActivity() {
     private fun restoreEdgeToEdge() {
         runCatching {
             WindowCompat.setDecorFitsSystemWindows(window, false)
-            window.decorView.post { ViewCompat.requestApplyInsets(window.decorView) }
+            window.decorView.post {
+                ViewCompat.requestApplyInsets(window.decorView)
+                // 重算 insets 之后窗口位置可能刚变，立刻把新的屏幕坐标同步给页面。
+                syncInsetsFromLayout()
+            }
         }.onFailure { Log.w(TAG, "恢复 edge-to-edge 失败", it) }
     }
 
@@ -1473,6 +1551,15 @@ class DshWebUiActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_URL = "dsh_webui_url"
         private const val TAG = "DshWebUi"
+
+        /**
+         * 退出画中画后补刷 edge-to-edge 的延迟（ms）。
+         *
+         * PiP 放大回全屏的动画通常 200–400ms。系统在**动画结束那一刻**会再刷一次
+         * 窗口布局，把 decorFitsSystemWindows 按普通窗口重算 —— 只做一次
+         * `post { }`（约 16ms 后）必然早于它，等于白做。350ms 落在常见动画时长之后。
+         */
+        private const val PIP_RESTORE_DELAY_MS = 350L
 
         /** 下载落地的公共子目录（用户找得到）。 */
         private const val PUBLIC_SUBDIR = "DSH-Folk"
