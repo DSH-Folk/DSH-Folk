@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -123,9 +124,10 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                 text = if (granted) {
                     stringResource(CoreR.string.dsh_a11y_fix_granted)
                 } else {
-                    val r = reach?.takeIf { it.usable }
-                    if (r != null) {
-                        stringResource(CoreR.string.dsh_a11y_fix_grant_now_summary, r.channel.name.lowercase())
+                    // 同上：先在组合作用域外算好，再取文案。
+                    val ch = reach?.takeIf { it.usable }?.channel
+                    if (ch != null) {
+                        stringResource(CoreR.string.dsh_a11y_fix_grant_now_summary, ch.name.lowercase())
                     } else {
                         stringResource(CoreR.string.dsh_a11y_fix_need_permission)
                     }
@@ -150,8 +152,10 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                 if (!granted) {
                     // 有可用特权通道时优先给「一键授予」：用户很可能已经配好 Shizuku/root，
                     // 让他为一条 pm grant 去插数据线开电脑是把已有能力白白浪费掉。
-                    val usableReach = reach?.takeIf { it.usable }
-                    if (usableReach != null) {
+                    // takeIf 的 lambda 不是 @Composable 上下文，里面不能调 stringResource。
+                    // 先算好布尔值，再在组合作用域里取文案。
+                    val hasUsableChannel = reach?.usable == true
+                    if (hasUsableChannel) {
                         Button(
                             enabled = !busy,
                             onClick = {

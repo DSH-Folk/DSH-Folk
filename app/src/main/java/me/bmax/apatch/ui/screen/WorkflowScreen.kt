@@ -77,6 +77,7 @@ import me.bmax.apatch.dsh.workflow.WorkflowValidator
 import me.bmax.apatch.dsh.workflow.WorkflowDefinition
 import me.bmax.apatch.dsh.workflow.WorkflowRun
 import me.bmax.apatch.dsh.workflow.WorkflowRunState
+import me.bmax.apatch.dsh.workflow.effectiveCaps
 import me.bmax.apatch.dsh.workflow.isStaleFormat
 import me.bmax.apatch.dsh.workflow.toJson
 
