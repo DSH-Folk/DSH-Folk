@@ -10,7 +10,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.KernelEnv
-import me.bmax.apatch.dsh.compareVersions
+import me.bmax.apatch.dsh.compareAppVersions
 import me.bmax.apatch.dsh.DshSource
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,12 +21,12 @@ import org.json.JSONObject
  * FolkPatch 原来查的是它自己的服务端（folk.mysqil.com/api/version，返回裸 versionCode）。
  * DSH-Folk 没有服务端，改为直接读 GitHub 的 latest release：
  *  - tag 形如 `v1.6` / `1.6`，与 `versionName` 比较；
- *  - 版本号比较走 [compareVersions]（含预发布标识）；
+ *  - 版本号比较走 [compareAppVersions]（核心版本优先，同核心版本只比预发布序号）；
  *  - 匿名 GitHub API 限流 60/h，所以沿用 FolkApiClient 的 TTL 缓存。
  *
  * 必须先验 tag 长得像版本号：同一个仓库里还有 `runtime-latest` 这个滚动 tag（容器
  * 运行时的发布位），仓库里没有正式版本发布时 `releases/latest` 返回的就是它 ——
- * 而 compareVersions("runtime-latest", "1.6") > 0（首段不是数字，按字典序比），
+ * 而 compareAppVersions("runtime-latest", "1.6") > 0（首段不是数字，按字典序比），
  * 于是每次启动都弹「有新版本」。
  *
  * **结果必须区分「没有更新」与「查不到」**：原来 [checkUpdate] 一律返回 Boolean，
@@ -163,7 +163,7 @@ object UpdateChecker {
             val (base, release) = fetched
             val tag = release.optString("tag_name").trim()
             Log.d(TAG, "remote=$tag local=${KernelEnv.appVersionName} via $base")
-            val newer = compareVersions(tag, KernelEnv.appVersionName) > 0
+            val newer = compareAppVersions(tag, KernelEnv.appVersionName) > 0
             if (!newer) return@withContext Status(hasUpdate = false, latestTag = tag)
 
             val asset = pickApkAsset(release)
@@ -384,7 +384,7 @@ object UpdateChecker {
                 val tag = o.optString("tag_name").trim()
                 if (!VERSION_TAG.matches(tag)) continue
                 if (!channel.allows(channelOf(o, tag))) continue
-                if (bestTag.isEmpty() || compareVersions(tag, bestTag) > 0) {
+                if (bestTag.isEmpty() || compareAppVersions(tag, bestTag) > 0) {
                     best = o
                     bestTag = tag
                 }
@@ -463,8 +463,8 @@ object UpdateChecker {
             if (!channel.allows(channelOf(o, tag))) continue
             if (!isMandatoryBridge(o, tag)) continue
             // 已经不比本地新了 → 迁移早就做过，不再是"必经"
-            if (compareVersions(tag, local) <= 0) continue
-            if (bridgeTag.isEmpty() || compareVersions(tag, bridgeTag) < 0) {
+            if (compareAppVersions(tag, local) <= 0) continue
+            if (bridgeTag.isEmpty() || compareAppVersions(tag, bridgeTag) < 0) {
                 bridge = o
                 bridgeTag = tag
             }
@@ -472,7 +472,7 @@ object UpdateChecker {
         // 没有待过的关，或者最新版本身就是那道关 → 直接用 best。
         if (bridge == null) return best
         // 若 best 比 bridge 更高，说明中间跳过了这道关：改推 bridge。
-        return if (compareVersions(bridgeTag, bestTag) < 0) bridge else best
+        return if (compareAppVersions(bridgeTag, bestTag) < 0) bridge else best
     }
 
     /**

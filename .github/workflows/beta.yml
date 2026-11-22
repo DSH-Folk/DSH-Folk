@@ -106,11 +106,35 @@ jobs:
             alpha|beta) ;;
             *) echo "::error::channel 只能是 alpha 或 beta，收到 '$CHANNEL'"; exit 1 ;;
           esac
-          NAME="${TARGET}-${CHANNEL}.${GITHUB_RUN_NUMBER}"
+          # ── 序号：每个核心版本从 1 开始，发正式版后归零 ──
+          #
+          # 为什么不用 GITHUB_RUN_NUMBER：它是**仓库全局**的流水号，永不归零。
+          # 后果是 2.2.1 的 alpha 走到 .317，之后 2.2.2 的 alpha 从 .400 起跳 ——
+          # 序号失去"这个版本迭代了几次"的含义，而且和 beta 线混在一起
+          # （beta.309 与 alpha.317 谁新？光看号答不出来，只能靠通道名猜）。
+          #
+          # 新规则：序号 = 「**同核心版本**已发布的预发布 tag 数 + 1」。
+          # 核心版本一变（发正式版 = 推进 baseVersionName），计数自然从 1 重新开始，
+          # 这就是"归零"。不需要额外记状态，tag 本身就是事实来源。
+          #
+          # 配套：compareAppVersions 在同核心版本下只比序号，所以
+          # alpha.5 与 beta.5 会撞号 —— 正常流程不会产出（同一核心版本内通道不来回切），
+          # 真撞了它会退回按通道名定序，不会判成相等。
+          SEQ=$(git tag -l "v${TARGET}-*" 2>/dev/null | grep -cE "^v${TARGET}-(alpha|beta)\.[0-9]+$" || true)
+          SEQ=$((SEQ + 1))
+          NAME="${TARGET}-${CHANNEL}.${SEQ}"
           echo "name=$NAME"   >> "$GITHUB_OUTPUT"
           echo "code=$CODE"   >> "$GITHUB_OUTPUT"
           echo "tag=v$NAME"   >> "$GITHUB_OUTPUT"
-          echo "$CHANNEL $NAME (versionCode $CODE)"
+          echo "seq=$SEQ"     >> "$GITHUB_OUTPUT"
+          echo "$CHANNEL $NAME (versionCode $CODE, seq $SEQ)"
+
+          # 序号必须单调递增：若这个 tag 已经存在（重跑同一 run），发出去会覆盖
+          # 上一版且版本号相同，App 判成"不更新"——静默失效。直接失败更安全。
+          if git rev-parse -q --verify "refs/tags/v$NAME" >/dev/null 2>&1; then
+            echo "::error::tag v$NAME 已存在（同核心版本下重发？）。已发布：$(git tag -l "v${TARGET}-*" | tr '\n' ' ')"
+            exit 1
+          fi
 
       - uses: ./.github/actions/setup-build-env
 

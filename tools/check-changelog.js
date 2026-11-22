@@ -141,7 +141,7 @@ if (baseName && baseCode) {
   // **每发一个正式版就把它抬到那版的 baseVersionCode()** —— 它记的是已经发出去的最高号，
   // 不是"当前版本号"。抬晚了（或忘了抬）就会出现「新版本的号低于用户已装的号」：系统按降级
   // 拒绝安装、App 的 compareVersions 也不会提示，整个更新通道静默失效。2.0.0 → 20000。
-  const PUBLISHED_FLOOR = 22000; // 已发布过的最高 baseVersionCode（正式版 2.2.0；抬到 22000 前是 2.1.1 的 21001）
+  const PUBLISHED_FLOOR = 22002; // 已发布过的最高 baseVersionCode（正式版 2.2.2；抬到 22002 前是 2.2.0 的 22000）
   ok(floor !== null && Number(baseCode[1]) >= floor && Number(baseCode[1]) >= PUBLISHED_FLOOR,
     `baseVersionCode() 不低于公式下限且盖过已发布最高号（${baseName[1]} → 下限 ${floor} / 已发 ${PUBLISHED_FLOOR}，实际 ${baseCode[1]}）`);
 }
@@ -513,8 +513,9 @@ ok(/-PdshVersionName=/.test(betaYml) && /-PdshVersionCode=/.test(betaYml),
   "把版本传给 Gradle");
 // 版本名带 -<channel>.N：compareVersions 靠它排先后，且正式版 > 预发布版。
 // 通道由 workflow 输入决定（默认 alpha），所以这里认 ${CHANNEL} 变量。
-ok(/\$\{CHANNEL\}\.\$\{GITHUB_RUN_NUMBER\}/.test(betaYml),
-  "版本名带 -<channel>.N（compareVersions 靠它排先后，且正式版 > 预发布版）");
+// 序号按核心版本计数（发正式版归零），见 beta.yml 的 Derive version。
+ok(/\$\{CHANNEL\}\.\$\{SEQ\}/.test(betaYml),
+  "版本名带 -<channel>.N（compareAppVersions 靠序号排先后，且正式版 > 预发布版）");
 ok(/KEYSTORE_BASE64/.test(betaYml) && /::error::missing release signing secrets/.test(betaYml),
   "缺签名材料就硬失败（用 debug key 签出的包用户装不上，报错只说「应用未安装」）");
 ok(/CN=Android Debug/.test(betaYml), "签名自检：debug key 必须被拦住");

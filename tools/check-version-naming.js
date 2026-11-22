@@ -25,6 +25,16 @@
  *
  * 通道判定只看**后缀前缀**：无后缀 = 正式，`-alpha` = Alpha，其余 = Beta。
  * 这与 `UpdateChecker.channelOf` 必须一致 —— 那边改了这里要跟着改。
+ *
+ * ## 序号 <n> 的规则（2026-11 起）
+ *
+ * <n> 是「**同一核心版本**下已发布的预发布 tag 数 + 1」，发正式版（推进
+ * `baseVersionName()`）后自动归零。不再用仓库全局的 `GITHUB_RUN_NUMBER` ——
+ * 那个永不归零，序号会失去「这版迭代了几次」的含义，且 alpha 与 beta 混在一起
+ * 无法判断先后（beta.309 与 alpha.317 谁新？光看号答不出来）。
+ *
+ * 排序由 `compareAppVersions`（不是 `compareVersions`）负责：核心版本优先，
+ * 同核心版本只比序号、不看通道名。所以 alpha.317 > beta.309 成立。
  */
 const fs = require("fs");
 const path = require("path");
@@ -82,7 +92,9 @@ for (const bad of ["v2.2", "v2.2.1-rc.1", "v2.2.1-beta", "v2.2.1-alpha.", "v2.2.
   //   1. 名字里带 ${CHANNEL} 变量而不是写死某个通道 —— 写死的话另一个通道发出来的包
   //      会被 App 当成同一个通道，更新提示就乱了；
   //   2. 输入校验里 alpha / beta 都在白名单内。
-  ok(/\$\{TARGET\}-\$\{CHANNEL\}\.\$\{GITHUB_RUN_NUMBER\}/.test(beta),
+  // 序号已改为「同核心版本已发布预发布 tag 数 + 1」（发正式版即归零），
+  // 不再是仓库全局的 GITHUB_RUN_NUMBER（那个永不归零，序号失去含义）。
+  ok(/\$\{TARGET\}-\$\{CHANNEL\}\.\$\{SEQ\}/.test(beta) && /git tag -l/.test(beta),
     "预发布版本名形如 <target>-<channel>.<n>（缺通道后缀会被当成正式版）");
   ok(/default: alpha/.test(beta), "默认发 alpha（beta 只在明确指定时才出）");
   ok(/alpha\|beta\) ;;/.test(beta), "通道输入只接受 alpha / beta");
