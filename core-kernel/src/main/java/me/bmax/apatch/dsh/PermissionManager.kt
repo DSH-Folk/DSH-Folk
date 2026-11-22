@@ -44,7 +44,7 @@ object PermissionManager {
         val shizukuRunning: Boolean = false,
         /** Shizuku 已授权本应用。 */
         val shizukuGranted: Boolean = false,
-        /** 容器内 adb 通道已配对（存在 adbkey）。 */
+        /** 容器内 adb 通道**确实配对成功**（存在 paired 标记；不是"有 adbkey"）。 */
         val adbPaired: Boolean = false,
         /** 提供 root 的实现名（Magisk / KernelSU / APatch / 未知）。 */
         val rootProvider: String = "",
@@ -132,7 +132,20 @@ object PermissionManager {
         } else {
             -1
         }
-        val adbPaired = File(DshEnv.dshHome(ctx), "adbkeys/adbkey").isFile
+        // 判据是「配对**成功**」标记，不是 adbkey 文件。
+        //
+        // adbkey 在配对**开始前**就由 adb-pair.py 的 ensure_key() 生成 —— 配对码打错、
+        // 端口不通、脚本缺依赖早退，它都照样在盘上。拿它当判据的结果是：用户只要点过
+        // 一次配对，无论成败都显示「已配对」，而实际上一条命令都发不出去。
+        //
+        // paired 标记只在配对真正成功时写入（CONNECT_OK 或 CONNECT_WARN）。
+        //
+        // 老用户迁移：升级前配对成功的用户只有 adbkey + connect_port，没有 paired。
+        // connect_port 是「配对成功后探测到的可用连接端口」，它存在就说明当时确实连通过 ——
+        // 用它兜底，避免升级后把已配对的人显示成未配对、逼他们重配一次。
+        val adbDir = File(DshEnv.dshHome(ctx), "adbkeys")
+        val adbPaired = File(adbDir, "paired").isFile ||
+            (File(adbDir, "adbkey").isFile && File(adbDir, "connect_port").isFile)
 
         // 先算出哪些通道真的可用，再按用户首选挑——有 root 不等于必须用 root。
         // 探测本身（文件是否存在 / pingBinder / 包管理器）无副作用，即使特权未启用

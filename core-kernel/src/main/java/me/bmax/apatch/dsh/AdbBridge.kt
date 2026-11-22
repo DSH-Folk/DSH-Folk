@@ -145,7 +145,11 @@ object AdbBridge {
     }
 
     /**
-     * 取消无线 ADB 配对：删掉容器里的 adbkey（`adbPaired` 判据就是它）。
+     * 取消无线 ADB 配对：删掉整个 adbkeys 目录（含 adbkey 与 paired 标记）。
+     *
+     * `adbPaired` 的判据是目录里的 `paired` 标记 —— 它是"配对成功"的证据，
+     * 而 `adbkey` 只是密钥（配对开始前就生成了，不能用来判断成败）。两者一起删，
+     * 状态才彻底回到"未配对"。
      *
      * 宿主侧直接删映射目录 + 容器侧再 rm 一遍，双保险。配对是无状态密钥，
      * 删掉密钥即断开，无需发 `adb disconnect`。

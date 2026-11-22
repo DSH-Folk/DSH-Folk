@@ -215,9 +215,12 @@ def main():
                 print(out.strip())
                 save_connect_port(candidate)
                 save_connect_host(h)
+                save_paired()
                 sys.exit(0)
             except Exception as e:
                 last = e
+    # 配对成功、只是直连没探对：仍然算已配对（见 save_paired 的说明）
+    save_paired()
     print('CONNECT_WARN: 配对成功但直连失败(%s)，请在 App 填写连接端口后重试' % last)
     sys.exit(0)
 
@@ -233,6 +236,30 @@ def adb_shell(host, port, cmds):
         return dev.shell(' && '.join(cmds))
     finally:
         dev.close()
+
+
+PAIRED_FLAG = KEYDIR + '/paired'
+
+
+def save_paired():
+    """配对**真正成功**的标记。
+
+    为什么不能拿 adbkey 当判据：那个文件在 [ensure_key] 里就生成了，早于任何连接
+    尝试 —— 用户配对码打错、端口不通、脚本因为缺依赖早退，adbkey 都还留在盘上。
+    App 侧曾据此显示「已配对」，于是用户看到的是"配对好了"但实际连不上。
+
+    写入时机有两处，都意味着「配对本身已经成功」：
+      * CONNECT_OK   —— 配对成功且直连自检通过（最理想）；
+      * CONNECT_WARN —— 配对成功（PAIR_OK）但直连自检失败。这**不是**配对失败：
+        密钥已经交换、设备已经记住本机，只是连接端口/地址还没探对（HyperOS 等 ROM
+        的 adbd 可能只监听 WiFi 接口）。此时用户需要的是"填连接端口"，而不是"重新配对"。
+        所以照样标记为已配对，否则用户会看到「配对成功」的提示和「未配对」的状态并存。
+    """
+    try:
+        with open(PAIRED_FLAG, 'w') as f:
+            f.write('ok')
+    except Exception:
+        pass
 
 
 def save_connect_port(port):
