@@ -833,7 +833,8 @@ class DshWebUiActivity : AppCompatActivity() {
                                 // 补一次恢复：本页 WebView 是在 Compose factory 里创建的，而 onStart 早于
                                 // 第一次组合 —— 若上一轮 onStop 暂停了全局定时器之后本页被系统回收重建，
                                 // onStart 那次 resumeTimers() 会打在 null 上，新实例就停在「已暂停」状态。
-                                // resumeWebView()
+                                // resumeWebView() 幂等，在新实例上调用也无害。
+                                resumeWebView()
                                 // 布局一变就按屏幕坐标重算顶部内边距。
                                 //
                                 // 这是防双倍顶栏的主力：系统改窗口布局（退出 PiP、多窗口、
@@ -847,8 +848,6 @@ class DshWebUiActivity : AppCompatActivity() {
                                         syncInsetsFromLayout()
                                     }
                                 }
- 幂等，在新实例上调用也无害。
-                                resumeWebView()
                                 loadUrl(url)
                                 loadedWebToken = DshRuntime.state.value.webToken
                             }
