@@ -115,8 +115,6 @@ const MODULES = {
   "ext-display": path.join(ROOT, "ext-display/src/main/java"),
   "ext-userscripts": path.join(ROOT, "ext-userscripts/src/main/java"),
   "ext-backup": path.join(ROOT, "ext-backup/src/main/java"),
-  "ext-device-caps": path.join(ROOT, "ext-device-caps/src/main/java"),
-  "ext-theme-media": path.join(ROOT, "ext-theme-media/src/main/java"),
   app: path.join(ROOT, "app/src/main/java"),
 };
 
@@ -131,8 +129,6 @@ const ALLOWED = {
   "ext-display": ["ext-display", "core-res", "ext-api", "core-kernel"],
   "ext-userscripts": ["ext-userscripts", "core-res", "ext-api", "core-kernel"],
   "ext-backup": ["ext-backup", "core-res", "ext-api", "core-kernel"],
-  "ext-device-caps": ["ext-device-caps", "core-res", "ext-api", "core-kernel"],
-  "ext-theme-media": ["ext-theme-media", "core-res", "ext-api", "core-kernel"],
 };
 
 /** 硬禁 import：不看声明位置，见到就报。 */

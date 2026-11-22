@@ -28,7 +28,7 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, "..");
 /** 被扫描（会报错）的模块。 */
 const MODULES = ["app", "core-kernel", "core-res", "ext-api", "ext-workflow", "ext-display",
-  "ext-userscripts", "ext-backup", "ext-device-caps", "ext-theme-media"];
+  "ext-userscripts", "ext-backup"];
 
 /**
  * 只建索引、不被扫描的模块。

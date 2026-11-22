@@ -57,9 +57,7 @@ DSH-Folk (Android app)                      ← 按 ABI 拆包：arm64-v8a / x86
   ├─ ext-workflow        工作流引擎（DSL 解析、节点执行、审批）
   ├─ ext-display         虚拟屏 / 显示镜像（Binder 协议 + 视频 Sink）
   ├─ ext-userscripts     用户脚本 / 脚本市场
-  ├─ ext-backup          配置备份（归档格式、加密、云同步）
-  ├─ ext-device-caps     设备能力（媒体、麦克风）
-  └─ ext-theme-media     主题 / 背景 / 字体 / 音效（占位，待迁入）
+  └─ ext-backup          配置备份（归档格式、加密、云同步）
   ↓
 :core-kernel         不可变宿主底座（运行时、权限策略、环境路径、扩展加载器）
   ↓
@@ -80,8 +78,7 @@ DSH-Folk (Android app)                      ← 按 ABI 拆包：arm64-v8a / x86
 | `:ext-userscripts` | 4 | 1052 |
 | `:ext-display` | 5 | 2731 |
 | `:ext-backup` | 7 | 4799 |
-| `:ext-device-caps` | 1 | 14 |
-| `:ext-theme-media` | 1 | 14 |
+| `:core-res` | 1 | 11 |
 | `:app` | 255 | 88931 |
 
 ### Seam：依赖倒置的那一层
@@ -96,7 +93,7 @@ DSH-Folk (Android app)                      ← 按 ABI 拆包：arm64-v8a / x86
 ```
 
 每个 Seam 都是**极薄**的接口 —— 只暴露扩展真实调用的方法，不是把宿主的实现搬出来。
-目前有 9 个：`RuntimeSeam`、`ShellSeam`、`DeviceSeam`、`UiSeam`、`CapabilitySeam`、
+目前有 10 个：`RuntimeSeam`、`ShellSeam`、`DeviceSeam`、`UiSeam`、`CapabilitySeam`、
 `EventSeam`、`BackupSeam`、`NativeBridgeSeam`、`ThemeBackupSeam`。
 
 `SeamRegistry` 是取用入口，定义在 `:ext-api`。宿主在 `APatchApp.onCreate` 里

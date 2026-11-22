@@ -127,8 +127,6 @@ const SOURCE_ROOTS = [
   "ext-display/src/main/java/me/bmax/apatch",
   "ext-userscripts/src/main/java/me/bmax/apatch",
   "ext-backup/src/main/java/me/bmax/apatch",
-  "ext-device-caps/src/main/java/me/bmax/apatch",
-  "ext-theme-media/src/main/java/me/bmax/apatch",
 ];
 
 /**

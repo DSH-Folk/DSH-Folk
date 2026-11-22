@@ -10,12 +10,12 @@ on:
     # 根本没被编译过（列表里连一条 run 都没有）。
     # 新增 Gradle 模块时必须同步这里 —— 漏了的表现是「推上去一条 run 都没有」，
     # 改动静默不被编译（Batch C 把文件迁进 :core-kernel 时就是这么漏的）。
-    paths: [ 'app/**', 'ext-api/**', 'core-res/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'ext-device-caps/**', 'ext-theme-media/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
+    paths: [ 'app/**', 'ext-api/**', 'core-res/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
   pull_request:
     branches: [ main, develop ]
     # 新增 Gradle 模块时必须同步这里 —— 漏了的表现是「推上去一条 run 都没有」，
     # 改动静默不被编译（Batch C 把文件迁进 :core-kernel 时就是这么漏的）。
-    paths: [ 'app/**', 'ext-api/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'ext-device-caps/**', 'ext-theme-media/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
+    paths: [ 'app/**', 'ext-api/**', 'core-kernel/**', 'ext-workflow/**', 'ext-display/**', 'ext-userscripts/**', 'ext-backup/**', 'displayserver/**', 'tools/**', 'gradle/**', 'build.gradle.kts', 'settings.gradle.kts', '.github/workflows/build.yml', '.github/workflows/beta.yml', 'docs/**', '.github/actions/**' ]
   workflow_dispatch:
     inputs:
       build_type:

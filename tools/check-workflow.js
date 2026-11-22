@@ -1791,7 +1791,7 @@ console.log("\u2500 #17b 空模板 + 分类对齐点击助手（两项互为前�
   const ktFiles = [
     "app/src/main/java", "core-kernel/src/main/java", "ext-api/src/main/java",
     "ext-workflow/src/main/java", "ext-display/src/main/java", "ext-backup/src/main/java",
-    "ext-userscripts/src/main/java", "ext-device-caps/src/main/java", "ext-theme-media/src/main/java",
+    "ext-userscripts/src/main/java",
   ].flatMap((d) => walkKt(d, []));
   const byName = (n) => read(ktFiles.find((f) => f.endsWith("/" + n)));
   const catalogSrc = byName("WorkflowActionCatalog.kt");
