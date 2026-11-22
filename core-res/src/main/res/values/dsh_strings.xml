@@ -2052,6 +2052,11 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_a11y_fix_copied">Command copied</string>
     <string name="dsh_a11y_fix_check">Check again</string>
     <string name="dsh_a11y_fix_repair">Restore now</string>
+    <string name="dsh_a11y_fix_grant_now">Grant now</string>
+    <string name="dsh_a11y_fix_grant_now_summary">Run pm grant through the current privilege channel (%1$s) — no need to copy it to a computer and use ADB.</string>
+    <string name="dsh_a11y_fix_grant_ok">WRITE_SECURE_SETTINGS granted. Auto-recovery is now available.</string>
+    <string name="dsh_a11y_fix_grant_failed">Grant failed: %1$s</string>
+    <string name="dsh_a11y_fix_grant_no_channel">No usable privilege channel. Pick and configure one above, or copy the command and run it with ADB.</string>
     <string name="dsh_a11y_fix_best_effort">Best effort: while this app\u2019s process is not running, nothing can restore it. Android gives ordinary apps no way to keep watching.</string>
     <string name="dsh_a11y_fix_not_wanted">Nothing to restore: the matching switch inside this app is off.</string>
     <string name="dsh_a11y_fix_no_permission">WRITE_SECURE_SETTINGS is not granted, so the service cannot be restored. Copy the command and grant it over ADB.</string>

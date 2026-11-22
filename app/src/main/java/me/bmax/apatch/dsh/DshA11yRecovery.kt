@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import java.util.ArrayDeque
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.PrivilegedShell
 
 /**
  * 无障碍服务的**自动恢复**：系统把它关掉之后，尽量再打开一次。
@@ -207,6 +208,45 @@ internal object DshA11yRecovery {
     }
 
     // ───────────────────────── 执行 ─────────────────────────
+
+    /**
+     * 通过**已有的特权通道**直接执行 `pm grant`，省掉"复制命令去电脑上跑 ADB"。
+     *
+     * ## 为什么以前没有这一步
+     *
+     * `WRITE_SECURE_SETTINGS` 是 signature|privileged 权限，没有运行时授权框，只能由
+     * ADB/root 授予。早期实现把"复制命令"当成唯一出路 —— 但用户往往**已经**配好了
+     * Shizuku 或 root（否则他连这个页面的其他功能都用不了）。让他为了一条 pm grant
+     * 再去插数据线开电脑，是把已有能力白白浪费掉。
+     *
+     * ## 为什么仍然保留"复制命令"
+     *
+     * 特权通道可能不可用（没配 Shizuku、root 未授权、ADB 未配对）。那时一键按钮
+     * 不该假装能行 —— [grant] 会返回失败原因，界面同时保留可复制的命令作为兜底。
+     *
+     * @return 成功与否 + 给人看的原因（成功时是空串）。
+     */
+    fun grant(ctx: Context): Pair<Boolean, String> {
+        val app = ctx.applicationContext
+        val reach = runCatching { PrivilegedShell.reach(app) }.getOrNull()
+            ?: return false to "no-channel"
+        if (!reach.usable) return false to "no-channel"
+
+        // pm grant 要在**目标 App 的身份**下执行，root/shell 都可以：
+        // shell(2000) 有这个权限（它本身就是 pm 的调用者），root 更不用说。
+        val cmd = adbGrantCommand(app)
+        val out = runCatching {
+            PrivilegedShell.exec(app, cmd, asRoot = reach.canRoot, timeoutMs = 15_000)
+        }.getOrElse { return false to (it.message ?: it.javaClass.simpleName) }
+
+        if (out.exit != 0) {
+            val why = out.stderr.ifBlank { out.stdout }.trim().take(200)
+            return false to why.ifBlank { "exit=" + out.exit }
+        }
+        // 写后读回：pm grant 返回 0 也可能因为 ROM 拦截而没真的生效。
+        val ok = secureSettingsGranted(app)
+        return ok to if (ok) "" else "granted but not effective"
+    }
 
     /**
      * 手动 / 自动共用的修复入口。

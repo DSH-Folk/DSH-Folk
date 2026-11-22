@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.dsh.DshA11yRecovery
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.dsh.PrivilegedShell
 
 /**
  * 「无障碍服务被系统关掉后自动恢复」的设置卡。
@@ -59,10 +60,16 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
     var autoRecovery by remember { mutableStateOf(DshA11yRecovery.autoRecoveryEnabled(context)) }
     var busy by remember { mutableStateOf(false) }
     val command = remember(context) { DshA11yRecovery.adbGrantCommand(context) }
+    // 当前特权通道。非 null 且 usable 时才给「一键授予」—— 没有通道时那个按钮
+    // 点了只会失败，摆出来等于骗用户。
+    var reach by remember { mutableStateOf<PrivilegedShell.Reach?>(null) }
 
     // 用户刚从 ADB 授完权回来：每次回到这一页重读，而不是等进程重启。
     LifecycleResumeEffect(Unit) {
         granted = DshA11yRecovery.secureSettingsGranted(context)
+        // 通道状态也重探：用户可能刚去配好 Shizuku/ADB 再回来，那时一键按钮该出现。
+        // 探测本身不弹 su 授权框（reach 内部用 allowRootPrompt=false）。
+        reach = runCatching { PrivilegedShell.reach(context.applicationContext) }.getOrNull()
         onPauseOrDispose { }
     }
 
@@ -113,16 +120,24 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = stringResource(
-                    if (granted) CoreR.string.dsh_a11y_fix_granted else CoreR.string.dsh_a11y_fix_need_permission,
-                ),
+                text = if (granted) {
+                    stringResource(CoreR.string.dsh_a11y_fix_granted)
+                } else {
+                    val r = reach?.takeIf { it.usable }
+                    if (r != null) {
+                        stringResource(CoreR.string.dsh_a11y_fix_grant_now_summary, r.channel.name.lowercase())
+                    } else {
+                        stringResource(CoreR.string.dsh_a11y_fix_need_permission)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = if (granted) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.tertiary,
             )
-            if (!granted) {
+            if (!granted && reach?.takeIf { it.usable } == null) {
                 Spacer(Modifier.height(6.dp))
                 // 命令原样摆出来：用户要复制去 ADB 执行，藏进弹窗就不叫"可复制"了。
+                // 有可用通道时不显示 —— 那时一键按钮就能做完，命令只是噪音。
                 Text(
                     text = command,
                     style = MaterialTheme.typography.bodySmall,
@@ -133,6 +148,39 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!granted) {
+                    // 有可用特权通道时优先给「一键授予」：用户很可能已经配好 Shizuku/root，
+                    // 让他为一条 pm grant 去插数据线开电脑是把已有能力白白浪费掉。
+                    val usableReach = reach?.takeIf { it.usable }
+                    if (usableReach != null) {
+                        Button(
+                            enabled = !busy,
+                            onClick = {
+                                busy = true
+                                scope.launch {
+                                    val (ok, why) = withContext(Dispatchers.IO) {
+                                        DshA11yRecovery.grant(context.applicationContext)
+                                    }
+                                    busy = false
+                                    if (ok) {
+                                        granted = true
+                                        Toast.makeText(
+                                            context,
+                                            CoreR.string.dsh_a11y_fix_grant_ok,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(CoreR.string.dsh_a11y_fix_grant_failed, why),
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                }
+                            },
+                        ) {
+                            Text(stringResource(CoreR.string.dsh_a11y_fix_grant_now))
+                        }
+                    }
                     OutlinedButton(onClick = {
                         val cm = context.getSystemService(android.content.ClipboardManager::class.java)
                         cm?.setPrimaryClip(android.content.ClipData.newPlainText("pm grant", command))
@@ -142,6 +190,7 @@ internal fun A11yRecoveryCard(modifier: Modifier = Modifier) {
                     }
                     TextButton(onClick = {
                         granted = DshA11yRecovery.secureSettingsGranted(context)
+                        reach = runCatching { PrivilegedShell.reach(context.applicationContext) }.getOrNull()
                     }) {
                         Text(stringResource(CoreR.string.dsh_a11y_fix_check))
                     }

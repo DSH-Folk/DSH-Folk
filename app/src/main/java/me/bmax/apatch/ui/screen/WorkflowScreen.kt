@@ -536,9 +536,17 @@ private suspend fun awaitPermissions(
     ctx: android.content.Context,
     def: WorkflowDefinition,
 ): Boolean {
+    // 用 effectiveCaps 而不是 declaredCaps。
+    //
+    // declaredCaps 只是**手工声明**的那一份；NATIVE 动作节点（截屏、点击、滑动、
+    // 无障碍读屏…）实际需要的 Cap 是按动作目录推导出来的，两者往往不同。
+    //
+    // 用 declaredCaps 的后果（真机反馈）：流程里明明有「点一下屏幕」，无障碍却没被
+    // 列入预检 —— 用户点了运行，一路跑到那个节点才弹「还差 Android 权限：无障碍服务」，
+    // 而此时流程已经跑了一半。预检的意义就是**开跑前**把缺的列清楚，漏项等于没做。
     val request = WorkflowPermissions.Gate.submit(
         workflowName = def.name,
-        caps = def.declaredCaps,
+        caps = def.effectiveCaps,
         reason = def.name,
     ) ?: return false
     return WorkflowPermissions.Gate.awaitDecision(request.id) == WorkflowPermissions.Gate.Decision.START

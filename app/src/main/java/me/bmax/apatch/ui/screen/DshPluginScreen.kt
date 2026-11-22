@@ -581,17 +581,15 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                         )
                     }
                 }
-                // 扩展页的 ＋ 只有「装」这一个语义：市场（远端）与从目录（本地）。
-                // 市场是这一轮才开放的；仍然不画「商店」那一条 —— 扩展没有 BSD 那种第三方源。
+                // 扩展页的 ＋ 只有「装」这一个语义。
+                //
+                // **顺序与插件页 / 脚本页一致**：链接 → 文件 → 商店。
+                // 曾经这里是「商店 → 链接 → 文件」，三页三种排法 —— 同一个 ＋ 按钮，
+                // 用户点开的菜单项位置却各不相同，只能每次重新找。统一的依据是
+                // 「本地优先」：用户手上的包（链接 / 文件）是他已经知道要装的东西，
+                // 商店是"还没决定装什么"时才去逛的地方，放最后。
                 GROUP_EXTENSIONS -> AddMenuFab(
                     listOf(
-                        AddMenuEntry(
-                            icon = Icons.Outlined.Storefront,
-                            labelRes = CoreR.string.dsh_ext_market,
-                            onClick = { showMarket = true },
-                        ),
-                        // 从链接 / 从文件：与插件页那两个入口同构 —— 市场只是「有一个目录」，
-                        // 而扩展同样可能是用户自己从别处拿到的包。
                         AddMenuEntry(
                             icon = Icons.Outlined.Link,
                             labelRes = CoreR.string.dsh_ext_install_link,
@@ -610,6 +608,11 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
                                     },
                                 )
                             },
+                        ),
+                        AddMenuEntry(
+                            icon = Icons.Outlined.Storefront,
+                            labelRes = CoreR.string.dsh_ext_market,
+                            onClick = { showMarket = true },
                         ),
                     ),
                 )

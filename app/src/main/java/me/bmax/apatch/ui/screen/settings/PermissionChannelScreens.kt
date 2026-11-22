@@ -193,14 +193,27 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
     }
 
     val onPermPrefChange: (String) -> Unit = { name ->
-        permPrefName = name
         // 这条偏好是全应用「要不要提权」的总闸：选「未启用」时硬件监控、
         // 日志采集、root 文件兜底都会走非特权路径，首页重启菜单也不出现。
         // 容器执行本身不依赖它（proot/proroot 从来不需要 root）。
         // 「自动」= 按 root > shizuku > adb 的优先级挑一条可用的。
         //
-        // 偏好**照旧落盘**，即使这条通道现在还没就绪：它表达的是「我想用哪条」，
-        // 用户把配对/授权做完之后应当自动生效，而不是再回来重选一次。
+        // ## 选了一条现在用不了的通道 → 立刻改回
+        //
+        // 旧行为是：偏好照样落盘（"我想用哪条"），界面上补一句「选中的通道还没配置好，
+        // 当前生效的是 X」。问题在于那句话只说明了现状，**没说明怎么出去** ——
+        // 用户点了一个选项，看到的却是"你选的没生效"，而偏好里还留着一个永远不可用的值。
+        // 下次进页面依然如此，像卡住了。
+        //
+        // 新行为分两种情况：
+        //
+        // 1. **通道确实不存在**（没有 su、Shizuku 没装）→ 不改偏好，把用户送到能配好它的
+        //    那一页。这种情况下"改成别的"等于替他放弃目标，而他本来是想开这个能力的。
+        // 2. **通道存在但还没配好**（有 su 未授权、Shizuku 在跑未授权、ADB 未配对）→
+        //    同样引导，因为这一步用户当场就能完成（授权框 / 配对页）。
+        //
+        // 无论哪种，只要**回退到 ADB 且 ADB 未配对**，就直接引导进无线 ADB 连接页 ——
+        // ADB 是唯一"用户自己能从头配好、且不需要 root"的通道，引导价值最高。
         val ch = when (name) {
             PermissionManager.PREF_OFF -> PermissionManager.Channel.NONE
             PermissionManager.PREF_ROOT -> PermissionManager.Channel.ROOT
@@ -208,10 +221,15 @@ fun PrivilegedChannelScreen(navigator: DestinationsNavigator) {
             PermissionManager.PREF_ADB -> PermissionManager.Channel.ADB
             else -> null
         }
-        PermissionManager.setPreference(context.applicationContext, ch)
-        // 选了还没就绪的通道：别只留一句「已回退」，直接把用户送到能修好它的那一步。
-        // 用当前快照判定即可 —— 配对/授权状态不会因为「选了一下」而改变。
-        readinessOf(name, perm).takeIf { it != ChannelReadiness.READY }?.let { guideReadiness = it }
+        val readiness = readinessOf(name, perm)
+        if (readiness == ChannelReadiness.READY) {
+            permPrefName = name
+            PermissionManager.setPreference(context.applicationContext, ch)
+        } else {
+            // 不改 permPrefName：单选按钮留在用户真正选中的那一格，同时弹引导。
+            // 让他看见"我选了 X，X 还差一步"，而不是选择被悄悄抹掉。
+            guideReadiness = readiness
+        }
         scope.launch(Dispatchers.IO) {
             PermissionManager.refresh(context.applicationContext)
             // 「我刚把通道设成 root」是用户最期待立刻生效的一步：这里不写，

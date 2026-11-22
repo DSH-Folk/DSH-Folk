@@ -1339,8 +1339,12 @@ ok(/保留/.test(nativeZh),
   ]) {
     ok(ch.includes(key), `未就绪状态有专属文案 ${key}（而不是一句笼统的「不可用」）`);
   }
-  ok(/readinessOf\(name, perm\)[\s\S]{0,150}guideReadiness = it/.test(ch),
+  // 语义已收紧：未就绪时**不落盘偏好**，只弹引导 —— 让用户看见「我选了 X，X 还差一步」，
+  // 而不是把选择悄悄改掉、只在界面上补一句"当前生效的是 Y"。
+  ok(/readinessOf\(name, perm\)[\s\S]{0,400}guideReadiness = readiness/.test(ch),
     "选中一条未就绪的通道会打开引导（而不是只留一句「已回退」）");
+  ok(/if \(readiness == ChannelReadiness\.READY\)[\s\S]{0,200}setPreference/.test(ch),
+    "只有就绪的通道才落盘偏好（未就绪的不写，避免留下一个永远不可用的值）");
   ok(/dsh_perm_fell_back_go/.test(ch),
     "「还没配置好」那一行也留了同一个出口（通道可能在选中之后才失效）");
   // 锚点必须是**调用**，不能只是类型名：本文件顶部就 import 了

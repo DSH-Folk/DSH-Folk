@@ -2026,6 +2026,11 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_a11y_fix_copied">命令已复制</string>
     <string name="dsh_a11y_fix_check">重新检查</string>
     <string name="dsh_a11y_fix_repair">立即恢复</string>
+    <string name="dsh_a11y_fix_grant_now">一键授予</string>
+    <string name="dsh_a11y_fix_grant_now_summary">用当前的权限通道（%1$s）直接执行 pm grant，不必复制到电脑上跑 ADB。</string>
+    <string name="dsh_a11y_fix_grant_ok">已授予 WRITE_SECURE_SETTINGS，现在可以自动恢复了。</string>
+    <string name="dsh_a11y_fix_grant_failed">授权失败：%1$s</string>
+    <string name="dsh_a11y_fix_grant_no_channel">当前没有可用的特权通道。先在上面选一条并配置好，或复制命令用 ADB 执行。</string>
     <string name="dsh_a11y_fix_best_effort">尽力而为：本应用进程不在时无法恢复 —— Android 不允许普通应用常驻监控。</string>
     <string name="dsh_a11y_fix_not_wanted">无需恢复：应用内对应的开关已关闭。</string>
     <string name="dsh_a11y_fix_no_permission">未授予 WRITE_SECURE_SETTINGS，无法恢复服务。请复制命令并用 ADB 授权。</string>
