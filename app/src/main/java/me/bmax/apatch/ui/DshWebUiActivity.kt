@@ -124,6 +124,10 @@ import me.bmax.apatch.util.ui.showToast
 import me.bmax.apatch.res.R as CoreR
 import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.WebScripts
+import androidx.core.view.WindowCompat
+import androidx.core.view.ViewCompat
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 
 /**
  * WebUI 打开方式。
@@ -325,6 +329,15 @@ class DshWebUiActivity : AppCompatActivity() {
      * （每次导航、刷新），拿组合期捕获的旧值会让页面在转屏后按旧尺寸避让。
      */
     private var cssInsetTop = 0
+
+    /**
+     * WebView 在**窗口**里的实际顶边偏移（px）。
+     *
+     * 正常是 0（WebView 铺满到窗口最顶）。但退出画中画、多窗口、或某些 ROM 强制
+     * 把 decorView 下推之后，它会变成一个正数 —— 那时窗口顶部已经有系统在避让，
+     * CSS 就不该再垫同样的高度。见 [restoreEdgeToEdge] 与 cssTop 的扣减。
+     */
+    private var webViewTopPx by mutableIntStateOf(0)
     private var cssInsetRight = 0
     private var cssInsetBottom = 0
     private var cssInsetLeft = 0
@@ -492,7 +505,14 @@ class DshWebUiActivity : AppCompatActivity() {
                 )
                 // CSS 像素就是 dp，WebView 的视口按 dp 计
                 fun toCss(px: Int): Int = (px / density.density).roundToInt()
-                val cssTop = toCss(insetTopPx)
+                // 扣掉 WebView 自身在窗口里的顶边偏移。
+                //
+                // 正常情况下 webViewTopPx = 0，结果就是 insetTopPx 本身，行为不变。
+                // 但一旦窗口被系统往下推了（退出 PiP 后个别 ROM 会这么做），原生已经
+                // 避让过一次，CSS 再垫同样高度就是双倍 —— 这里扣成 0 兜住。
+                // 用 coerceAtLeast(0) 而不是直接相减：两个值来自不同的分发时机，
+                // 中间态可能出现 webViewTopPx > insetTopPx，负数 padding 会让页面塌掉。
+                val cssTop = toCss((insetTopPx - webViewTopPx).coerceAtLeast(0))
                 val cssLeft = toCss(insetLeftPx)
                 val cssRight = toCss(insetRightPx)
                 // 键盘弹起时 WebView 会被抬到键盘上方（键盘本身盖住了手势条），再让页面留一条
@@ -527,7 +547,17 @@ class DshWebUiActivity : AppCompatActivity() {
                             // 改 WebView 高度，WebView 117 每帧重排又慢又卡，输入框「慢半拍才跟上」。
                             // 目标高度让 WebView 只重排一次、一步抬到键盘上方（这是壳侧能做到的最优；
                             // 逐帧跟随需 WebView M139 的 visual-viewport IME 支持，本机内核给不了）。
-                            .windowInsetsPadding(WindowInsets.imeAnimationTarget),
+                            .windowInsetsPadding(WindowInsets.imeAnimationTarget)
+                            // 记下 WebView 在窗口里的实际顶边。
+                            //
+                            // 这是"防双倍顶栏"的第二层保险：即便某个 ROM 在退出 PiP 后
+                            // 坚持把窗口下推，cssTop 也会按这个偏移扣成 0，而不是叠加。
+                            // 用 onGloballyPositioned 而不是读 layoutParams：后者拿到的是
+                            // 相对父容器的坐标，父容器本身可能已经被下推了。
+                            .onGloballyPositioned { coords ->
+                                val top = coords.positionInWindow().y.roundToInt()
+                                if (top != webViewTopPx) webViewTopPx = top
+                            },
                         factory = { ctx ->
                             WebView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
@@ -1073,6 +1103,33 @@ class DshWebUiActivity : AppCompatActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPip.value = isInPictureInPictureMode
+        if (!isInPictureInPictureMode) restoreEdgeToEdge()
+    }
+
+    /**
+     * 退出画中画后重新把窗口拉回 edge-to-edge。
+     *
+     * ## 为什么需要这一步
+     *
+     * 本页的"沉浸式"不是自己设的 —— 主题（Theme.AppCompat.DayNight.NoActionBar）在
+     * Android 15+ 上由系统强制 edge-to-edge，我们没有（也不该）自己写死
+     * setDecorFitsSystemWindows(false)。
+     *
+     * 但**退出 PiP 是一次窗口重建**：Activity 换了 Configuration，不少 ROM 会在这个
+     * 时刻把 decorView 的 fitsSystemWindows 重新按"普通窗口"算一遍 —— 于是整个
+     * Compose 内容被往下推了一个状态栏的高度。而 inset.js 那边**照样**按
+     * WindowInsets.statusBars 给 #root 加 padding-top，结果就是原生推一次 + CSS 推一次
+     * = 顶栏双倍留白（真机复现：右侧抽屉的半透明遮罩在状态栏下方被齐平切掉）。
+     *
+     * 这里显式再设一次并强制重算 insets，让原生侧回到贴顶状态。
+     * [requestApplyInsets] 必须走 post：onPictureInPictureModeChanged 里窗口还没完成
+     * 这次布局，立刻请求会被系统合并进上一次分发里，等于没发。
+     */
+    private fun restoreEdgeToEdge() {
+        runCatching {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.decorView.post { ViewCompat.requestApplyInsets(window.decorView) }
+        }.onFailure { Log.w(TAG, "恢复 edge-to-edge 失败", it) }
     }
 
     /**
