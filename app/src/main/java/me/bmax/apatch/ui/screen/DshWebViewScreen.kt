@@ -7,6 +7,13 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
