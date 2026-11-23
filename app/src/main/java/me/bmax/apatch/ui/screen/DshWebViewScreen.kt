@@ -7,13 +7,6 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -115,18 +108,10 @@ fun DshWebViewScreen(navigator: DestinationsNavigator, url: String) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                 }
             },
-        ),
-        // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由页面自己补回。
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    }) { padding_raw ->
-        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
-        val padding = PaddingValues(
-            start = padding_raw.calculateStartPadding(LocalLayoutDirection.current),
-            top = padding_raw.calculateTopPadding(),
-            end = padding_raw.calculateEndPadding(LocalLayoutDirection.current),
-            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
-            bottom = padding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
         )
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (failed) {
                 Text(

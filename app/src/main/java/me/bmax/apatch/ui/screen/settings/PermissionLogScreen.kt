@@ -10,13 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -164,18 +157,10 @@ fun PermissionLogScreen(navigator: DestinationsNavigator) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, null)
                 }
             },
-        ),
-        // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由页面自己补回。
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    }) { padding_raw ->
-        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
-        val padding = PaddingValues(
-            start = padding_raw.calculateStartPadding(LocalLayoutDirection.current),
-            top = padding_raw.calculateTopPadding(),
-            end = padding_raw.calculateEndPadding(LocalLayoutDirection.current),
-            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
-            bottom = padding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
         )
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
         LazyColumn(
             Modifier.padding(padding).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

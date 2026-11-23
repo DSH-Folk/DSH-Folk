@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -215,18 +215,18 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     // 六套布局共用同一份 DSH 运行时状态（见 DshHomeShared.kt），
     // TopBar 也要读它来决定是否显示重启菜单，所以 Provide 包在 Scaffold 外面。
     ProvideDshHomeState {
-        Scaffold(topBar = {
-            TopBar(navigator),
-            // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由页面自己补回。
+        Scaffold(
+            topBar = { TopBar(navigator) },
+            // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由下面补回。
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        }) { innerPadding_raw ->
+        ) { innerPadding_raw ->
             // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
             val innerPadding = PaddingValues(
                 start = innerPadding_raw.calculateStartPadding(LocalLayoutDirection.current),
                 top = innerPadding_raw.calculateTopPadding(),
                 end = innerPadding_raw.calculateEndPadding(LocalLayoutDirection.current),
-                // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
-                bottom = innerPadding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+                bottom = innerPadding_raw.calculateBottomPadding() +
+                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
             )
             when (homeLayout) {
                 // DSH-Folk 默认首页：DeepSeek Harness 运行时面板
