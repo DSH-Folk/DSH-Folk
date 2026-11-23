@@ -300,8 +300,12 @@ console.log("\u2500 #9 容器侧插件：降级 + 说明文档 + 版本号独立
   ok(/'dsh-workflow', '\/usr\/local\/bin\/dsh-workflow'/.test(s), "工具走 CLI（与人手敲命令同一条实现）");
   ok(/WORKFLOW_PLUGIN_REV = 1/.test(SRC.hostPrompt) && /KEY_WORKFLOW_PLUGIN_REV/.test(SRC.hostPrompt),
     "工作流插件有独立版本号");
-  ok(/private const val PLUGIN_REV = 20/.test(SRC.hostPrompt),
-    "宿主提示词插件的 PLUGIN_REV 未被牵连抬高（内容没变）");
+  // 这条原来钉的是「改工作流时别误抬宿主提示词的版本」。现在 .mjs 因为要读
+  // facts.extensionPrompts 而**确实**改了，PLUGIN_REV 必须跟着抬（20 → 21），
+  // 否则老设备不会重新落盘、扩展提示词永远不生效。断言改成「与 .mjs 内容哈希配套」，
+  // 具体哈希由 check-fs-scope.js 钉住，这里只要求版本号已被抬高。
+  ok(/private const val PLUGIN_REV = 21/.test(SRC.hostPrompt),
+    "宿主提示词插件的 PLUGIN_REV 已随 .mjs 改动抬高（20 → 21）");
   ok(/PluginSpec\(\s*WORKFLOW_ASSET_NAME/.test(SRC.hostPrompt), "工作流插件在落盘/patch 清单里");
   ok(/val WORKFLOW_DSL_DOC = """/.test(SRC.runtime) && /WORKFLOW_DSL_DOC_NAME/.test(SRC.runtime),
     "宿主写 DSL 说明进容器");
