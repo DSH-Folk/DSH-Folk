@@ -100,6 +100,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -1365,7 +1366,10 @@ class DshWebUiActivity : AppCompatActivity() {
                                                     ) {
                                                         if (thumb != null) {
                                                             Image(
-                                                                bitmap = thumb,
+                                                                // Bitmap → ImageBitmap：Compose 的 Image
+                                                                // 不直接收 android.graphics.Bitmap，
+                                                                // 要用 asImageBitmap() 包一层。
+                                                                bitmap = thumb.asImageBitmap(),
                                                                 contentDescription = null,
                                                                 contentScale = ContentScale.FillWidth,
                                                                 modifier = Modifier.fillMaxSize(),

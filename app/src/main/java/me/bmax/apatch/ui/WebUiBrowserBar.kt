@@ -40,6 +40,8 @@ import me.bmax.apatch.res.R as CoreR
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.background
 
 /**
@@ -166,7 +169,11 @@ internal fun WebUiBrowserBar(
                         onValueChange = { editing = it },
                         modifier = Modifier
                             .weight(1f)
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 6.dp)
+                            // 记录焦点：没焦点时地址跟随页面变化，有焦点时不覆盖用户正在敲的内容。
+                            // 少了这个监听，focused 永远是 false，那"跟随"就一直生效 ——
+                            // 用户敲到一半页面跳转，输入框会被清掉。
+                            .onFocusChanged { focused = it.isFocused },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.onSurface,
