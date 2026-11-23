@@ -4,7 +4,7 @@
 
 [简体中文](./README.md) | [English](./README.en.md)
 
-**在 Android 上跑 DeepSeek Harness 的启动器**
+**在 Android 上运行 DeepSeek Harness 的启动器**
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg?logo=gnu)](./LICENSE)
 [![Build](https://github.com/DSH-Folk/DSH-Folk/actions/workflows/build.yml/badge.svg)](https://github.com/DSH-Folk/DSH-Folk/actions/workflows/build.yml)
@@ -12,23 +12,20 @@
 
 </div>
 
-DSH-Folk 把 [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh)（一个 Node.js 的编码 Agent CLI）装进手机：
-应用下载一份 Linux 容器运行时（arm64 或 x86_64，按设备架构），用 proot / proroot 在容器里启动 `dsh web`，然后你在手机上直接打开它的 Web UI。
+DSH-Folk 将 [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh)（基于 Node.js 的编码 Agent CLI）封装为开箱即用的 Android 应用：首次启动按设备架构（`arm64-v8a` / `x86_64`）下载 Linux 容器运行时，通过 proot / proroot 启动 `dsh web`，并提供原生 WebUI、终端、插件商店、自动化工作流与扩展支持。
 
-不需要 root，也不需要 Termux。有 root / Shizuku / 无线 ADB 时会自动利用，用于放宽某些受限操作。
+无需 root 或 Termux 即可使用；若设备已配置 root、Shizuku 或无线 ADB，可按需启用对应的特权能力。
 
 ## 目录
 
 - [预览](#预览)
-- [现在能做什么](#现在能做什么)
+- [功能一览](#功能一览)
 - [环境要求](#环境要求)
 - [安装](#安装)
 - [运行时管理](#运行时管理)
-- [深入了解](#深入了解)
+- [文档索引](#文档索引)
 - [项目结构](#项目结构)
 - [致谢](#致谢) · [许可证](#许可证) · [友情链接](#友情链接) · [交流](#交流)
-
-深入的实现说明拆到了 `docs/` 下，按主题分文件（见 [深入了解](#深入了解)）。
 
 ## 预览
 
@@ -42,159 +39,106 @@ DSH-Folk 把 [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh)�
 
 </div>
 
-## 现在能做什么
+## 功能一览
 
 | 页面 | 说明 |
 | --- | --- |
-| **主页** | 一键启动 / 停止 / 重启 DSH，显示运行阶段、Web UI 地址、当前运行方式与权限通道，带可复制的启动日志 |
-| **终端** | 容器内的真 PTY 终端（基于 Termux 的 `terminal-view`），直接 `bash` 进容器 |
-| **插件** | 管理容器里 DSH 的插件，展示 npm 周下载量、GitHub star 与 dsh-market 点赞；内置插件商店（下载完整目录后本地搜索，4000+ 条），显示上游扫描出的能力与安全红线，支持本地 .tgz 安装。装完会用临时端口验证一次插件树能否加载，不通过自动卸载 |
-| **设置** | 常规 / 外观 / 行为 / 功能 / 安全 / 备份 / 插件 / 多媒体，界面主题体系沿用 FolkPatch（`theme.json` 完全兼容） |
+| **主页** | 一键启动 / 停止 / 重启 DSH，查看运行状态、WebUI 地址、运行模式、权限通道与启动日志 |
+| **终端** | 基于 Termux `terminal-view` 的容器 PTY 终端，带常用扩展键 |
+| **插件 / 扩展** | 管理容器内 DSH 插件（内置 4000+ 条插件商店、周下载量与 star 统计、本地 `.tgz` 安装与加载自检）以及宿主 `.dshx` 应用扩展 |
+| **工作流** | 可视化节点编排自动化工作流，支持按针脚类型筛选、条件分支、审批与原生能力调用 |
+| **设置** | 常规 / 外观 / 行为 / 功能 / 安全 / 备份 / 插件 / 多媒体，主题体系兼容 FolkPatch（`theme.json` / `.fpt`） |
 
-主题商店的入口在 **设置 → 外观** 页右上角；主题存档（`.fpt`）的导出与导入在商店页顶栏。
-
-界面语言在 **设置 → 常规 → 语言** 里选，与系统语言无关（还有几套「风味」皮：魔法大厅 / 圣光之殿 /
-后厨操作台 / 主世界 / 仙府主殿，只能从这里进）。启动日志、通知栏、Toast 与两个桥的报错都跟着这一项走，
-不是跟着系统语言。
-
-**虚拟屏**（**设置 → 功能 → 权限管理 → 屏幕与外部界面 → 虚拟屏**）是另一条路。DSH 可以在自己的一块虚拟显示上启动目标 App，
-容器里的 agent 直接对它截屏、点击、滑动、按键，也能在**那块屏上**启动指定包名 —— 全程不碰你
-自己的屏幕，所以不会把你正在看的东西顶掉。同一项里可以打开**预览**：实时画面 + 用手直接操作
-（点按/滑动、返回/桌面/最近任务）。预览和 agent 跑的是**完全同一个服务**，所以出问题时能
-一眼分清是画面侧还是输入侧。需要 root / Shizuku / 无线 ADB 之一 —— 通道没就绪时，点「预览」会先弹一个引导，说明还差的是哪一步（没选通道 / root 未验证 / Shizuku 未授权 / 无线 ADB 未配对），并可直达权限通道页。
-
-移植自 Operit 的 shower 子系统（LGPL-3.0，其自身源自 scrcpy），署名见[致谢](#致谢)与
-`displayserver/` 的 `package-info.java`。
-
-**配置备份**与 DSH 桌面端的 `dsh-config-manager` 插件使用同一套导出格式，手机上导出的 zip 能直接在电脑上导入，反之亦然；
-凭据值默认不导出，可选整包 AES-256-GCM 加密。为什么中间那一段要由软件侧做，见 [备份为什么要由软件侧加密](docs/backup.md)。
+- **多语言与主题**：应用语言在 **设置 → 常规 → 语言** 独立切换（不依赖系统语言）；主题商店与 `.fpt` 导出/导入位于 **设置 → 外观**。
+- **虚拟屏**：在 **设置 → 功能 → 权限管理 → 屏幕与外部界面 → 虚拟屏** 开启后，Agent 可在独立虚拟显示屏上运行并操作目标应用，不影响当前主屏使用，并支持实时画面预览与手动接管（需 root / Shizuku / 无线 ADB 之一）。
+- **配置备份**：直接复用 DSH 桌面端的 `dsh-config-manager` 导出格式，手机与桌面端备份互通；凭据默认不导出，支持可选 AES-256-GCM 加密。
 
 ## 环境要求
 
-- Android 8.0 (API 26) 或更高
+- Android 8.0 (API 26) 及以上
 - **arm64-v8a** 或 **x86_64** 设备（不支持 32 位）
-- 首次启动需要联网下载运行时（约 150 MB 压缩包，解压后约 600 MB；可在设置里选镜像或自动测速）
-- 存储空间建议预留 2 GB 以上
+- 首次启动需联网下载运行时（压缩包约 150 MB，解压后约 600 MB，建议预留 2 GB 以上空间）
 
-首次启动下载完运行时后会自动预装四个插件：`dsh-web-mobile`（移动端适配）、`dshmarket`（WebUI 内的插件市场）、
-`dsh-config-manager`（**配置备份功能的依赖**）、`dsh-file-upload`（拖拽上传 / 文档转 Markdown / 图片 OCR / 语音输入）。
-失败不影响启动，之后可以在插件商店里手动装；预装清单按包名逐个记账，从旧版本升级上来会自动补装新增的那几个。
+首次下载运行时后会自动预装四个常用插件：`dsh-web-mobile`（移动端适配）、`dshmarket`（WebUI 插件市场）、`dsh-config-manager`（配置备份依赖）、`dsh-file-upload`（附件上传与语音输入）。预装失败不影响主服务启动，后续可在插件商店手动安装。
 
-WebUI 里有几处**由 DSH-Folk 自己注入**的补丁（不依赖上面这些插件，因此不会被插件升级覆盖）：旧内核的 JS API 兼容垫片、
-系统栏内边距避让，以及**手机回车换行** —— 上游把 Enter/Shift+Enter 注册成只读快捷键（发送 / 换行），而软键盘没有 Shift，
-所以触屏设备上由我们注入一段脚本把裸回车改成换行（发送用发送按钮）；开关在 设置 → 功能 → WebUI 兼容。
+内置 WebUI 额外提供几项原生脚本增强（位于 **设置 → 功能 → 用户脚本**）：旧版 WebView JS API 兼容垫片、系统栏安全区内边距适配、触屏回车换行与上传错误诊断。
 
-root / Shizuku / 无线 ADB 都是**可选**的，并且**默认不启用**。DSH-Folk 只探测并复用设备上已有的 su（Magisk / KernelSU / APatch）
-与已授权的 Shizuku / Sui，自身不打任何内核补丁、不安装 su、不内置 Shizuku Server。要用就去
-**设置 → 安全 → 权限通道 → 首选通道** 选一条（或选「自动」按 root > Shizuku > 无线 ADB 挑）。
-
-选了通道后，App 自己（硬件监控、bugreport 的 dmesg/tombstones、重启菜单）与**容器里的 AI**（经 `dsh-native shell` 由 App 代跑）
-都能用它；容器本身不需要 root。严格程度决定「用之前要不要问你」，默认**严格**（每次特权调用都弹窗）。
-完整的权限模型、无线 ADB 的两把锁、AI 能通过桥调到宿主的哪些能力，见 [容器里能调宿主的什么](docs/host-bridges.md)。
+root / Shizuku / 无线 ADB 均为可选项且默认关闭，可在 **设置 → 安全 → 权限通道** 按需开启。
 
 ## 安装
 
-到 [Releases](https://github.com/DSH-Folk/DSH-Folk/releases/latest) 下载**对应架构**的 APK，同目录的 `.sha256` 可用于校验：
+前往 [Releases](https://github.com/DSH-Folk/DSH-Folk/releases/latest) 下载对应架构的 APK（附 `.sha256` 校验文件）：
 
-- `DSH-Folk-<版本>-arm64-v8a.apk` —— 绝大多数手机、平板
-- `DSH-Folk-<版本>-x86_64.apk` —— Android 模拟器、Android-x86、ChromeOS
+- `DSH-Folk-<版本>-arm64-v8a.apk`：绝大多数手机与平板
+- `DSH-Folk-<版本>-x86_64.apk`：Android 模拟器、Android-x86、ChromeOS
 
-两个包功能相同，区别只在打包的原生二进制与下载的容器 rootfs。装错架构会在启动时提示
-「Unsupported architecture」并退出。不确定的话：手机选 arm64-v8a。
+开发构建可在 [Actions](https://github.com/DSH-Folk/DSH-Folk/actions/workflows/build.yml) 的成功记录中下载工件。
 
-也可以到 [Actions](https://github.com/DSH-Folk/DSH-Folk/actions/workflows/build.yml) 取开发构建：
-选一次成功的运行，下载 `dsh-folk-debug-*` 或 `dsh-folk-release-*` 工件。
-
-**更新通道**：应用侧在 **设置 → 常规 → 更新通道** 里选 Alpha / Beta / 正式版（默认正式版）。
-Beta 额外收 CI 预发布构建，Alpha 什么都收 —— 切到 Alpha 需要手输确认，因为它可能打不开或丢数据。
-存量测试版用户升级时会自动迁移到 Beta 通道，不会掉回正式版。
-容器运行时是独立的通道（**版本菜单 → 更新通道**），与应用侧互不影响。
-测试版 / 正式版怎么发布、为什么这么发（release 变体、versionCode 约定、不用 Actions artifact 等），见
-[构建与发布内幕](docs/dev-notes.md)。
-
-应用自身的更新在 **设置 → 常规 → 检查更新** 里完成：它会对下载渠道（GitHub 直连 / gh-proxy 镜像）测延迟与吞吐，
-下载支持断点续传，装之前必须通过 release 附带的 `.sha256` 校验 —— 校验不过一律不装。
+应用更新通道可在 **设置 → 常规 → 更新通道** 切换（正式版 / Beta / Alpha）；容器运行时更新通道在运行时版本菜单中独立设置。应用内更新支持多镜像测速、断点续传与 `.sha256` 完整性校验。
 
 ## 运行时管理
 
-**设置 → 功能 → 运行时** 那张**开关卡片**：
+在 **设置 → 功能 → 运行时** 卡片中操作：
 
-- **点一下卡片**：立即检查更新。查到确有能装的版本才弹确认框（说明目标版本与保留的数据），确认后才开始下载；
-  没有更新、或者那份包要求的 App 版本比当前高（那种包装上连容器都起不来）时只给一句结果，不打扰你。
-- **长按卡片**：打开版本菜单。顶上两个滑块各两档 —— 完整版 / 精简版、正式 / 测试，改一下就重拉列表；
-  列表只显示所选组合，**当前已装那一版固定在最上面**：点它 = 重装，点别的版本 = 切换过去（降级也行）。
-  菜单左下角是**导入**：安装本地 tar.gz（可信来源），会先显示文件名与体积供确认。
-- **重装**（就是点最上面那一行）：重新下载当前通道的最新运行时，可选保留或清空会话、插件、配置与依赖数据。
-- **右侧开关**：自动检查更新，默认**开**。开启后应用启动即自动检查运行时更新，发现新版本才提示；下载仍需手动确认。
-  它只管自动检查，手动检查是点卡片。它与「应用更新」检测并行，但弹窗排队，避免两个「有更新」的弹窗叠在一起。
+- **点一下卡片**：立即检查更新，确认后下载替换（自动保留会话、插件与配置数据）。
+- **长按卡片**：打开版本菜单，可切换完整版 / 精简版、正式 / 测试通道、重装当前版本、切换历史版本或导入本地 `.tar.gz` 运行时包。列表按两个滑块筛选；当前已装那一版若被筛掉，会固定在最上面，点它是重装。
 
-日志里 `dsh web: http://127.0.0.1:3080/?token=…` 那行是打开 WebUI 用的令牌，等同于这个实例的密码
-（局域网访问默认关闭，只在本机可达）—— 贴日志求助前记得把它删掉。
+> 启动日志中的 `http://127.0.0.1:3080/?token=…` 包含本机访问令牌，分享日志前请先去除。
 
-预装插件时 pnpm 会刷一屏 `missing peer …` 警告，这是**预期的**（`@deepseek-ai/dsh-*`、`react` 这些 peer 由 dsh 自己解析）；
-判断预装成没成看每个插件末尾的「预装完成 <包名>」与 `[DSH-Folk-exit] 0`，不是看这些警告。
-运行时构建、rootfs 工作流、`minAppVersion` 门槛等内幕见 [构建与发布内幕](docs/dev-notes.md)。
+## 文档索引
 
-## 深入了解
-
-按主题拆到 `docs/` 下：
-
-- [容器里能调宿主的什么（dsh-fs / dsh-native）](docs/host-bridges.md) —— 两个回环桥、24 项原生能力、特权命令（`shell`）、无障碍（`a11y`）与自助提权流程
-- [备份为什么要由软件侧加密](docs/backup.md) —— 导出/导入格式、`DCA1` 容器、快照回退软件设置、WebDAV 云备份插件、五档档位
-- [开机自启](docs/autostart.md) —— 开机广播 / 无障碍 / 开机脚本三条路径的取舍，以及两个无障碍开关分别是什么
-- [日志采集与脱敏](docs/logs.md) —— bugreport 的文件归属、脱敏、时间窗口裁剪与 `session.lock` 处理
-- [它是怎么跑起来的](docs/architecture.md) —— proot/proroot、rootfs、link2symlink、pnpm、ELF 闭包等运行链细节
-- [构建与发布内幕](docs/dev-notes.md) —— 应用/运行时的发布工作流、测试版通道机制、更新说明为什么是本地资源
-- [自动化工作流：踩坑指南](docs/workflow-pitfalls.md) —— 四层跨进程契约、审批 TTL、分支跳过、Compose 画布手势与坐标的七次返工、Kotlin 运行期陷阱（**CC BY 4.0**）
-- [三项调研：功耗 / 省电模式 / 无障碍保活](docs/research-power-and-a11y.md) —— proroot 与 proot 的机制与实测方法、DSHA 省电四层设计拆解、无障碍保活的能力边界与提高方向
-- [附件上传：Android / proroot 下的落盘踩坑](docs/attachment-upload-pitfalls.md) —— 为什么「有的文件能传、新的不能」：`--link2symlink` 的锚点组、上游 link→unlink→chmod 发布流程、取证方法与本机探针（**CC BY 4.0**）
+- [扩展开发指南](docs/extensions/README.md) — `.dshx` 应用扩展清单、UI 槽位、10 大强类型 Seam、19 个 Hook、启动管线与安全模型
+- [架构与运行原理](docs/architecture.md) — 8 模块 Gradle 拓扑、Seam 依赖倒置、proot/proroot、rootfs 与 ELF 闭包检查
+- [宿主桥接能力（dsh-fs / dsh-native）](docs/host-bridges.md) — 回环文件桥、原生能力清单、特权命令、无障碍与自助提权
+- [配置备份与加密](docs/backup.md) — 备份格式、`DCA1` 加密容器、快照回退与 WebDAV 云备份
+- [开机自启](docs/autostart.md) — 开机广播、无障碍保活与开机脚本方案说明
+- [日志采集与脱敏](docs/logs.md) — 诊断包组成、敏感信息脱敏与时间窗口裁剪
+- [构建与发布说明](docs/dev-notes.md) — 应用与运行时 CI 工作流、通道机制与静态门禁
+- [自动化工作流开发记录](docs/workflow-pitfalls.md) — 跨进程契约、审批机制与 Compose 画布手势踩坑记录（**CC BY 4.0**）
+- [功耗、省电与无障碍保活调研](docs/research-power-and-a11y.md) — proroot / proot 实测对比与保活策略调研
+- [附件上传落盘排查记录](docs/attachment-upload-pitfalls.md) — `--link2symlink` 与原子发布兼容性分析（**CC BY 4.0**）
 
 ## 项目结构
 
-```
-app/src/main/java/me/bmax/apatch/
-  dsh/                  运行时层：下载安装、proot 启动、权限探测、无线 ADB、PTY、配置备份
-  ui/screen/HomeDsh.kt  主页
-  ui/screen/Dsh*.kt     终端 / 插件 / 插件商店
-  ui/screen/settings/   设置各分页
-runtime-builder/        容器 rootfs 构建脚本（在 CI 上跑）+ 动态库闭包检查
-.github/workflows/      build.yml（APK） + runtime.yml（rootfs）
-docs/                   分主题的深入实现说明
+项目按单向依赖拆分为 8 个 Gradle 模块（由 `tools/check-module-boundary.js` 在 CI 校验）：
+
+```text
+app/                装配壳：AndroidManifest、Activity / Service / Provider、主界面与设置页
+ext-api/            公共扩展契约（第三方 .dshx 直接依赖）：10 个强类型 Seam、UI/Hook/SPI 注册表与启动管线
+core-kernel/        不可变宿主底座：容器环境、日志、安全熔断、权限策略、Shizuku AIDL 与工具层
+core-res/           跨模块共享字符串资源（单一真源）
+ext-workflow/       内置扩展：自动化工作流引擎、校验、审批与节点编辑器
+ext-display/        内置扩展：虚拟屏会话管理、Binder 协议与悬浮镜像窗
+ext-userscripts/    内置扩展：WebUI 注入脚本管道、用户脚本管理与 GreasyFork 市场
+ext-backup/         内置扩展：配置备份、AES-256-GCM 加密归档与云同步
+displayserver/      独立虚拟屏服务端进程（app_process）
+runtime-builder/    容器 rootfs 构建脚本与 ELF 传递依赖检查
+tools/              CI 静态门禁与跨模块边界检查脚本
+docs/               分主题技术文档
 ```
 
-内部包名保留 `me.bmax.apatch`（applicationId 是 `top.funcun.dshfolk`）：
-这样 FolkPatch 的整套主题子系统与用户已有的 `theme.json` 不需要改一行就能继续用。
+内部 Kotlin 包名保持 `me.bmax.apatch`（`applicationId` 为 `top.funcun.dshfolk`），以保持对 FolkPatch 主题与历史配置文件的向后兼容。
 
 ## 致谢
 
-DSH-Folk 的 UI 直接复用 FolkPatch，容器与运行时交付思路来自 DSHA / DSHM：
+- [FolkPatch](https://github.com/LyraVoid/FolkPatch) — 本项目的 UI 基础（GPL-3.0）
+- [APatch](https://github.com/bmax121/APatch) — FolkPatch 的上游项目
+- [点击助手 (TouchTool)](https://github.com/mr-bogey/TouchTool) — 自动化工作流编辑器的 184 项动作目录、15 类分组、按针脚类型筛选面板及节点交互设计参考（GPL-3.0）
+- [DSHA](https://github.com/DSH-APP/DSHA) — 无线 ADB 配对与容器运行方案参考
+- [DSHM](https://github.com/RochelimitDawn/DSHM) — 运行时在线交付与镜像测速方案参考
+- [dsh-market](https://github.com/dsh-market/dsh-market) — 插件商店目录与统计接口（MIT）
+- [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) — 容器内运行的核心 Agent 程序
+- [proot](https://github.com/proot-me/proot) / [proroot](https://github.com/coderredlab/proroot) / [Termux](https://github.com/termux/termux-app) — 容器执行与 PTY 终端组件
+- [Shizuku](https://github.com/RikkaApps/Shizuku) — 免 root 特权通道
+- [KernelSU](https://github.com/tiann/KernelSU) / [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra) — 界面设计参考
+- [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) — 虚拟显示创建与输入注入原理参考（Apache-2.0）
+- [Operit](https://github.com/AAswordman/Operit) — `displayserver/` 移植自其 `tools/shower`，悬浮窗交互参考其 `VirtualDisplayOverlay`（LGPL-3.0）
 
-- [FolkPatch](https://github.com/LyraVoid/FolkPatch) —— 本项目的 UI 基础（GPL-3.0）
-- [APatch](https://github.com/bmax121/APatch) —— FolkPatch 的上游
-- [DSHA](https://github.com/DSH-APP/DSHA) —— 无线 ADB 配对方案、容器运行逻辑参考
-- [DSHM](https://github.com/RochelimitDawn/DSHM) —— 运行时在线交付与镜像测速方案
-- [dsh-market](https://github.com/dsh-market/dsh-market) —— 插件商店的目录与统计接口（`manifest/plugins.json`、`/api/stats`、`/api/npm-downloads`），点赞数、周下载量与 4000+ 条目录都来自它，MIT
-- [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) —— 被启动的本体
-- [proot](https://github.com/proot-me/proot) / [proroot](https://github.com/coderredlab/proroot) / [Termux](https://github.com/termux/termux-app) —— 容器执行与 PTY 终端
-- [Shizuku](https://github.com/RikkaApps/Shizuku) —— 免 root 特权通道
-- [KernelSU](https://github.com/tiann/KernelSU) / [SukiSU-Ultra](https://github.com/SukiSU-Ultra/SukiSU-Ultra) —— 界面设计参考
-- [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) —— 虚拟显示屏的创建手法（伪造 `ActivityThread`/系统 Context、`SurfaceControl`/`DisplayManager` 反射、`injectInputEvent` 注入），Apache-2.0
-- [Operit](https://github.com/AAswordman/Operit) —— 虚拟屏幕服务端的实现参考，`displayserver/` 移植自其 `tools/shower`；悬浮小窗的形态（折叠把手 / 展开 / 贴边 / 控制条）参照其 `VirtualDisplayOverlay`，LGPL-3.0
-
-> `displayserver/` 是 [Operit](https://github.com/AAswordman/Operit)（LGPL-3.0）的移植产物，其手法又源自
-> [scrcpy](https://github.com/Genymobile/scrcpy)（Apache-2.0）。LGPLv3 与本站的 GPLv3 兼容，因此可以整体
-> 以 GPL-3.0 分发；移植时按 GPLv3 要求保留了完整源码（本仓库）与该署名。原始的 `com.ai.assistance.shower`
-> 包名已改为 `me.bmax.apatch.display`，并去掉了移植源里与本功能无关的 Compose 界面。
->
-> 虚拟屏悬浮小窗（`DisplayMirror`）的**形态**也参照了 Operit 的 `VirtualDisplayOverlay`：默认折叠成
-> 边缘把手、点开才展开、点一下出控制条、300ms 位移/尺寸动画。实现是按本仓库的会话模型重写的
-> （只挂 agent 那块屏、与预览页交接唯一的视频 sink、只做旁观不做触摸注入），没有照搬其自动化
-> 进度条、彩虹边框与全屏触摸转发。
+> `displayserver/` 移植自 [Operit](https://github.com/AAswordman/Operit)（LGPL-3.0，源自 Apache-2.0 的 [scrcpy](https://github.com/Genymobile/scrcpy)），包名调整为 `me.bmax.apatch.display` 并移除无关界面，按 GPLv3 要求随本仓库完整开源。
 
 ## 许可证
 
-[GNU General Public License v3.0](./LICENSE)。本项目派生自 GPL-3.0 的 FolkPatch，因此整体沿用 GPL-3.0：
-分发（含二次修改）必须同样以 GPLv3 开源并提供完整源码。
+[GNU General Public License v3.0](./LICENSE)。本项目基于 GPL-3.0 的 FolkPatch 开发，分发与二次修改须继续遵循 GPLv3 并提供完整源码。
 
 ## 友情链接
 

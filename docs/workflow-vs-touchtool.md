@@ -1,7 +1,7 @@
 # 工作流编辑器 vs 点击助手（TouchTool）实现差异对照
 
 > 本文只做**索引与概述**，用于定位改动范围和最终审查。具体改动前必须回到代码核实。
-> 参考实现：`.tmp/touchtool`（GPL-3.0，只读）。当前实现：`work/app/src/main/java/me/bmax/apatch/`。
+> 参考实现：[点击助手 (TouchTool)](https://github.com/mr-bogey/TouchTool)（GPL-3.0）。当前实现位于 `:ext-workflow` 与 `app/src/main/java/me/bmax/apatch/ui/`。
 
 ## 0. 一句话结论
 

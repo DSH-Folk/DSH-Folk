@@ -344,7 +344,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_backup_section">DSH configuration backup</string>
     <string name="dsh_backup_summary">Uses the same export format as the dsh-config-manager plugin, so a backup made here imports on desktop and vice versa.</string>
     <string name="dsh_backup_export">Export configuration</string>
-    <string name="dsh_backup_export_summary">What goes into the archive is chosen in the dialog: app data (app settings + native permission log), DSH data (settings, model providers, plugin inventory, MCP servers, skills and workspaces), or both. Credentials are left out unless you pick the vault option.</string>
+    <string name="dsh_backup_export_summary">Choose app settings, DSH data (config, providers, plugins, MCP, skills, workspaces), or both. Credentials are excluded by default.</string>
     <string name="dsh_backup_import">Import a backup</string>
     <string name="dsh_backup_import_summary">Pick an exported .zip. It is read first: you are asked about conflicts only if some are found, and about sessions only if the archive has any. A rollback snapshot is taken before writing, so a failure rolls back.</string>
     <string name="dsh_backup_open_dir">Open backup folder</string>
@@ -482,7 +482,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_plugin_inactive">Not a profile layer</string>
     <string name="dsh_plugin_inactive_hint">Installed as a plain dependency: it declares no dsh.bundle, so DSH does not load it.</string>
     <string name="dsh_adb_shell_allow">Allow ADB write commands in the container</string>
-    <string name="dsh_adb_shell_allow_summary">Off: only read-only commands (getprop / dumpsys / ls / cat) run inside the container. On: anything the agent or you type through adb-shell also runs, with shell (uid 2000) rights.</string>
+    <string name="dsh_adb_shell_allow_summary">Off allows read-only commands only; On permits write commands via adb-shell as shell (uid 2000).</string>
     <string name="dsh_adb_root_allow">Allow root shell in the container</string>
     <string name="dsh_adb_root_allow_summary">Only useful when the phone is already rooted: lets adb-shell --su escalate to uid 0. Leave it off unless you need it.</string>
     <string name="dsh_msg_fetching_meta">Fetching runtime info…</string>
@@ -568,7 +568,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_runtime_min_app_go_update">Check for app update</string>
     <string name="dsh_runtime_update_go">Update runtime</string>
     <string name="dsh_runtime_reinstall_confirm_title">Reinstall the runtime?</string>
-    <string name="dsh_runtime_reinstall_confirm_text">This downloads the runtime again (about 140 MB) and replaces the container system files. Existing sessions, installed plugins, ADB keys, DSH configuration, and plugin dependency data are preserved; if replacement is interrupted, the staged data is restored on the next launch. The service stops first.</string>
+    <string name="dsh_runtime_reinstall_confirm_text">Re-downloads the runtime (~140 MB) and replaces container system files while preserving sessions, plugins, config, and ADB keys. Stops the service first.</string>
     <string name="dsh_runtime_reinstall_go">Reinstall</string>
     <string name="dsh_runtime_current">Current version</string>
     <string name="dsh_runtime_import">Import</string>
@@ -577,7 +577,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_runtime_import_size_unknown">Unknown</string>
     <string name="dsh_runtime_import_confirm">Trust source and install</string>
     <string name="dsh_runtime_beta_summary">Use the separate runtime-beta-latest rolling channel. Beta builds may be unstable; off by default.</string>
-    <string name="dsh_runtime_slim_summary">Slim build of the same runtime: drops TypeScript declarations, source maps, docs and test fixtures, plus the LibreOffice engine that powers document preview and conversion. About 63MB smaller to download. Document preview/convert will not work on it. The two sliders are independent: this one picks the build, the other the channel.</string>
+    <string name="dsh_runtime_slim_summary">Drops TypeScript declarations, sourcemaps, tests, and LibreOffice (~63 MB smaller download). Document preview and conversion are unavailable in Slim.</string>
     <string name="dsh_runtime_preserve_question">Preserve sessions, plugins, configuration and dependency data?</string>
     <string name="dsh_runtime_preserve">Preserve data</string>
     <string name="dsh_runtime_clean">Do not preserve data</string>
@@ -682,7 +682,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="settings_terminal_bg_alpha">Terminal background opacity</string>
     <string name="settings_terminal_bg_alpha_summary">How opaque the terminal panel is; lower lets the wallpaper show through</string>
     <string name="dsh_plugin_repair">Rebuild plugin dependencies</string>
-    <string name="dsh_plugin_repair_summary">Without real hardlink support, pnpm\'s links point into its content store, so a plugin\'s client bundle cannot be found and the service fails to start. Rebuilding wipes node_modules and reinstalls with real file copies (keeps pnpm-lock.yaml; may take a few minutes, and the service cannot start while it runs). If you set packageImportMethod yourself in the profile\'s pnpm-workspace.yaml, that setting is kept and this may not help.</string>
+    <string name="dsh_plugin_repair_summary">Hardlinks are unavailable on this device, which can break pnpm plugin bundles. Rebuild clears node_modules and reinstalls real file copies (keeps pnpm-lock.yaml; pauses the service).</string>
     <string name="dsh_plugin_repair_go">Rebuild now</string>
     <string name="dsh_err_plugin_tree_failed">Plugin tree failed to load. Try Settings → Function → Rebuild plugin dependencies, or remove the plugin that was just installed.</string>
 
@@ -699,7 +699,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_backup_rescue_section">When config is broken / DSH will not start</string>
     <string name="dsh_backup_rescue_expand">Details</string>
     <string name="dsh_backup_rescue_collapse">Collapse</string>
-    <string name="dsh_backup_rescue_desc">Everything above goes through the dsh-config-manager plugin, which lives inside DSH — if DSH will not start, neither will it. The same project also ships a standalone CLI that does not depend on the DSH runtime at all, so it is the first thing to reach for when configuration is broken or you are restoring onto a new machine. Installing or updating the plugin does not give you the CLI command: it must be installed separately with the first command below.</string>
+    <string name="dsh_backup_rescue_desc">Standard backups rely on the dsh-config-manager plugin inside DSH. If DSH cannot start, use the standalone CLI recovery tool to restore your data.</string>
     <string name="dsh_backup_rescue_install_cli">Install rescue CLI in container</string>
     <string name="dsh_backup_rescue_open_terminal">Open terminal</string>
     <string name="dsh_backup_rescue_cmds_title">Run these on the Terminal page</string>
@@ -728,12 +728,12 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
 
     <!-- 免 root 文件访问（DocumentsProvider） -->
     <string name="dsh_docs_access_title">Let other apps access the data directory</string>
-    <string name="dsh_docs_access_summary">File managers reach DSH-Folk\'s private data directory (rootfs, sessions, profiles) over the system document picker. On some ROMs that picker runs as the system process and the grant issued on its behalf is dropped silently - MT Manager then reports no persistable permission. The compatibility path below issues the same grant from DSH-Folk itself, for as many apps as you tick.</string>
+    <string name="dsh_docs_access_summary">Browse DSH-Folk\'s private data directory (rootfs, sessions, config) from file managers. Use Direct Grant below if your ROM drops picker permissions.</string>
     <string name="dsh_docs_open_action">Open with the system picker</string>
     <string name="dsh_docs_grant_action">Defective-ROM compatibility: grant directly…</string>
     <string name="dsh_docs_open_failed">Could not open the file picker. Open your system Files app and choose the DSH-Folk root in the sidebar.</string>
     <string name="dsh_docs_grant_title">Defective-ROM compatibility: grant the data directory</string>
-    <string name="dsh_docs_grant_message">On some ROMs the picker shares the system uid, so the grant the system issues on its behalf is dropped silently and the file manager then reports no persistable permission. This grants the apps you tick read and write access to DSH-Folk\'s private data directory (including the container rootfs) from DSH-Folk itself - the same permission the picker would have handed out. Only tick apps you trust; you can revoke it here at any time.</string>
+    <string name="dsh_docs_grant_message">Some ROM file pickers drop persisted URI grants. Here DSH-Folk can directly grant your chosen file manager read/write access to its private data directory.</string>
     <string name="dsh_docs_grant_confirm">Grant</string>
     <string name="dsh_docs_grant_revoke">Revoke all</string>
     <string name="dsh_docs_grant_done">Granted. Add or open the folder again in the file manager - it should no longer report no persistable permission.</string>
@@ -761,11 +761,7 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_webui_compat_ok">Got it</string>
     <string name="dsh_webui_compat_disable">Turn compatibility mode off</string>
     <string name="dsh_webui_compat_title">Outdated WebView (compatibility mode enabled)</string>
-    <string name="dsh_webui_compat_body">Your system WebView is Chromium %1$s, which lacks JavaScript APIs the DSH web interface needs (Iterator, for example). Without them the whole interface shows "Failed to load plugins" and never opens.
-
-DSH-Folk has already injected a small compatibility script before the local page loads. It only adds missing APIs and never changes anything else, and it applies only to http://127.0.0.1.
-
-Updating Android System WebView from your app store is the proper fix.</string>
+    <string name="dsh_webui_compat_body">Your system WebView is Chromium %1$s and misses newer JS APIs required by DSH. Enable the compatibility shim to avoid page errors, or update Android System WebView.</string>
     <string name="dsh_webui_compat_section">Old-WebView compatibility</string>
     <string name="dsh_webui_compat_section_summary">Add missing JavaScript APIs to the in-app web interface. Current WebView: %1$s</string>
     <string name="dsh_webui_compat_auto">Automatic</string>
@@ -775,7 +771,7 @@ Updating Android System WebView from your app store is the proper fix.</string>
     <string name="dsh_webui_compat_off">Never inject</string>
     <string name="dsh_webui_compat_off_desc">Leave the page completely untouched</string>
     <string name="dsh_web_enter_newline_title">Enter inserts a newline</string>
-    <string name="dsh_web_enter_newline_summary">On touch screens, Enter in the chat box starts a new line instead of sending — send with the send button. Upstream binds Enter/Shift+Enter as read-only shortcuts (send / newline) and phone keyboards have no Shift, so without this you cannot write a multi-line message. Takes effect after a refresh.</string>
+    <string name="dsh_web_enter_newline_summary">Makes Enter insert a newline on touch keyboards; tap Send to submit. Reload the page to apply.</string>
 
     <!-- 发送日志的时间裁剪 -->
     <string name="dsh_log_trim_title">Trim log by time?</string>
@@ -804,9 +800,7 @@ Updating Android System WebView from your app store is the proper fix.</string>
     <string name="dsh_priv_danger_remove">Remove this entry</string>
     <string name="dsh_priv_danger_reset">Restore default</string>
     <string name="dsh_priv_notice_title">The permission policy changed: no more asking per call</string>
-    <string name="dsh_priv_notice_message">This version replaces the global strictness plus the no-more-asking list with restriction mode plus two lists. Your settings were re-created under the new model: restriction mode is off by default, which means that once a capability is enabled the agent can use it without asking you again.
-
-If you want to be asked every time, open Settings -> Permissions -> Restriction mode and switch it on; you can add or remove capabilities in the capability list. Commands in the dangerous-operation list (uninstall, reboot, wiping data and the like) ignore that switch and always ask once - you can add or remove those entries yourself too.</string>
+    <string name="dsh_priv_notice_message">Permissions now use Restriction Mode and allow/block lists. Restriction Mode is off by default so enabled capabilities work without prompts; turn it on in Settings → Permissions to confirm every call.</string>
     <string name="dsh_priv_notice_ok">Got it</string>
     <string name="dsh_log_window_title">Log time window</string>
     <string name="dsh_log_window_10m">Last 10 minutes</string>
@@ -856,7 +850,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_native_section">Native capabilities</string>
     <string name="dsh_native_summary">Let the agent inside the container borrow the app: notifications, clipboard and sharing, device, network and sensor readings, the media library, camera and microphone, location, calendar and contacts, volume and system settings</string>
     <string name="dsh_native_enable">Enable native bridge</string>
-    <string name="dsh_native_enable_summary">Off by default. The container also runs third-party plugins, and they share the same loopback token — turn on only the capabilities you actually want. When the agent needs something that is off it can file a request itself: the dialog offers Allow (sticks) or Allow once (one call only), and an unanswered request is denied after 60 seconds — nothing is ever granted automatically.</string>
+    <string name="dsh_native_enable_summary">Off by default; enable only what you need. Calls to disabled capabilities prompt for Allow or Once (auto-denied after 60s).</string>
     <string name="dsh_native_caps">Capabilities</string>
     <string name="dsh_native_cap_notify">Notifications</string>
     <string name="dsh_native_cap_notify_desc">Post and cancel notifications in a channel separate from the service one</string>
@@ -953,14 +947,14 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_ws_mount_header">Mount into the workspace</string>
     <string name="dsh_ws_mount_source">Source</string>
     <string name="dsh_ws_mount_destination">Target</string>
-    <string name="dsh_ws_mount_desc">Expose phone storage as a folder inside /root/workspace, so it shows up in the dsh workspace file tree. Shares the one Shared storage switch (merged 2026-10); still obeys the allow/deny lists above.</string>
+    <string name="dsh_ws_mount_desc">Mounts phone Shared storage under /root/workspace for direct workspace access. Same switch as shared storage; its allow/deny lists apply.</string>
     <string name="dsh_ws_mount_follows_on">Shared storage is on, so the mappings below are active.</string>
     <string name="dsh_ws_mount_follows_off">Shared storage is off, so the mappings below do nothing (turn it on under Features, Shared storage).</string>
     <string name="dsh_ws_mount_empty">No mapping — add one to choose which phone folder appears where in the workspace.</string>
     <string name="dsh_ws_mount_add">Add mapping</string>
-    <string name="dsh_ws_mount_note">Note: this folder lives on shared storage and has no symlink/hardlink/exec bits. The dsh write tool publishes a file through a temporary file plus an atomic link, so it fails here (EINVAL) — use edit or a shell redirect instead. Do not put node_modules or git repos here (pnpm install / git / chmod +x will fail).</string>
+    <string name="dsh_ws_mount_note">This folder is on shared storage without hardlink or exec bits. If the write tool fails with EINVAL, use edit or shell redirection, and avoid storing node_modules here.</string>
     <string name="dsh_ws_mount_warn_title">This folder cannot do atomic writes</string>
-    <string name="dsh_ws_mount_warn_body">Shared storage has no hard links, and the dsh write tool publishes a new file with link(), so writing here fails with EINVAL. Use edit or a shell redirect instead; read and edit work normally.</string>
+    <string name="dsh_ws_mount_warn_body">Shared storage does not support hardlinks, so creating files via write may return EINVAL. Use edit or shell redirection instead.</string>
     <string name="dsh_ws_mount_recheck">Re-check</string>
     <string name="dsh_ws_mount_dest_title">Where in the workspace</string>
     <string name="dsh_ws_mount_dest_label">Folder under the workspace</string>
@@ -994,7 +988,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_native_err_display_unavailable">The virtual screen service could not start. It needs a privileged channel (root / Shizuku / wireless ADB) — ask the user to check that one is enabled and ready.</string>
 <string name="dsh_native_err_display_no_frame">The virtual screen returned no image for that display</string>
     <string name="dsh_native_err_display_terminated">The user just terminated this virtual screen from the floating window, so it no longer exists. Do not retry — ask the user whether to create a new one.</string>
-    <string name="dsh_native_err_display_no_session">There is no virtual-screen session. Omitting --display does not fall back to the real screen (that is display 0 and must be written explicitly). Create one with display session, or pass --display.</string>
+    <string name="dsh_native_err_display_no_session">No active virtual display session. Create one with display session first, or pass --display 0 for the main screen.</string>
     <string name="dsh_native_err_display_bad_param">The %1$s parameter is missing or invalid</string>
     <string name="dsh_native_err_display_bad_key">Unknown key: %1$s (use a numeric key code or a name such as home, back, enter)</string>
     <string name="dsh_native_err_display_bad_package">Not a valid package name: %1$s</string>
@@ -1021,7 +1015,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_display_preview_open">Open the preview</string>
         <string name="dsh_display_manage_open">Manage virtual screens</string>
     <string name="dsh_display_manage_title">Virtual screens</string>
-    <string name="dsh_display_manage_hint">Every virtual screen alive in the server process is listed here. A change of size makes the agent create a new one and the old one does not disappear by itself, so there may be more than one; "no picture" only means nobody is watching, not that it is broken.</string>
+    <string name="dsh_display_manage_hint">Lists all active virtual displays in the server process; no active stream simply means no preview is open.</string>
     <string name="dsh_display_manage_empty">No virtual screen is alive right now</string>
     <string name="dsh_display_manage_failed">Could not read the virtual screen list</string>
     <string name="dsh_display_manage_refresh">Refresh</string>
@@ -1118,7 +1112,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_native_cap_usage">App usage stats</string>
     <string name="dsh_native_cap_usage_desc">Read app usage statistics. Android requires Usage Access on a system settings page.</string>
     <string name="dsh_native_cap_saf">SAF bridge (unmountable providers)</string>
-    <string name="dsh_native_cap_saf_desc">Let the agent read and write a tree it cannot mount (a provider like Termux whose files live in another app\'s private storage), going through the host app over SAF — no root, no mount, no copy. Register a tree here (or in Settings › File access scope) first. Read lists and reads; read+write can also create, write, delete, move and copy. It can only touch the trees you registered.</string>
+    <string name="dsh_native_cap_saf_desc">Let the agent access external app folders (such as Termux) via Android SAF without root. Add the folder under File Access Scope first.</string>
     <string name="dsh_saf_sheet_intro">Register trees you cannot mount (such as Termux) and choose which the agent may reach over SAF. Grant a tree below, then switch on the ones to enable.</string>
     <string name="dsh_saf_sheet_access_header">Access level</string>
     <string name="dsh_saf_sheet_sources_header">Authorized sources</string>
@@ -1130,17 +1124,17 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_native_cap_full_screen_notify">Full-screen alerts</string>
     <string name="dsh_native_cap_full_screen_notify_desc">Allow urgent notifications to open a full-screen alert. Android 14+ requires a separate system permission. Every use still requires a reason and is audited.</string>
     <string name="dsh_native_cap_shell">Privileged commands</string>
-    <string name="dsh_native_cap_shell_desc">Let the agent run commands through the permission channel you picked (root, Shizuku or wireless ADB). Read allows diagnostics only; read+write can also change device state. A channel must be selected in Settings first. How often you are asked is set by the strictness level.</string>
+    <string name="dsh_native_cap_shell_desc">Runs commands through your configured privilege channel (root, Shizuku, or wireless ADB). Read allows diagnostics only; Read/Write permits modifying device state.</string>
     <string name="dsh_native_perm_label_a11y">Accessibility service</string>
     <string name="dsh_native_cap_a11y">Accessibility (read and act)</string>
     <string name="dsh_native_cap_a11y_desc">Read the text and controls on the current screen, or tap, swipe, type and go home for the user. Read only looks; you must enable the DSH-Folk accessibility service in system settings first.</string>
     <string name="dsh_native_need_a11y_perm">Accessibility service is off — tap to open system settings</string>
     <string name="dsh_native_cap_display">Virtual screen (screenshot and control)</string>
-    <string name="dsh_native_cap_display_desc">Capture the screen or a virtual one, tap, swipe, press keys, and launch apps on the virtual screen. Works without the accessibility service, so it can see screens that expose no nodes. Read only captures; acting needs read-write. It runs a helper as root or shell, so a permission channel must be set up.</string>
+    <string name="dsh_native_cap_display_desc">Capture screen or virtual display frames and inject touch, swipe, keys, or app launches without Accessibility. Requires root, Shizuku, or wireless ADB.</string>
     <string name="dsh_native_err_a11y_bad_args">Missing or malformed arguments</string>
     <string name="dsh_a11y_service_label">DSH-Folk accessibility</string>
     <string name="dsh_a11y_service_summary">Let the AI read the current screen and act on it</string>
-    <string name="dsh_a11y_service_desc">When enabled, the AI inside the container can read the text and controls on your current screen and tap, swipe or type as you ask. This is a separate switch from the accessibility service used for boot autostart: that one sees system events only, never screen content. Off by default, and you can turn it off here at any time.</string>
+    <string name="dsh_a11y_service_desc">Allows the AI to read on-screen text and perform taps, swipes, and text input. Independent from the Autostart accessibility toggle.</string>
     <string name="dsh_a11y_own_title">Keep accessibility out of this app</string>
     <string name="dsh_a11y_own_summary">Whether DSH-Folk\u2019s own screens count as readable, for screen readers and for the AI\u2019s a11y tools. Best effort \u2014 not a guarantee.</string>
     <string name="dsh_a11y_own_off">Do not filter</string>
@@ -1287,7 +1281,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_native_err_control_disabled">Full control for %1$s is disabled</string>
     <string name="dsh_native_err_notification_cancel">Could not dismiss the requested system notification</string>
     <string name="dsh_native_full_control_warning_title">Allow full notification control?</string>
-    <string name="dsh_native_full_control_warning_message">Full control lets AI view notifications from other apps and dismiss individual or all notifications through the notification listener service. This can hide security alerts, messages, calls, and other important notices. Continue to Android Notification Access only if you accept this risk.</string>
+    <string name="dsh_native_full_control_warning_message">Full control allows AI to read and dismiss notifications from other apps, which may hide important alerts. Continue to open Android Notification Access settings.</string>
     <string name="dsh_native_full_control_continue">I understand, continue</string>
 
     <!-- ── 文件桥错误（会出现在 dsh-fs 的输出里，用户看得到）── -->
@@ -1490,7 +1484,9 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_runtime_row_switch">Switch</string>
     <string name="dsh_runtime_checking">Checking\u2026</string>
     <string name="dsh_runtime_update_confirm_title">Update the runtime?</string>
-    <string name="dsh_runtime_switch_confirm_text">Target version: %1$s\n\nThe runtime is downloaded again and the container system files are replaced. Existing sessions, installed plugins, ADB keys, DSH configuration and plugin dependency data are all kept; if the replacement is interrupted, the staged data is restored on the next start. The service is stopped first.</string>
+    <string name="dsh_runtime_switch_confirm_text">Target version: %1$s
+
+Downloads and replaces container system files while preserving sessions, plugins, config, and ADB keys. Stops the service first.</string>
     <string name="dsh_runtime_prompt_title">A new runtime is available</string>
     <string name="dsh_runtime_prompt_text">%1$s\n\nYou can update now, or later in Settings → Function → Runtime. Sessions, plugins and configuration are kept.</string>
     <string name="dsh_log_version_list_api">Runtime version list: %1$d releases from the API</string>
@@ -1726,11 +1722,11 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_handoff_copy_failed">Copy failed: %1$s</string>
     <string name="dsh_handoff_done_message">Copied to %1$s. The prompt is on the clipboard.</string>
     <string name="dsh_userscripts_title">Userscripts</string>
-    <string name="dsh_userscripts_scope">Applies to this app own page (the built-in dsh web UI) only. The metadata block, @match / @include / @exclude and @run-at (document-start / -end / -idle) are read the Greasemonkey way.</string>
+    <string name="dsh_userscripts_scope">Applies only to the built-in DSH WebUI. Supports standard Tampermonkey headers (@match, @include, @exclude, @run-at).</string>
     <string name="dsh_userscripts_install_file">Install from a file</string>
     <string name="dsh_add_menu">Add</string>
     <string name="dsh_userscripts_code_loading">Loading the source…</string>
-    <string name="dsh_userscripts_empty">Nothing installed yet. Tap ＋ at the bottom right: File picks a local .user.js, Link takes a pasted address, Store browses greasyfork.org — either way it runs before the page\'s own scripts.</string>
+    <string name="dsh_userscripts_empty">No scripts installed yet. Tap + at the bottom right to install from File, Link, or GreasyFork.</string>
     <string name="dsh_userscripts_empty_filtered">No installed script matches that.</string>
     <string name="dsh_userscripts_hide_builtin">Hide built-ins</string>
     <string name="dsh_userscripts_show_builtin">Show built-ins</string>
@@ -1738,16 +1734,16 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_userscripts_builtin_hint">These run through the same injection pipeline as the scripts you add — they are the app own injections, now visible in one place.</string>
     <string name="dsh_userscripts_builtin_always_on">Always on</string>
     <string name="dsh_userscripts_builtin_compat">JavaScript compatibility shim (old WebView)</string>
-    <string name="dsh_userscripts_builtin_compat_summary">Adds the JS APIs the dsh web UI needs on old kernels (Iterator, Promise.try and friends). Pick Automatic to decide by kernel version, or force it on/off. Turned off, an old WebView shows Failed to load plugins and never opens.</string>
+    <string name="dsh_userscripts_builtin_compat_summary">Polyfills missing JS APIs (Iterator, Promise.try, etc.) on older WebView kernels. Auto enables it by kernel version.</string>
     <string name="dsh_userscripts_builtin_kernel">In-app WebView kernel: %1$s</string>
     <string name="dsh_userscripts_builtin_inset">System bar insets</string>
     <string name="dsh_userscripts_builtin_inset_summary">Lets the page background reach behind the status bar and the gesture bar while the content keeps clear of them. No switch: without it the bottom input box sits under the gesture bar. Values follow rotation and the keyboard.</string>
     <string name="dsh_userscripts_builtin_composer">Enter inserts a newline</string>
-    <string name="dsh_userscripts_builtin_composer_summary">On touch screens, a bare Enter in the chat box starts a new line instead of sending — send with the send button. Upstream binds Enter/Shift+Enter as read-only shortcuts and phone keyboards have no Shift, so without this you cannot write a multi-line message. Takes effect after a refresh.</string>
+    <string name="dsh_userscripts_builtin_composer_summary">Makes Enter insert a newline in the chat box; tap Send to submit. Reload the page to apply.</string>
     <string name="dsh_userscripts_builtin_a11y">Accessible names for web inputs</string>
     <string name="dsh_userscripts_builtin_a11y_summary">Copies the placeholder a page already shows into aria-label, so the accessibility tree (and the agent a11y text --target) can address web input boxes. Always on.</string>
     <string name="dsh_userscripts_builtin_upload">Upload diagnostics</string>
-    <string name="dsh_userscripts_builtin_upload_summary">Makes a failed file upload state its real reason in the run log (HTTP status plus the server error code and message). The dsh web UI turns every upload failure into one generic retry card and never records why. This changes nothing about uploading itself; always on.</string>
+    <string name="dsh_userscripts_builtin_upload_summary">Logs the actual HTTP status and server error message when file uploads fail.</string>
     <string name="dsh_userscripts_builtin_blob">blob:/data: downloads</string>
     <string name="dsh_userscripts_builtin_blob_summary">WebView never fires the download callback for blob:/data:, so this one reads those links as base64 and hands them to the native side. Always on.</string>
     <string name="dsh_userscripts_installed">Installed</string>
@@ -1946,7 +1942,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_mode_proroot_denied_title">proroot is not available</string>
     <string name="dsh_mode_proroot_denied_body">proroot needs arm64-v8a and a complete set of runtime files (they ship with the APK). This device does not qualify, so the container backend is unchanged.</string>
     <string name="dsh_mode_chroot_denied_title">chroot needs root</string>
-    <string name="dsh_mode_chroot_denied_body">chroot runs as real root, so root must be granted through the privileged channel first (or an equivalent via Shizuku / wireless ADB). Without it the container cannot start, so the backend is unchanged.</string>
+    <string name="dsh_mode_chroot_denied_body">chroot requires an active root or equivalent privilege channel. Keeping the current container backend.</string>
     <string name="dsh_mode_denied_ok">Got it</string>
     <string name="dsh_mode_chroot_desc">Enter the container as real root. Note: chroot only changes the root directory - it is not a sandbox; it may make the workspace sandbox mode usable, depending on the device kernel.</string>
     <string name="dsh_mode_chroot_needs_root">Requires the root permission channel</string>
@@ -1958,7 +1954,7 @@ If you want to be asked every time, open Settings -> Permissions -> Restriction 
     <string name="dsh_webui_browser_mode_summary">Keep web pages inside the app with a navigation bar; user scripts also run on external pages.</string>
     <string name="dsh_webui_browser_mode_switch">Open external links in the app</string>
     <string name="dsh_webui_browser_mode_forced">On because an installed extension needs it. Disable or remove that extension to change this.</string>
-    <string name="dsh_webui_debug_hint">To let dsh drive this browser, install an extension that declares the WebView debug capability (Extensions → Extensions market, or install from a link/file). Enabling that extension turns browser mode on for you and opens the debug channel; there is no separate switch here.</string>
+    <string name="dsh_webui_debug_hint">Install an extension declaring the WebView Debug capability to let DSH drive this browser; enabling it activates Browser Mode and debugging automatically.</string>
     <string name="dsh_webui_browser_mode_off_hint">Browser mode is off: enable it in Settings → Function → Browser mode</string>
     <string name="dsh_webui_browser_mode_switch_summary">When off, external links go to the system browser (default, safest). When on, the app visits third-party sites; the host detaches its web bridge before entering an external site.</string>
     <!-- Native capability catalog: used by workflow cards -->

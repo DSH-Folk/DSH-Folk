@@ -1,6 +1,6 @@
 # DSH-Folk 扩展开发指南
 
-> 面向第三方开发者。本文所有 API 名与行为都以本仓库源码为准，不是示意。
+> 面向第三方扩展开发者，本文所有接口签名与行为均以当前 `:ext-api` 源码为准。
 
 ## 目录
 
@@ -10,25 +10,24 @@
 4. [API 能力清单](#4-api-能力清单)
 5. [生命周期与异常隔离](#5-生命周期与异常隔离)
 6. [编译与发布](#6-编译与发布)
-7. [混淆与 R8（最容易踩死的一节）](#7-混淆与-r8最容易踩死的一节)
-8. [安全模型](#8-安全模型)
-9. [调试与常见失败对照](#9-调试与常见失败对照)
-10. [已知边界](#10-已知边界)
+7. [混淆与 R8 规则](#7-混淆与-r8-规则)
+8. [安全模型与熔断](#8-安全模型与熔断)
+9. [调试与常见问题](#9-调试与常见问题)
+10. [内置扩展模块与已知边界](#10-内置扩展模块与已知边界)
 
 ---
 
 ## 1. 什么是扩展
 
-DSH-Folk 里有三种「扩展」，跑在完全不同的地方：
+DSH-Folk 支持三类扩展形态，运行环境与能力边界各不相同：
 
-| 类型 | 跑在哪 | 约束 | 能做什么 |
+| 类型 | 运行位置 | 约束 | 主要用途 |
 |---|---|---|---|
-| DSH 插件 | 容器里的 Node.js | 受容器约束 | 挂 dsh 的钩子、加工具 |
-| 用户脚本 | 内置 WebView | 受浏览器沙箱约束 | 改网页 DOM |
-| **应用扩展** | **App 自己的进程** | **与宿主同权** | 改界面、拦宿主调用、替换子系统、读写应用目录 |
+| DSH 插件 | 容器内 Node.js | 容器沙箱 | 扩展 DSH Agent 工具、模型与会话逻辑 |
+| 用户脚本 | 内置 WebView | 浏览器沙箱 | 修改 WebUI 页面 DOM 与交互 |
+| **应用扩展 (`.dshx`)** | **App 宿主进程** | **与宿主同权** | 定制界面/外壳、调用 10 大强类型 Seam、拦截宿主流程、替换 SPI、向容器注入命令 |
 
-本文讲第三种。关键事实：**扩展是加载进 App 进程的 DEX**，`DexClassLoader` 的父加载器就是宿主的
-classLoader —— 所以扩展能直接 `import` 宿主的所有类。这是它的力量来源，也是它的风险来源。
+应用扩展是加载进宿主进程的 DEX（父 `ClassLoader` 为宿主 `classLoader`），与宿主共享进程权限。
 
 ---
 
@@ -36,15 +35,14 @@ classLoader —— 所以扩展能直接 `import` 宿主的所有类。这是它
 
 ### 目录结构
 
-```
+```text
 <filesDir>/extensions/<id>/
     manifest.json      # 必填
-    classes.dex        # 可选（纯声明式扩展不需要）
-    assets/            # 可选，扩展自己的资源
+    classes.dex        # 可选（纯声明式扩展可省略）
+    assets/            # 可选，扩展私有资源
 ```
 
-`<filesDir>` 是应用私有目录（`/data/user/0/top.funcun.dshfolk/files`）。
-`<id>` 必须匹配 `^[A-Za-z0-9._-]{1,64}$` 且不能是 `.` / `..` —— 它会被直接拼进路径。
+`<filesDir>` 对应 `/data/user/0/top.funcun.dshfolk/files`，`<id>` 需匹配 `^[A-Za-z0-9._-]{1,64}$` 且不能为 `.` 或 `..`。
 
 ### Hello World
 
@@ -56,7 +54,7 @@ classLoader —— 所以扩展能直接 `import` 宿主的所有类。这是它
   "name": "Hello World",
   "version": "1.0.0",
   "entryClass": "com.example.hello.HelloExtension",
-  "description": "在扩展页顶部加一行文字",
+  "description": "在扩展页顶部添加一行提示文字",
   "declaredCaps": ["ui.slot"],
   "minAppVersion": "2.2.1"
 }
@@ -73,11 +71,8 @@ import me.bmax.apatch.dsh.ext.DshExtensionHost
 import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
 
 class HelloExtension : DshExtension {
-
     override fun onLoad(host: DshExtensionHost) {
         host.log("hello 扩展已加载")
-
-        // 往「扩展页顶部」这个槽位插一行文字
         ExtensionUiRegistry.registerSlot(
             extensionId = host.id,
             slot = ExtensionUiRegistry.Slot.EXTENSIONS_PAGE_TOP,
@@ -88,225 +83,126 @@ class HelloExtension : DshExtension {
     }
 
     override fun onUnload() {
-        // 引擎会自动撤掉本扩展注册的全部槽位/Hook/SPI/外壳，这里一般不需要做什么。
-        // 除非你自己持有线程、文件句柄之类的资源，在这里收尾。
+        // 引擎会自动撤销本扩展注册的槽位、Hook、SPI 与启动管线；
+        // 如自行持有后台线程或文件句柄，请在此处释放。
     }
 }
 ```
 
-把 `classes.dex`（和 `manifest.json`）放进 `<filesDir>/extensions/hello-world/`，
-到「插件 → 扩展」打开开关，**重启 App** 生效。
-
-> 扩展没有「热加载」。启用/禁用/安装/卸载都需要重启才真正改变运行状态 —— 这是刻意的：
-> 运行期替换一个已经初始化到一半的宿主，会引入难以解释的状态不一致。
+将 `manifest.json` 与 `classes.dex` 放入 `<filesDir>/extensions/hello-world/`（或打包为 `.dshx` 安装），在「插件 → 扩展」中启用并**重启 App** 生效。
 
 ---
 
 ## 3. manifest.json 字段
 
-| 字段 | 必填 | 说明 | 校验 |
+| 字段 | 必填 | 说明 | 校验规则 |
 |---|---|---|---|
-| `id` | 是 | 扩展标识，同时是目录名 | `^[A-Za-z0-9._-]{1,64}$`，不能是 `.`/`..` |
-| `name` | 是 | 显示名 | 非空 |
-| `version` | 是 | 版本号 | 非空（用于市场「可更新」比对，字符串相等比较） |
-| `entryClass` | 否 | 实现 `DshExtension` 的全限定类名 | 为空 = 纯声明式扩展，不加载字节码 |
-| `description` | 否 | 一句话说明 | — |
-| `declaredCaps` | 否 | 声明的能力，字符串数组 | 会逐条显示在安装/启用的信任确认框里 |
-| `minAppVersion` | 否 | 要求的最低宿主版本 | 低于它时**不会被加载**，市场也不会让你装 |
-
-任何字段不合法 → `manifest.json` 解析失败 → 该扩展**不会加载**，且扩展页会显示「清单损坏」。
-
-### 为什么 `minAppVersion` 很重要
-
-扩展可能用到只有新版本宿主才有的 API。装在旧宿主上，调用时会在**运行期**抛
-`NoSuchMethodError` —— 而这个异常出现在扩展自己的调用栈里，看起来像「宿主崩了」。
-所以宿主在**两处**都会拦：加载时跳过、市场安装时直接失败。写 manifest 时请如实填。
+| `id` | 是 | 扩展唯一标识（即目录名） | `^[A-Za-z0-9._-]{1,64}$`，不可为 `.`/`..` |
+| `name` | 是 | 显示名称 | 非空 |
+| `version` | 是 | 版本号 | 非空（用于市场更新比对） |
+| `entryClass` | 否 | 实现 `DshExtension` 的全限定类名 | 为空表示纯声明式扩展 |
+| `description` | 否 | 简要说明 | — |
+| `declaredCaps` | 否 | 声明的能力标签数组 | 安装/启用确认弹窗中逐条展示给用户 |
+| `minAppVersion` | 否 | 最低宿主版本要求 | 宿主版本不足时跳过加载，市场也禁止安装 |
 
 ---
 
 ## 4. API 能力清单
 
-全部契约在 `ext-api` 模块（`me.bmax.apatch.dsh.ext`）。**这个模块只依赖 Compose 与协程**，
-所以你编译扩展时只需要它，不需要整个宿主。
+全部公共契约位于 `:ext-api` 模块（`me.bmax.apatch.dsh.ext`），仅依赖 Jetpack Compose 与 Kotlin Coroutines。
 
-### 4.1 入口契约
+### 4.1 入口与宿主句柄
 
 ```kotlin
 interface DshExtension {
     fun onLoad(host: DshExtensionHost)
     fun onUnload() {}
+    /** 容器就绪时回调（需保证幂等，重装运行时会再次触发） */
+    fun onContainerReady(host: DshExtensionHost) {}
 }
 
 interface DshExtensionHost {
-    val id: String              // 扩展 id（来自 manifest）
-    val appContext: Context     // application context，不是 Activity
-    val fs: ExtensionFs         // 目录读写
-    fun log(message: String)    // 写日志（logcat，tag DSH-Ext）
+    val id: String
+    val appContext: Context
+    val fs: ExtensionFs
+    fun log(message: String)
+    val host: ExtensionHostSettings     // 白名单宿主开关（BROWSER_MODE / WEBVIEW_DEBUG）
+    val container: ExtensionContainer   // 向容器 /usr/local/bin 安装与回收命令
+    val seam: ExtensionSeams            // 推荐：强类型宿主能力 Seam 门面（Release R8 安全）
+    @Deprecated("优先使用 host.seam")
+    val platform: ExtensionPlatform     // 旧版反射兜底门面（Release 混淆包不保证内部方法名稳定）
 }
 ```
 
-> 宿主实现里还有一个 `platform: DshPlatform`（36 项宿主能力门面），但**它不在 `ext-api` 里**，
-> 第三方拿不到。原因见 [10. 已知边界](#10-已知边界)。
+### 4.2 强类型 Seam（`host.seam.*` 与 `SeamRegistry`）
 
-### 4.2 界面：配置面板 / 槽位 / 整屏 / 外壳 / 色板
+`:ext-api` 提供 **10 个强类型 Seam 接口**（整包受 R8 `-keep` 保护，第三方 `.dshx` 在 Release 包中可直接调用，也可通过 `ExtensionServiceRegistry` 替换）：
 
-**想让用户调参数，优先用配置面板**（第 4.2.1 节）—— 它是唯一**不会和别的扩展抢位置**的入口。
-
-```kotlin
-ExtensionUiRegistry.registerSlot(
-    extensionId: String,
-    slot: String,             // Slot 常量或自定义
-    op: SlotOp,               // INSERT_BEFORE / INSERT_AFTER / REPLACE / REMOVE / WRAP
-    content: SlotContent,     // @Composable (Modifier) -> Unit
-)
-
-ExtensionUiRegistry.registerConfigPanel(extensionId, title, content)  // 自己的配置界面
-ExtensionUiRegistry.overrideScreen(extensionId, screenId, content)    // 整屏接管
-ExtensionUiRegistry.registerShell(extensionId, content)              // 接管导航外壳
-ExtensionUiRegistry.interceptPalette(extensionId) { scheme -> ... }   // 改主题色板
-```
-
-#### 4.2.1 配置面板（推荐）
-
-```kotlin
-ExtensionUiRegistry.registerConfigPanel(
-    extensionId = host.id,
-    title = "我的扩展设置",        // 可空，空则用扩展名
-    content = { modifier -> /* 你的配置界面 */ },
-)
-```
-
-宿主负责：扩展卡片左下角的「配置」入口、弹层标题栏、空态、**滚动与高度上限**。
-你只负责画内容。
-
-三条约定：
-
-1. **面板按 extensionId 独占**，一个扩展最多一块。多个扩展各注册各的，互不影响 ——
-   这正是它比「往共享槽位塞控件」和「整屏接管」更适合做配置的原因。
-2. **内容里不要再套滚动容器**（`LazyColumn` / `verticalScroll`）。宿主已经给了高度上限
-   并做了滚动，同方向嵌套会让内层拿到无限高度，直接抛
-   `Vertically scrollable component was measured with an infinity maximum height`。
-   配置项多就用普通 `Column` 铺开。
-3. 面板在 `onLoad` 里注册；没注册面板时入口**仍然显示**，弹层给出空态说明。
-
-#### 4.2.2 冲突规则：外壳与整屏都是「后注册的赢」
-
-`overrideScreen`（整屏）与 `registerShell`（外壳）都是 **last-wins**：后注册的那条生效。
-被顶掉的扩展不会报错，但宿主会记一行「谁顶掉了谁」的诊断日志（`logcat -s DSH-Ext`）。
-
-> **变更说明**：`overrideScreen` 早期是 first-wins（先注册者永久生效），与外壳的 last-wins
-> 语义相反 —— 同一套 API 两种规则，且先赢的那个完全静默，是极难排查的失效。现已统一成
-> last-wins。如果你的扩展依赖「先注册者赢」，行为会变，请改用配置面板或与占用者协调。
-
-想知道某个扩展此刻在独占什么，可以在它的配置面板顶部看到「正在接管：主界面外壳 / 整屏 …」。
-
-**宿主内置槽位**（`ExtensionUiRegistry.Slot`）：
-
-| 常量 | 值 | 位置 |
+| 接口 | 访问方式 | 主要能力 |
 |---|---|---|
-| `EXTENSIONS_PAGE_TOP` | `extensions.page.top` | 扩展页顶部 |
-| `HOME_CARD` | `home.card` | 首页卡片区 |
-| `SETTINGS_FUNCTION` | `settings.function` | 设置的功能页 |
-| `WEBUI_OVERLAY` | `webui.overlay` | WebUI 之上 |
+| `RuntimeSeam` | `host.seam.runtime` | 读取/订阅运行时状态、拉起容器、同步或流式执行容器 Bash 命令 |
+| `ShellSeam` | `host.seam.shell` | 调用宿主 Root / Shizuku / ADB 特权命令通道 |
+| `FsSeam` | `host.seam.fs` | 容器与宿主路径双向转换、读写与列举容器内文件 |
+| `DeviceSeam` | `host.seam.device` | 无障碍动作、TTS 语音播报、相机授权、亮屏与电池状态查询 |
+| `UiSeam` | `host.seam.ui` | 读取主题深浅色/强调色/语言、路由导航、打开 WebUI、弹 Toast |
+| `BackupSeam` | `host.seam.backup` | 检查应用更新、读取当前版本（无 UI 导出/导入暂为占位实现） |
+| `EventSeam` | `host.seam.event` | 订阅与发布 5 类系统事件（`RUNTIME_STATE`、`CONTAINER_READY` 等） |
+| `CapabilitySeam` | `host.seam.capability` | 查询已声明能力、可用性与宿主版本号 |
+| `NativeBridgeSeam` | `SeamRegistry.nativeBridge()` | 调用宿主 `/native/*` 桥接路由、前台判断与暂存目录工具 |
+| `ThemeBackupSeam` | `SeamRegistry.themeBackup()` | 测量、导出与导入 `.fpt` 主题归档 |
 
-**外壳接管**（`registerShell`）的形状：
+### 4.3 容器命令与宿主开关
 
-```kotlin
-typealias ShellContent = @Composable (ShellHost, @Composable (Modifier) -> Unit) -> Unit
+- `host.container.installCommand(name, script)` / `removeCommand(name)` / `installedCommands()`：往容器 `/usr/local/bin/<name>` 安装命令脚本（建议在 `onContainerReady` 中调用）；扩展停用或卸载时宿主会自动清理归属命令。
+- `host.host.get(switch)` / `set(switch, on)`：读写白名单开关（`HostSwitch.BROWSER_MODE`、`HostSwitch.WEBVIEW_DEBUG`），需在 `declaredCaps` 中声明对应能力。
 
-interface ShellHost {
-    fun navigate(tabId: String)                    // 主页/终端/插件/设置
-    fun currentTabId(): String
-    fun currentTabStates(): StateFlow<String>      // 可观察的当前页（高亮用）
-    fun navigateRoute(route: String)
-    fun openWebUi()
-    fun runtimeSummary(): RuntimeSummary
-    fun runtimeStates(): StateFlow<RuntimeSummary>
-    fun resetToDefaultShell()                      // 切回宿主默认外壳
-}
-```
-
-**关键约定**：传给外壳的第二个参数是**宿主原有的页面树**。外壳决定「怎么切页」，
-页面本身仍归宿主 —— 外壳哪怕只画了个半成品，插件页/设置页/终端页也都在。
-
-多条外壳注册时**最后注册的那条生效**（后启用的扩展赢，见 4.2.2）。
-同一扩展重复调用 `registerShell` 是覆盖而不是叠加。
-
-### 4.3 拦截：19 个拦截点
+### 4.4 界面扩展（`ExtensionUiRegistry`）
 
 ```kotlin
-ExtensionHookRegistry.before(extensionId, point, handler)
-ExtensionHookRegistry.after(extensionId, point, handler)
-ExtensionHookRegistry.around(extensionId, point, interceptor)  // 返回 false = 拦下
+ExtensionUiRegistry.registerConfigPanel(extensionId, title, content) // 推荐：独占配置面板
+ExtensionUiRegistry.registerPage(extensionId, page)                  // 注册独立导航页面
+ExtensionUiRegistry.registerSetting(extensionId, item)               // 向 8 大设置分类注入条目
+ExtensionUiRegistry.registerSlot(extensionId, slot, op, content)     // 4 个内置槽位插入/替换/移除/包裹
+ExtensionUiRegistry.overrideScreen(extensionId, screenId, content)   // 整屏接管（last-wins）
+ExtensionUiRegistry.registerShell(extensionId, content)              // 接管主导航外壳（last-wins）
+ExtensionUiRegistry.interceptPalette(extensionId) { scheme -> ... }  // 修改全局 Material 3 色板
 ```
 
-| 常量 | 时机 |
-|---|---|
-| `RUNTIME_BEFORE_START` | 启动运行时之前 |
-| `RUNTIME_BUILD_ARGV` | 组装容器启动参数时 |
-| `RUNTIME_APPLY_ENV` | 应用环境变量时 |
-| `RUNTIME_PROBE_READY` | 探测服务就绪时 |
-| `BRIDGE_BEFORE_DISPATCH` | 文件桥分发请求前 |
-| `BRIDGE_AUDIT` | 文件桥审计 |
-| `STORAGE_CHECK_PATH` | 路径访问检查 |
-| `NATIVE_BEFORE_INVOKE` / `NATIVE_AFTER_INVOKE` | 原生命令调用前后 |
-| `SHELL_BEFORE_EXEC` / `SHELL_AFTER_EXEC` | 命令执行前后 |
-| `A11Y_DUMP_TREE` | 无障碍节点树导出时 |
-| `DISPLAY_START_SESSION` | 虚拟显示会话启动时 |
-| `WEBUI_CONFIGURE` | 配置 WebView 时 |
-| `USERSCRIPTS_BUILD` | 构造注入脚本时 |
-| `PLUGIN_UPDATE` | 插件更新时 |
-| `WORKFLOW_EXECUTE_NODE` | 工作流执行节点时 |
-| `PROMPT_RENDER` | 渲染系统提示词时 |
-| `DIAGNOSTICS_REDACT` | 诊断文本脱敏时 |
+- **配置面板约定**：每个 `extensionId` 独占一块面板，宿主负责外层滚动与高度上限，内容请直接使用 `Column`（不要再套 `LazyColumn` 或 `verticalScroll`）。
+- **内置槽位**：`EXTENSIONS_PAGE_TOP`、`HOME_CARD`、`SETTINGS_FUNCTION`、`WEBUI_OVERLAY`。
+- **外壳接管**：`ShellContent` 的第二个参数为宿主原有页面树，外壳只负责导航编排，原有终端、插件、设置页均可继续复用。
 
-### 4.4 替换：SPI
+### 4.5 拦截器（19 个 Hook 点）与启动管线（5 阶段）
+
+- **`ExtensionHookRegistry`**：提供 `before`、`after`、`around`（返回 `false` 拦截默认逻辑），覆盖 19 个点位：`RUNTIME_BEFORE_START`、`RUNTIME_BUILD_ARGV`、`RUNTIME_APPLY_ENV`、`RUNTIME_PROBE_READY`、`BRIDGE_BEFORE_DISPATCH`、`BRIDGE_AUDIT`、`STORAGE_CHECK_PATH`、`NATIVE_BEFORE_INVOKE`、`NATIVE_AFTER_INVOKE`、`SHELL_BEFORE_EXEC`、`SHELL_AFTER_EXEC`、`A11Y_DUMP_TREE`、`DISPLAY_START_SESSION`、`WEBUI_CONFIGURE`、`USERSCRIPTS_BUILD`、`PLUGIN_UPDATE`、`WORKFLOW_EXECUTE_NODE`、`PROMPT_RENDER`、`DIAGNOSTICS_REDACT`。
+- **`ExtensionBootPipeline`**：支持按优先级挂载 5 个启动阶段：`APP_CREATE`、`SPLASH`（可写 `ctx["hold"] = true` 延长启动页）、`AUTH`（可写 `ctx["blocked"] = true` 拦截启动）、`INITIAL_ROUTE`（可写 `ctx["route"]` 指定首屏）、`AUTOSTART`（可写 `ctx["skip"] = true` 跳过自启）。单阶段总预算 200ms，超时自动跳过剩余处理器。
+
+### 4.6 SPI 子系统替换（`ExtensionServiceRegistry`）
 
 ```kotlin
-ExtensionServiceRegistry.register(extensionId, SomeInterface::class.java, impl)
-ExtensionServiceRegistry.resolve(SomeInterface::class.java) { 默认实现 }
+ExtensionServiceRegistry.register(extensionId, RuntimeSeam::class.java, customImpl)
 ```
 
-约定：宿主侧**一律走 `resolve`**（传默认实现），所以没扩展时行为零变化。
-同类型后注册的覆盖先注册的。
+同类型遵循后注册覆盖先注册；安全模式熔断时自动回退至宿主默认实现。
 
-### 4.5 目录读写
+### 4.7 文件系统与日志
 
-`ExtensionFs` 提供：`dataDir` / `filesDir` / `rootfsDir` / `cacheDir` / `ownDir` /
-`externalFilesDir()` / `prefs(name)` / `read` / `readText` / `write` / `writeText` /
-`mkdirs` / `delete` / `symlink` / `chmod` / `list` / `isProtected`。
-
-**唯一硬边界**：不能碰熔断标志文件（`isProtected` 为真的路径）。
-那是用户「禁用全部扩展」的逃生通道，扩展如果能删掉它，用户就失去了唯一的自救手段。
-
-### 4.6 日志
-
-```kotlin
-ExtLog.info(msg)   // 只进 logcat（tag DSH-Ext）
-ExtLog.log(msg)    // 同上，用于故障
-```
-
-**扩展日志不会写进 `dsh.log`**。那是「启动 dsh 运行时」的日志，用户会在
-「设置 → 日志」里读它；扩展诊断混进去会干扰用户，也把真正的 dsh 故障淹没。
-排查扩展问题请用 `logcat | grep DSH-Ext`。
+- `ExtensionFs` 提供 `dataDir` / `filesDir` / `rootfsDir` / `cacheDir` / `ownDir`、`prefs(name)` 及常用文件读写方法；禁止修改熔断标志文件（`isProtected == true`）。
+- `ExtLog.info(msg)` 仅输出到 logcat（tag `DSH-Ext`）；`ExtLog.log(msg)` 同时写入 `dsh.log`，仅用于真正的故障上报。
 
 ---
 
 ## 5. 生命周期与异常隔离
 
-- `onLoad(host)`：宿主加载完扩展后回调。**抛异常会被捕获并跳过该扩展**，不影响其它扩展与宿主启动。
-  半途失败时引擎会自动撤掉它已注册的 SPI/Hook/UI，不留悬空回调。
-- `onUnload()`：停用/移除/熔断时回调。同样不能抛出去。
-- **异常隔离**：Hook handler 抛异常只记日志并跳过本次，绝不冒泡进宿主主流程；
-  `around` 拦截器抛异常按「不拦」处理 —— 扩展不能靠崩溃来阻止宿主做正确的事。
-- **熔断短路**：安全模式（见第 8 节）下，所有注册中心一律不生效、既有注册按「不存在」处理。
+- `onLoad(host)` 抛出异常会被捕获并自动回滚该扩展已注册的全部 SPI / Hook / UI / 启动管线，不影响宿主及其他扩展。
+- Hook 回调抛异常仅记录日志并跳过本次调用；`around` 异常按放行处理。
+- 处于安全模式熔断时，所有注册中心自动短路，返回默认实现。
 
 ---
 
 ## 6. 编译与发布
 
-扩展是**独立编译的 DEX**，由你自己的仓库构建。官方仓库 [dsh-folk-plugins](https://github.com/DSH-Folk/dsh-folk-plugins)
-用的是 Gradle composite build：
+第三方扩展通过 Gradle composite build 依赖 `:ext-api` 编译为独立 `.dex`：
 
 ```kotlin
 // settings.gradle.kts
@@ -315,184 +211,59 @@ includeBuild("../DSH-Folk") {
         substitute(module("me.bmax.apatch:ext-api")).using(project(":ext-api"))
     }
 }
-include(":extensions:my-extension")
 ```
 
-```kotlin
-// extensions/my-extension/build.gradle.kts
-dependencies {
-    implementation("me.bmax.apatch:ext-api:1.0")   // 由上面的 substitute 映射到项目
-}
-```
-
-构建产物：
+打包步骤：
 
 ```bash
-# 1. 编出 classes.jar
 ./gradlew :extensions:my-extension:assembleRelease
-# 2. 转成 dex
 $ANDROID_HOME/build-tools/<ver>/d8 --min-api 26 --lib <android.jar> --output out/ classes.jar
-# 3. 打包成 .dshx（zip：manifest.json + classes.dex）
 zip my-extension-1.0.0.dshx manifest.json classes.dex
 ```
 
-进市场：在 `index.json` 里加一条（`downloadUrl` / `sha256` / `sizeBytes` 必填，宿主会逐一校验）。
+上架官方市场仓库 [dsh-folk-plugins](https://github.com/DSH-Folk/dsh-folk-plugins) 时，在 `index.json` 中填写 `downloadUrl`、`sha256` 与 `sizeBytes`。
 
 ---
 
-## 7. 混淆与 R8（最容易踩死的一节）
+## 7. 混淆与 R8 规则
 
-> 这一节是三**轮真机事故**换来的。宿主 release 构建开着 `isMinifyEnabled` + `-repackageclasses`，
-> 而扩展是外部编译产物 —— 它的字节码里**写死了**编译时的名字。宿主一改名，扩展就在运行期链接失败。
+宿主 release 构建开启 `isMinifyEnabled` 与 `-repackageclasses`，`app/proguard-rules.pro` 已保留 `:ext-api`（`me.bmax.apatch.dsh.ext.**`）、`kotlin.**`、`kotlinx.coroutines.**`、`androidx.compose.**`、`androidx.lifecycle.**` 与 `androidx.activity.**`。
 
-宿主 `app/proguard-rules.pro` 必须保留以下内容（缺任何一条都会炸）：
-
-```proguard
-# 扩展 API 本身
--keep class me.bmax.apatch.dsh.ext.** { *; }
--keep interface me.bmax.apatch.dsh.ext.** { *; }
-
-# Kotlin 标准库（扩展会调到任意 stdlib 函数）
--keep class kotlin.** { *; }
-
-# Compose 必须整包、连成员一起保留
--keep class androidx.compose.runtime.** { *; }
--keep class androidx.compose.ui.** { *; }
--keep class androidx.compose.foundation.** { *; }
--keep class androidx.compose.material3.** { *; }
--keep class androidx.compose.material.** { *; }
--keep class androidx.compose.animation.** { *; }
-
-# 协程与 lifecycle / activity
--keep class kotlinx.coroutines.** { *; }
--keep class androidx.lifecycle.** { *; }
--keep class androidx.activity.** { *; }
-```
-
-### 少一条会看到什么（真机原文）
-
-| 报错 | 被混淆掉了什么 |
-|---|---|
-| `Didn't find class "<你的入口类>" on path: DexPathList[...]` | 扩展 API 本身被改名 |
-| `Failed resolution of: Lkotlin/jvm/internal/Intrinsics;` | kotlin-stdlib 被改名挪包 |
-| `No static method composableLambdaInstance(...) in class ...ComposableLambdaKt` | Compose 的 **internal 成员**被改名 |
-
-### 为什么 `-keepnames` 不够
-
-`-keepnames` 只保**类名**，不保**成员名**。Compose 编译器生成的代码调的正是 internal 成员
-（`ComposableLambdaKt.composableLambdaInstance` 之类），Compose 自带的 consumer 规则不保护它们。
-宿主自己的调用会被 R8 一致重写所以没事，**扩展 dex 里的调用是编译期写死的**，于是找不到。
-
-### 为什么这些报错只在 release 出现
-
-debug 构建不混淆，所以本地开发、静态门禁、CI 编译全都抓不到。这是扩展开发的固有难点：
-**你必须用 release 包测扩展。**
+由于 debug 构建不混淆，发布扩展前**务必使用 release 或 alpha/beta 签名包实测**。
 
 ---
 
-## 8. 安全模型
+## 8. 安全模型与熔断
 
-扩展与宿主同权，意味着它能：
+应用扩展与宿主同权，宿主提供三道自救防线：
 
-- 走宿主的**特权命令通道**（root / Shizuku）
-- 读**无障碍屏幕内容**
-- 访问 App 能访问的**全部文件**
-
-### 三条铁律
-
-1. **熔断逃生文件**。在以下任一位置新建名为 `disable_extensions` 的文件，冷启动即禁用全部扩展：
+1. **逃生熔断文件**：在以下任一路径创建 `disable_extensions`（或 `.disable_extensions` / `disable_extensions.txt`），冷启动即跳过全部第三方扩展：
    - `<filesDir>/extensions/.disable_extensions`
-   - `Android/data/top.funcun.dshfolk/files/disable_extensions`（插电脑用 MTP 就能建）
-   - `/sdcard/Download/DSH-Folk/.disable_extensions`（手机文件管理器直接建，**不需要权限**）
-
-   三种文件名写法都认：`.disable_extensions` / `disable_extensions` / `disable_extensions.txt`。
-
-2. **连续崩溃 3 次自动熔断**：同一个扩展让进程崩 3 次，宿主自动写下上面那个标志文件。
-   用户不需要知道这个机制也能自救。
-
-3. **崩溃页有「禁用全部扩展并重启」**。该页**故意不接任何扩展 UI** —— 扩展正是可疑对象，
-   不能让被救的人决定逃生门长什么样。
-
-### 信任确认
-
-打开扩展开关时会弹一次「这个扩展将获得完整权限」，并列出它 `declaredCaps` 里声明的能力。
-所以 **`declaredCaps` 要如实写** —— 这是用户唯一能看到的告知。
+   - `Android/data/top.funcun.dshfolk/files/disable_extensions`
+   - `/sdcard/Download/DSH-Folk/.disable_extensions`
+2. **连续崩溃 3 次自动熔断**：自动写入熔断标志文件。
+3. **独立崩溃恢复页**：提供「禁用全部扩展并重启」按钮，且该页面不加载任何扩展 UI。
 
 ---
 
-## 9. 调试与常见失败对照
+## 9. 调试与常见问题
 
-扩展日志：`adb logcat -s DSH-Ext`（或 bugreport 的 `logcat.txt` 里 grep `DSH-Ext`）。
+查看日志：`adb logcat -s DSH-Ext`。
 
-| 现象 | 原因 | 修法 |
+| 现象 | 常见原因 | 排查方式 |
 |---|---|---|
-| 扩展页显示「清单损坏」 | `manifest.json` 缺失或字段不合法 | 检查 id 字符集、name/version 非空 |
-| 列表里有、但启用后没反应 | 见下面几行 | — |
-| 日志 `缺 classes.dex` | 目录里没有 `classes.dex`，但 manifest 有 `entryClass` | 补 dex，或去掉 `entryClass` 做纯声明式扩展 |
-| 日志 `入口类没有实现 DshExtension` | 类型对不上（典型：你的 dex 自带了一份 `ext-api`） | 用 `compileOnly`/`implementation` 到宿主提供的 ext-api，不要打包进去 |
-| 日志 `两条加载路径都失败` + `自检 xxx=缺失` | R8 改名（见第 7 节） | 补 keep 规则 |
-| 日志 `要求宿主 >= X，已跳过加载` | `minAppVersion` 高于当前宿主 | 降低 `minAppVersion` 或让用户升级 |
-| 日志 `安全模式，跳过全部第三方扩展` | 有熔断标志文件 | 删掉它，或在扩展页点「重新启用扩展」 |
-| 外壳注册了但界面没变 | 外壳被别的扩展覆盖 / 熔断 | 看 `[外壳决策=...]` 那行日志 |
+| 扩展页显示「清单损坏」 | `manifest.json` 缺失或字段不合法 | 检查 `id` 字符集及 `name`/`version` 非空 |
+| 日志提示 `入口类没有实现 DshExtension` | 扩展把 `:ext-api` 打包进了 `classes.dex` | 改为仅编译期依赖宿主 `:ext-api` |
+| 日志提示 `要求宿主 >= X` | `minAppVersion` 高于当前宿主 | 升级宿主或调整 `minAppVersion` |
+| 仅 Release 包报找不到方法 | 使用了已弃用的 `host.platform` 反射调用内部类 | 迁移至 `host.seam.*` 强类型接口 |
+| 扩展启用后界面未变化 | 处于安全模式或被后加载扩展覆盖 | 查看 `DSH-Ext` 日志中的熔断与外壳决策记录 |
 
 ---
 
-## 10. 已知边界
+## 10. 内置扩展模块与已知边界
 
-- **没有签名校验**。宿主不验证扩展来源，所以只装你信任的扩展。
-- **运行期不热加载**。启用/禁用/安装/卸载都要重启。
-- **`DshPlatform`（36 项宿主能力门面）不对外**。它直接暴露宿主内部类型（`DshRuntime`、
-  `DshEnv`、`DshState`），放进公共 API 等于把整个 app 钉成 API，以后改不动。
-  第三方扩展可用的就是本文列出的这些：界面、拦截、SPI、目录、日志。
-- **外壳接管时页面树仍归宿主**。扩展只决定「怎么切页」。
-- **市场分发**目前只指向官方仓库；没有 App 内的开发者侧载以外的安装入口。
-
----
-
-## 7. 内置扩展与 Seam（宿主侧）
-
-前面几节讲的是**第三方**扩展（打成 `.dshx`、装在 `files/extensions/` 下、可停用）。
-宿主自己还有一批**编译期内建扩展**，它们随 APK 打包、不走安装流程，机制上分两件事：
-
-### 7.1 编译期内建扩展
-
-每个内置扩展是一个 Gradle 模块（`:ext-workflow`、`:ext-display`、`:ext-backup` 等），
-由 `:app` 依赖并打进同一个 APK。它们不是「装进来的」，而是「编译进去的」——
-所以没有 manifest.json、没有 `files/extensions/<id>/` 目录、也没有卸载入口。
-
-依赖方向是单向的：`:ext-* → :core-kernel → :ext-api`，`:app` 依赖全部。
-禁止 `:ext-a → :ext-b`，也禁止任何模块依赖 `:app`。
-
-### 7.2 Seam：内置扩展怎么调宿主
-
-内置扩展要调宿主能力（跑容器命令、读权限状态、发通知），但按上面的依赖方向，
-它够不着 `:app` 里的实现。解法是依赖倒置：
-
-```kotlin
-// 定义在 :ext-api —— 扩展只看得到这一层
-interface RuntimeSeam {
-    fun exec(bashCommand: String): Process
-    fun awaitRunning(timeoutMs: Long): Boolean
-    // ...
-}
-
-// 扩展侧
-val proc = SeamRegistry.runtime().exec("ls /")
-
-// 实现留在 :app
-internal class HostRuntimeSeam : RuntimeSeam {
-    override fun exec(bashCommand: String) = DshRuntime.execRootfs(bashCommand)
-}
-```
-
-`SeamRegistry` 在 `APatchApp.onCreate` 里由宿主 `install()`。**没装时不会崩** ——
-它返回「全部能力不可用」的兜底实现，让扩展降级。这条是有意的：熔断和早期初始化
-都会走到「还没装」的状态，那时候抛异常的代价是整个 App 起不来。
-
-### 7.3 第三方扩展能用 Seam 吗
-
-不能直接用 —— Seam 是 Kotlin 接口，第三方扩展是独立的 dex，拿不到宿主的类实例。
-第三方扩展走的是第 4 节那套 JSON API（`dsh.host.*`），那是跨进程/跨 dex 的契约。
-
-Seam 是**编译期**解耦工具，解决的是「同一个 APK 里模块之间怎么不互相依赖」，
-不是「外部代码怎么调宿主」。两者不要混。
+- **内置扩展模块**：`:ext-workflow`、`:ext-display`、`:ext-userscripts`、`:ext-backup` 随 APK 编译打包并默认启用，与第三方 `.dshx` 共享同一套 `:ext-api` Seam 契约。
+- **已知边界**：
+  - 暂不支持热加载（安装/启停需重启生效），暂未引入第三方数字签名校验（依赖市场 `sha256` 校验与信任确认）。
+  - 受 Android 静态清单限制，`.dshx` 无法动态新增 `Activity` / `Service` 或新的系统权限。
+  - `BackupSeam.exportConfig` / `importConfig` 目前为占位返回，配置备份暂走宿主界面流程。

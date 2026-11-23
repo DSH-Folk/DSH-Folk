@@ -326,7 +326,7 @@
     <string name="dsh_backup_section">DSH 配置备份</string>
     <string name="dsh_backup_summary">与 dsh-config-manager 插件同一套导出格式，手机导出的备份能直接在电脑上导入，反之亦然。</string>
     <string name="dsh_backup_export">导出配置</string>
-    <string name="dsh_backup_export_summary">导出什么由你在弹窗里选：软件数据（应用设置 + 原生权限记录）、DSH 数据（设置、模型提供者、插件清单、MCP 服务器、技能与工作区），或两者。凭据默认不导出，只有「含 vault」那一档会带上。</string>
+    <string name="dsh_backup_export_summary">可在弹窗中勾选导出软件设置、DSH 数据（配置、模型、插件、MCP、技能与工作区）或全部；凭据默认不导出。</string>
     <string name="dsh_backup_import">导入备份</string>
     <string name="dsh_backup_import_summary">选择一个导出的 .zip。会先把包读一遍：检测到冲突时才问怎么处理，包里有会话时也会问会话怎么处理。执行前会先建回滚快照，失败自动回滚。</string>
     <string name="dsh_backup_open_dir">打开备份目录</string>
@@ -464,7 +464,7 @@
     <string name="dsh_plugin_inactive">未生效</string>
     <string name="dsh_plugin_inactive_hint">作为普通依赖装上了，但它没有声明 dsh.bundle，DSH 不会加载它。</string>
     <string name="dsh_adb_shell_allow">容器内允许 ADB 写操作</string>
-    <string name="dsh_adb_shell_allow_summary">关闭时容器里只能执行只读命令（getprop / dumpsys / ls / cat 等）。打开后 agent 或你自己经 adb-shell 敲的写命令也会以 shell(uid 2000) 身份执行。</string>
+    <string name="dsh_adb_shell_allow_summary">关闭时仅允许只读命令；开启后允许通过 adb-shell 以 shell(uid 2000) 身份执行写操作。</string>
     <string name="dsh_adb_root_allow">容器内允许 root shell</string>
     <string name="dsh_adb_root_allow_summary">仅在手机本身已 root 时有意义：允许 adb-shell --su 提权到 uid 0。不需要就别开。</string>
     <string name="dsh_msg_fetching_meta">正在获取运行时信息…</string>
@@ -550,7 +550,7 @@
     <string name="dsh_runtime_min_app_go_update">去检查更新</string>
     <string name="dsh_runtime_update_go">更新运行时</string>
     <string name="dsh_runtime_reinstall_confirm_title">重装运行时？</string>
-    <string name="dsh_runtime_reinstall_confirm_text">会重新下载运行时（约 140 MB）并替换容器系统文件。现有会话、已装插件、ADB 密钥、DSH 配置及插件依赖数据都会保留；即使替换过程被中断，下次启动也会自动恢复暂存数据。开始前会先停止服务。</string>
+    <string name="dsh_runtime_reinstall_confirm_text">将重新下载运行时（约 140 MB）并替换容器系统文件，保留现有会话、插件、配置与 ADB 密钥，操作前会先停止服务。</string>
     <string name="dsh_runtime_reinstall_go">重装</string>
     <string name="dsh_runtime_current">当前版本</string>
     <string name="dsh_runtime_import">导入</string>
@@ -559,7 +559,7 @@
     <string name="dsh_runtime_import_size_unknown">未知</string>
     <string name="dsh_runtime_import_confirm">我信任此来源并安装</string>
     <string name="dsh_runtime_beta_summary">使用独立的 runtime-beta-latest 滚动通道，测试版可能不稳定；默认关闭。</string>
-    <string name="dsh_runtime_slim_summary">同一运行时的精简版：砍掉 TypeScript 类型声明、sourcemap、文档与测试夹具，以及负责文档预览/转换的 LibreOffice 引擎。下载体积约小 63MB。该版本无法进行文档预览与转换。两个滑块各管一维：这个选版本类型，另一个选更新通道。</string>
+    <string name="dsh_runtime_slim_summary">移除 TypeScript 声明、sourcemap、测试文件与 LibreOffice 文档转换组件，安装包约小 63 MB，但不支持文档预览与转换。</string>
     <string name="dsh_runtime_preserve_question">是否保留会话、插件、配置及依赖数据？</string>
     <string name="dsh_runtime_preserve">保留数据</string>
     <string name="dsh_runtime_clean">不保留数据</string>
@@ -662,7 +662,7 @@
     <string name="settings_terminal_bg_alpha">终端背景不透明度</string>
     <string name="settings_terminal_bg_alpha_summary">终端底板的不透明程度，调低可让壁纸透出来</string>
     <string name="dsh_plugin_repair">重建插件依赖</string>
-    <string name="dsh_plugin_repair_summary">没有真实硬链接支持时，pnpm 装出来的链接会指向它的内容存储，插件的客户端包因此找不到、服务起不来。重建会清空 node_modules 并以真实文件副本重装（保留 pnpm-lock.yaml；可能耗时几分钟，期间服务无法启动）。若你自己在 profile 的 pnpm-workspace.yaml 里设过 packageImportMethod，该设置会被保留，此项可能无效。</string>
+    <string name="dsh_plugin_repair_summary">当前环境不支持硬链接，pnpm 链接的插件客户端可能无法加载。重建将清空 node_modules 并以实体文件重装（保留 pnpm-lock.yaml，期间服务暂停）。</string>
     <string name="dsh_plugin_repair_go">立即重建</string>
     <string name="dsh_err_plugin_tree_failed">插件树加载失败。可到 设置 → 功能 → 重建插件依赖 试一次，或卸载刚装的那个插件。</string>
 
@@ -677,7 +677,7 @@
     <string name="dsh_backup_plugin_not_ready">当前不可用：%1$s</string>
     <string name="dsh_backup_plugin_install">去安装插件</string>
     <string name="dsh_backup_rescue_section">配置损坏 / DSH 起不来时</string>
-    <string name="dsh_backup_rescue_desc">上面这些功能都走 dsh-config-manager 插件，而插件住在 DSH 里面 —— DSH 起不来时它也帮不了你。同一个项目还提供一个独立的命令行工具，完全不依赖 DSH 运行时，所以配置损坏、或换新机器要还原环境时，它是第一救急手段。注意：安装或更新插件并不会产生这个命令，必须用下面第一条命令单独安装。</string>
+    <string name="dsh_backup_rescue_desc">上述备份依赖容器内的 dsh-config-manager 插件。若 DSH 无法启动，可使用独立命令行恢复工具，在新机或配置损坏时直接还原。</string>
     <string name="dsh_backup_rescue_expand">展开说明</string>
     <string name="dsh_backup_rescue_collapse">收起</string>
     <string name="dsh_backup_rescue_install_cli">在容器内安装救急 CLI</string>
@@ -708,12 +708,12 @@
 
     <!-- 免 root 文件访问（DocumentsProvider） -->
     <string name="dsh_docs_access_title">允许第三方应用访问数据目录</string>
-    <string name="dsh_docs_access_summary">文件管理器通过系统选择器就能浏览 DSH-Folk 的私有数据目录（rootfs、会话、配置）。某些 ROM 的文件选择器由系统进程提供，它发出的授权会被系统静默丢弃（表现为 MT 管理器报「没有可持久化的授权」）—— 下面的兼容通道改由本应用自己发放同一份授权，可勾选多个应用。</string>
+    <string name="dsh_docs_access_summary">允许文件管理器通过系统选择器浏览私有数据目录（rootfs、会话、配置）。若遇授权丢失提示，可使用下方「直接授权」。</string>
     <string name="dsh_docs_open_action">用系统选择器打开</string>
     <string name="dsh_docs_grant_action">兼容缺陷 ROM：直接授权…</string>
     <string name="dsh_docs_open_failed">无法打开文件选择器。请在系统「文件」应用侧栏选择 DSH-Folk。</string>
     <string name="dsh_docs_grant_title">兼容缺陷 ROM：直接授权数据目录</string>
-    <string name="dsh_docs_grant_message">某些 ROM 的文件选择器与系统同 uid，系统替它发放的授权会被静默丢掉，文件管理器随后报「没有可持久化的授权」。这里改由 DSH-Folk 自己把数据目录（含容器 rootfs）的读写权限直接授给你勾选的应用 —— 与系统选择器会授出去的是同一份权限。请只勾选信任的应用，随时可撤销。</string>
+    <string name="dsh_docs_grant_message">部分 ROM 的系统文件选择器会丢弃持久化授权。此处可由 DSH-Folk 直接向所选文件管理器授予私有数据目录（含 rootfs）的读写权限。</string>
     <string name="dsh_docs_grant_confirm">授权</string>
     <string name="dsh_docs_grant_revoke">撤销全部</string>
     <string name="dsh_docs_grant_done">已授权。回到文件管理器重新添加或打开即可，不会再报「没有可持久化的授权」。</string>
@@ -741,11 +741,7 @@
     <string name="dsh_webui_compat_ok">知道了</string>
     <string name="dsh_webui_compat_disable">关闭兼容模式</string>
     <string name="dsh_webui_compat_title">系统 WebView 版本过旧（已自动启用兼容模式）</string>
-    <string name="dsh_webui_compat_body">当前系统 WebView 内核是 Chromium %1$s，缺少 DSH 网页界面用到的 JavaScript 接口（例如 Iterator）。不补的话整个界面会显示「Failed to load plugins」而完全打不开。
-
-DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补缺失的接口、不改动其它行为，且仅对 http://127.0.0.1 生效。
-
-根治办法是在应用商店更新「Android System WebView」。</string>
+    <string name="dsh_webui_compat_body">当前系统 WebView 为 Chromium %1$s，缺少 DSH 界面所需的较新 JS API。开启兼容垫片可避免页面报错；若希望更佳性能，建议升级系统 WebView。</string>
     <string name="dsh_webui_compat_section">旧 WebView 兼容</string>
     <string name="dsh_webui_compat_section_summary">给应用内网页界面补齐缺失的 JavaScript 接口。当前 WebView：%1$s</string>
     <string name="dsh_webui_compat_auto">自动</string>
@@ -755,7 +751,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_webui_compat_off">从不注入</string>
     <string name="dsh_webui_compat_off_desc">完全不改动页面</string>
     <string name="dsh_web_enter_newline_title">回车键换行</string>
-    <string name="dsh_web_enter_newline_summary">触屏设备上，聊天框里的回车是换行而不是发送 —— 发送请按发送按钮。上游把 Enter/Shift+Enter 注册成只读快捷键（发送 / 换行），而手机键盘没有 Shift，不补这一下就写不出多行消息。刷新页面后生效。</string>
+    <string name="dsh_web_enter_newline_summary">触屏设备上输入框回车改为换行，发送请点击发送按钮。刷新页面后生效。</string>
 
     <!-- 发送日志的时间裁剪 -->
     <string name="dsh_log_trim_title">是否只发送最近一段时间的日志？</string>
@@ -784,9 +780,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_priv_danger_remove">删除这条</string>
     <string name="dsh_priv_danger_reset">恢复默认</string>
     <string name="dsh_priv_notice_title">权限策略变了：不再逐条确认</string>
-    <string name="dsh_priv_notice_message">这一版把「全局严格程度 + 不再逐条确认名单」改成了「限制模式 + 两张清单」。你的设置已按新模型重来：限制模式默认关闭 —— 也就是某个能力启用之后，agent 再用它不会再问你。
-
-想要它每次都问，就去 设置 → 权限管理 → 限制模式 打开开关，并可自行增减「能力清单」；「危险操作清单」里的命令（卸载、重启、清数据等）不受开关影响，永远问一次，条目也能自己增删。</string>
+    <string name="dsh_priv_notice_message">权限模型已更新为「限制模式 + 清单管理」。限制模式默认关闭，已启用的能力可直接使用；如需每次调用前弹窗确认，可在「设置 → 权限管理」中开启限制模式。</string>
     <string name="dsh_priv_notice_ok">知道了</string>
     <string name="dsh_log_window_title">日志时间范围</string>
     <string name="dsh_log_window_10m">最近 10 分钟</string>
@@ -836,7 +830,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_native_section">原生能力</string>
     <string name="dsh_native_summary">让容器里的 agent 借用本应用：通知、剪贴板与分享，设备、网络与传感器读数，相册、摄像头与麦克风，位置、日历与通讯录，音量与系统设置</string>
     <string name="dsh_native_enable">启用原生能力桥</string>
-    <string name="dsh_native_enable_summary">默认关闭。容器里同时跑着第三方插件，它们共用同一个回环 token，所以只勾你真的需要的那几项。agent 遇到没开的能力可以自己发起申请：弹窗里选「允许」（长期生效）或「仅本次」（只放行一次调用），60 秒不处理按拒绝算，不会自动放行。</string>
+    <string name="dsh_native_enable_summary">默认关闭，建议仅勾选需要的能力。Agent 调用未开启的能力时会弹窗请求授权，可选「允许」或「仅本次」（60 秒未处理自动拒绝）。</string>
     <string name="dsh_native_caps">能力分项</string>
     <string name="dsh_native_cap_notify">通知</string>
     <string name="dsh_native_cap_notify_desc">发送与撤销通知，使用与服务通知分开的渠道</string>
@@ -933,14 +927,14 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_ws_mount_header">挂载进工作区</string>
     <string name="dsh_ws_mount_source">源</string>
     <string name="dsh_ws_mount_destination">目标</string>
-    <string name="dsh_ws_mount_desc">把手机存储作为一个文件夹映到 /root/workspace 下，在 dsh 工作区文件树里直接可见。与「共享存储」共用同一个开关（2026-10 合并）；仍沿用上面的黑白名单。</string>
+    <string name="dsh_ws_mount_desc">将手机共享存储挂载至 /root/workspace 以便在工作区文件树中直接访问。与「共享存储」是同一个开关，沿用其黑白名单。</string>
     <string name="dsh_ws_mount_follows_on">共享存储已开启，下面的映射生效。</string>
     <string name="dsh_ws_mount_follows_off">共享存储已关闭，下面的映射不生效（去「功能 → 共享存储」打开）。</string>
     <string name="dsh_ws_mount_empty">暂无映射——添加一条，指定哪个手机目录挂到工作区的哪个位置。</string>
     <string name="dsh_ws_mount_add">添加映射</string>
-    <string name="dsh_ws_mount_note">注意：该文件夹位于共享存储，无符号/硬链接/可执行位。dsh 的 write 工具用「临时文件 + 原子 link」发布，在此会失败（EINVAL），请改用 edit 或 shell 重定向。请勿在此放 node_modules 或 git 仓库（pnpm install / git / chmod +x 会失败）。</string>
+    <string name="dsh_ws_mount_note">该目录位于共享存储，不支持硬链接与执行权限。若 write 工具报 EINVAL，请改用 edit 或 shell 重定向，且勿在此存放 node_modules。</string>
     <string name="dsh_ws_mount_warn_title">此目录不支持原子写入</string>
-    <string name="dsh_ws_mount_warn_body">共享存储不支持硬链接，而 dsh 的 write 工具用 link() 发布新文件，因此在此写入会报 EINVAL。请改用 edit 或 shell 重定向；read 与 edit 正常。</string>
+    <string name="dsh_ws_mount_warn_body">共享存储不支持硬链接，write 工具新建文件可能报 EINVAL，建议改用 edit 或 shell 重定向。</string>
     <string name="dsh_ws_mount_recheck">重新检测</string>
     <string name="dsh_ws_mount_dest_title">挂到工作区的哪里</string>
     <string name="dsh_ws_mount_dest_label">工作区下的目录</string>
@@ -974,7 +968,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_native_err_display_unavailable">虚拟屏服务端起不来。它需要一条提权通道（root / Shizuku / 无线 ADB），请让用户确认其中一条已启用且就绪。</string>
 <string name="dsh_native_err_display_no_frame">该显示没有返回画面</string>
     <string name="dsh_native_err_display_terminated">用户刚刚在小窗上终止了这块虚拟屏，它已经不存在了。不要重试，先问用户要不要重新建屏。</string>
-    <string name="dsh_native_err_display_no_session">当前没有虚拟屏会话。不写 --display 时不会自动落到真实屏幕上（那是 display 0，要显式写）。先建屏（display session），或显式指定 --display。</string>
+    <string name="dsh_native_err_display_no_session">尚未创建虚拟屏会话。请先新建虚拟屏（display session），或显式指定 --display 0 操作主屏。</string>
     <string name="dsh_native_err_display_bad_param">%1$s 参数缺失或不合法</string>
     <string name="dsh_native_err_display_bad_key">未知按键：%1$s（可以是数字 keycode，也可以是 home / back / enter 这类名字）</string>
     <string name="dsh_native_err_display_bad_package">不是合法的包名：%1$s</string>
@@ -1001,7 +995,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_display_preview_open">打开预览</string>
         <string name="dsh_display_manage_open">管理虚拟屏</string>
     <string name="dsh_display_manage_title">虚拟屏管理</string>
-    <string name="dsh_display_manage_hint">这里列出服务端进程里**所有**活着的虚拟屏。agent 改了尺寸会新建一块，旧的那块不会自己消失，所以列表里可能有不只一块；没有画面在传也只表示"没人在看"，不是坏了。</string>
+    <string name="dsh_display_manage_hint">此处列出当前运行中的所有虚拟屏会话；无画面传输仅表示当前未打开预览。</string>
     <string name="dsh_display_manage_empty">现在没有活着的虚拟屏</string>
     <string name="dsh_display_manage_failed">读不到虚拟屏列表</string>
     <string name="dsh_display_manage_refresh">刷新</string>
@@ -1096,7 +1090,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_native_cap_usage">应用使用统计</string>
     <string name="dsh_native_cap_usage_desc">读取应用使用统计。Android 要求在系统设置页授予「使用情况访问权限」。</string>
     <string name="dsh_native_cap_saf">SAF 桥（挂不上的提供器）</string>
-    <string name="dsh_native_cap_saf_desc">让 agent 读写一棵挂不上的树（像 Termux 这类、文件在别的应用私有目录里的提供器），全程经宿主 App 走 SAF 代办——无需 root、无需挂载、不复制整树。先在这里（或「设置 › 文件访问范围」）把那棵树登记成来源。读档只列目录和读取；读写档才能创建、写入、删除、移动、复制。只能动你登记过的那几棵树。</string>
+    <string name="dsh_native_cap_saf_desc">通过系统 SAF 让 Agent 读写其他应用目录（如 Termux），无需 root。请先在「文件访问范围」添加对应目录并选择权限档位。</string>
     <string name="dsh_saf_sheet_intro">登记挂不上的树（例如 Termux），并勾选允许 agent 经 SAF 访问哪些。先在下方授权一棵树，再把要启用的打开。</string>
     <string name="dsh_saf_sheet_access_header">访问档位</string>
     <string name="dsh_saf_sheet_sources_header">已授权来源</string>
@@ -1108,17 +1102,17 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_native_cap_full_screen_notify">全屏提醒</string>
     <string name="dsh_native_cap_full_screen_notify_desc">允许紧急通知打开全屏界面。Android 14 及以上还需单独系统授权；每次调用仍须说明理由并记入审计日志。</string>
     <string name="dsh_native_cap_shell">特权命令</string>
-    <string name="dsh_native_cap_shell_desc">让 agent 通过你选的权限通道（root / Shizuku / 无线 ADB）执行命令。「读」只允许诊断类命令，「读写」还能改设备状态。需先在设置里选好通道；问不问、问多勤由严格程度决定。</string>
+    <string name="dsh_native_cap_shell_desc">允许 Agent 通过已配置的权限通道（root / Shizuku / 无线 ADB）执行命令。「读」仅限只读诊断，「读写」可执行写操作。</string>
     <string name="dsh_native_perm_label_a11y">无障碍服务</string>
     <string name="dsh_native_cap_a11y">无障碍（读屏与操作）</string>
     <string name="dsh_native_cap_a11y_desc">读取当前屏幕上的文字与控件，或替用户点按、滑动、输入、返回桌面。「读」只看不动；需要你单独在系统设置里打开 DSH-Folk 的无障碍服务。</string>
     <string name="dsh_native_need_a11y_perm">未开启无障碍服务 —— 点这里去系统设置打开</string>
     <string name="dsh_native_cap_display">虚拟屏（截屏与操作）</string>
-    <string name="dsh_native_cap_display_desc">截取屏幕或一块虚拟屏的画面，并点按、滑动、按键、在虚拟屏上启动目标 App。不依赖无障碍服务，所以没有节点的界面也看得到。「读」只截图；动手要读写档位。它以 root / shell 身份跑一个辅助进程，因此需要先配好一条权限通道。</string>
+    <string name="dsh_native_cap_display_desc">支持截屏、虚拟屏画面采集及点击/滑动/启动应用等操作，不依赖无障碍服务。需先配置 root、Shizuku 或无线 ADB 通道。</string>
     <string name="dsh_native_err_a11y_bad_args">参数不全或格式不对</string>
     <string name="dsh_a11y_service_label">DSH-Folk 无障碍</string>
     <string name="dsh_a11y_service_summary">让 AI 读取当前屏幕内容并代为点按</string>
-    <string name="dsh_a11y_service_desc">开启后，容器里的 AI 可以读取你当前屏幕上的文字与控件，并按你的要求点按、滑动、输入。它与「开机自启」用的那个无障碍开关是两个独立开关：那一个只看得到系统事件，看不到屏幕内容。默认关闭，随时可以在这里关掉。</string>
+    <string name="dsh_a11y_service_desc">开启后允许 AI 读取当前屏幕内容并执行点击、滑动和输入操作。与「开机自启」无障碍开关相互独立，可随时关闭。</string>
     <string name="dsh_a11y_own_title">无障碍别看本应用</string>
     <string name="dsh_a11y_own_summary">本应用自己的界面，对读屏（以及 AI 的无障碍工具）算不算「可读、可操作」。只能说尽量 —— 不保证完全拦截。</string>
     <string name="dsh_a11y_own_off">都不拦</string>
@@ -1265,7 +1259,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_native_err_control_disabled">未启用 %1$s 的完全控制</string>
     <string name="dsh_native_err_notification_cancel">无法移除指定的系统通知</string>
     <string name="dsh_native_full_control_warning_title">允许完全控制通知？</string>
-    <string name="dsh_native_full_control_warning_message">完全控制允许 AI 通过通知监听服务查看其他应用的通知，并移除单条或全部通知。这可能隐藏安全警报、消息、来电及其他重要提醒。仅在接受此风险时继续前往 Android「通知使用权」页面。</string>
+    <string name="dsh_native_full_control_warning_message">完全控制允许 AI 读取并清除其他应用的通知，可能影响重要消息提醒。确认后将前往系统「通知使用权」页面授权。</string>
     <string name="dsh_native_full_control_continue">我已了解，继续</string>
 
     <!-- ── 文件桥错误（会出现在 dsh-fs 的输出里，用户看得到）── -->
@@ -1465,7 +1459,9 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_runtime_row_switch">切换</string>
     <string name="dsh_runtime_checking">正在检查\u2026</string>
     <string name="dsh_runtime_update_confirm_title">更新运行时？</string>
-    <string name="dsh_runtime_switch_confirm_text">目标版本：%1$s\n\n会重新下载运行时并替换容器系统文件。现有会话、已装插件、ADB 密钥、DSH 配置及插件依赖数据都会保留；即使替换过程被中断，下次启动也会自动恢复暂存数据。开始前会先停止服务。</string>
+    <string name="dsh_runtime_switch_confirm_text">目标版本：%1$s
+
+将下载并替换容器系统文件，保留现有会话、插件、配置与 ADB 密钥，操作前会先停止服务。</string>
     <string name="dsh_runtime_prompt_title">发现新的运行时</string>
     <string name="dsh_runtime_prompt_text">%1$s\n\n可以现在更新，也可稍后在 设置 → 功能 → 运行时 里处理。更新会保留会话、插件与配置。</string>
     <string name="dsh_log_version_list_api">运行时版本列表：API 返回 %1$d 个 release</string>
@@ -1700,11 +1696,11 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_handoff_copy_failed">复制失败：%1$s</string>
     <string name="dsh_handoff_done_message">已复制到「%1$s」，提示词已在剪贴板。</string>
     <string name="dsh_userscripts_title">用户脚本</string>
-    <string name="dsh_userscripts_scope">只作用于本应用自己的页面（内置的 dsh web）。元数据块、@match / @include / @exclude 与 @run-at（document-start / -end / -idle）按油猴的写法读。</string>
+    <string name="dsh_userscripts_scope">仅作用于内置 DSH WebUI，支持标准油猴元数据（@match / @include / @exclude / @run-at）。</string>
     <string name="dsh_userscripts_install_file">从文件安装</string>
     <string name="dsh_add_menu">添加</string>
     <string name="dsh_userscripts_code_loading">正在读取正文…</string>
-    <string name="dsh_userscripts_empty">还没装脚本。点右下角的 ＋：选「文件」装本地 .user.js、选「链接」粘地址、选「商店」去 GreasyFork 找 —— 装上的脚本都会在页面自己的脚本之前运行。</string>
+    <string name="dsh_userscripts_empty">暂无已安装脚本。点击右下角「＋」可从本地文件、链接或 GreasyFork 商店安装。</string>
     <string name="dsh_userscripts_empty_filtered">没有匹配的脚本。</string>
     <string name="dsh_userscripts_hide_builtin">隐藏内置</string>
     <string name="dsh_userscripts_show_builtin">显示内置</string>
@@ -1712,16 +1708,16 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_userscripts_builtin_hint">与你导入的脚本走同一条注入管道 —— 这就是应用自己往页面里注入的那几段，现在一处看得全。</string>
     <string name="dsh_userscripts_builtin_always_on">常开</string>
     <string name="dsh_userscripts_builtin_compat">旧内核 JS 兼容垫片</string>
-    <string name="dsh_userscripts_builtin_compat_summary">在旧内核上补齐 dsh 网页要用的 JS API（Iterator、Promise.try 等）。选「自动」按内核版本判断，也可以强制开 / 关。关掉后旧内核上网页会整页报 Failed to load plugins、连设置都进不去。</string>
+    <string name="dsh_userscripts_builtin_compat_summary">为旧版 WebView 补齐 DSH 界面所需的 JS API（如 Iterator、Promise.try）。默认「自动」按内核版本启用。</string>
     <string name="dsh_userscripts_builtin_kernel">应用内 WebView 内核：%1$s</string>
     <string name="dsh_userscripts_builtin_inset">系统栏内边距</string>
     <string name="dsh_userscripts_builtin_inset_summary">让网页背景铺到状态栏与手势条后面，交互内容自己避让。没有开关：不注入的话底部输入框会被手势条压住。数值随转屏与键盘变化。</string>
     <string name="dsh_userscripts_builtin_composer">手机回车换行</string>
-    <string name="dsh_userscripts_builtin_composer_summary">触屏上把输入框里的裸回车从「发送」改成「换行」，发送用发送按钮。上游把 Enter/Shift+Enter 注册成只读快捷键，而手机键盘没有 Shift —— 不补这一下就写不出多行消息。刷新页面后生效。</string>
+    <string name="dsh_userscripts_builtin_composer_summary">将聊天输入框的回车键改为换行，发送请点击发送按钮。刷新页面后生效。</string>
     <string name="dsh_userscripts_builtin_a11y">网页输入框的无障碍名字</string>
     <string name="dsh_userscripts_builtin_a11y_summary">把页面上本来就显示的 placeholder 抄成 aria-label，让无障碍树（以及 agent 的 a11y text --target）能寻址网页输入框。常开。</string>
     <string name="dsh_userscripts_builtin_upload">上传诊断</string>
-    <string name="dsh_userscripts_builtin_upload_summary">让文件上传失败时把真实原因写进运行日志（HTTP 状态 + 服务端的 error.code / message）。dsh 网页端会把任何上传失败都变成一张「上传失败，点击重试」的通用卡片，从不记录原因。它本身不改变上传行为，常开。</string>
+    <string name="dsh_userscripts_builtin_upload_summary">附件上传失败时将具体 HTTP 状态码与服务端错误写入运行日志，方便排查原因。</string>
     <string name="dsh_userscripts_builtin_blob">blob:/data: 下载落地</string>
     <string name="dsh_userscripts_builtin_blob_summary">WebView 对 blob:/data: 不触发下载回调，这一段把这类链接读成 base64 交给原生写盘。常开。</string>
     <string name="dsh_userscripts_installed">已安装</string>
@@ -1920,7 +1916,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_mode_proroot_denied_title">proroot 现在不可用</string>
     <string name="dsh_mode_proroot_denied_body">proroot 需要 arm64-v8a 架构，且运行时文件必须完整（它们随 APK 分发）。当前设备不满足，已保持原来的容器后端不变。</string>
     <string name="dsh_mode_chroot_denied_title">chroot 需要 Root</string>
-    <string name="dsh_mode_chroot_denied_body">chroot 走的是真 root，必须先在「特权通道」里拿到 root（或 Shizuku / 无线 ADB 提供的等效能力）。没有它时容器起不来，所以已保持原来的容器后端不变。</string>
+    <string name="dsh_mode_chroot_denied_body">chroot 模式需要可用的 root 或等效特权通道，当前未就绪，已保持原有容器模式。</string>
     <string name="dsh_mode_denied_ok">知道了</string>
     <string name="dsh_mode_chroot_desc">以真实 root 身份进入容器。注意：chroot 只改根目录、不是沙箱；它可能让工作区沙箱模式可用，但取决于设备内核。</string>
     <string name="dsh_mode_chroot_needs_root">需要 root 权限通道</string>
@@ -1932,7 +1928,7 @@ DSH-Folk 已在本机页面加载前自动注入一小段兼容脚本：只补�
     <string name="dsh_webui_browser_mode_summary">让网页留在应用内打开，可叠一条导航栏；用户脚本在外部网页上也生效。</string>
     <string name="dsh_webui_browser_mode_switch">在应用内打开外部链接</string>
     <string name="dsh_webui_browser_mode_forced">已安装的扩展需要它，因此强制开启。想改这一项，请先禁用或卸载那个扩展。</string>
-    <string name="dsh_webui_debug_hint">想让 dsh 操作这个浏览器，请安装一个声明了「WebView 调试」能力的扩展（扩展 → 扩展市场，或从链接/文件安装）。启用该扩展会自动打开浏览器模式并开启调试通道，这里没有单独的开关。</string>
+    <string name="dsh_webui_debug_hint">如需让 DSH 控制内置浏览器，请安装支持「WebView 调试」的扩展，启用后将自动开启浏览器模式与调试通道。</string>
     <string name="dsh_webui_browser_mode_off_hint">浏览器模式未开启：请到「设置 → 功能 → 浏览器模式」打开</string>
     <string name="dsh_webui_browser_mode_switch_summary">关闭时外部链接交给系统浏览器（默认，最安全）。开启后 App 会访问第三方网站，宿主会在进入外部站点前卸掉与网页通信的桥。</string>
     <!-- 原生能力目录：工作流卡片用 -->
