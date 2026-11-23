@@ -675,11 +675,24 @@ class MainActivity : AppCompatActivity() {
                 val pendingRuntimeOp = remember { mutableStateOf<(() -> Unit)?>(null) }
                 // 「应用更新检测正在进行中」——只有检测期间才知道，所以用状态变量传出来
                 val appCheckRunning = remember { mutableStateOf(false) }
+                // 应用更新检查**彻底结束**（含「开关关着、压根没查」这种情况）。
+                //
+                // 为什么单要一个状态：原来的闸门只看 appCheckRunning，而那个变量在
+                // 「自动检查关着」时永远为 false —— 于是运行时提示会直接弹出，
+                // 抢在应用更新内容前面。用户看到的是「运行时 0.3.0 可用」，
+                // 关掉之后才发现还有个 App 更新，那才是更该先看的。
+                //
+                // 初始 false：两个检查都是 LaunchedEffect 里异步跑的，闸门必须
+                // 从「还没结束」开始等。
+                val appCheckSettled = remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    if (prefs.getBoolean("auto_update_check", true)) {
-                        appCheckRunning.value = true
-                        try {
+                    // 无论开关开没开、无论查成没查成，最后都要置位 —— 闸门等的是
+                    // 「这件事结束了」，不是「查到了更新」。
+                    try {
+                        if (prefs.getBoolean("auto_update_check", true)) {
+                            appCheckRunning.value = true
+                            try {
                             withContext(Dispatchers.IO) {
                                  // Delay a bit to wait for network connection
                                  kotlinx.coroutines.delay(2000)
@@ -695,6 +708,9 @@ class MainActivity : AppCompatActivity() {
                         } finally {
                             appCheckRunning.value = false
                         }
+                    }
+                    } finally {
+                        appCheckSettled.value = true
                     }
                 }
 
@@ -785,9 +801,10 @@ class MainActivity : AppCompatActivity() {
 
                 // 弹窗闸门：应用更新检测还在跑、或应用更新弹窗已经弹出来了，就先压着；
                 // 等检测结束（最新 / 失败都算结束）或用户关掉那个弹窗，再弹运行时这个。
-                LaunchedEffect(runtimePrompt.value, appCheckRunning.value, showUpdateDialog.value) {
+                LaunchedEffect(runtimePrompt.value, appCheckRunning.value, showUpdateDialog.value, appCheckSettled.value) {
                     val pending = runtimePrompt.value ?: return@LaunchedEffect
-                    if (appCheckRunning.value || showUpdateDialog.value) return@LaunchedEffect
+                    // 等应用更新检查彻底结束；若它查到了更新，还要等用户关掉那个弹窗。
+                    if (!appCheckSettled.value || appCheckRunning.value || showUpdateDialog.value) return@LaunchedEffect
                     runtimePrompt.value = null
                     runtimePromptVersion.value = pending.version.orEmpty()
                     showRuntimeDialog.value = true

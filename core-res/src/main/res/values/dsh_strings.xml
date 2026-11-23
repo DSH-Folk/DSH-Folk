@@ -2326,4 +2326,20 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_seed_ask_body">These plugins are installed on first launch: WebUI, plugin market, config backup and cloud sync. Uncheck any you do not want — they will not be reinstalled later.</string>
     <string name="dsh_seed_ask_confirm">Install selected</string>
     <string name="dsh_seed_ask_skip_all">Skip all</string>
+    <string name="dsh_browser_page_info">Page info</string>
+    <string name="dsh_browser_tabs">Tabs</string>
+    <string name="dsh_browser_new_tab">New tab</string>
+    <string name="dsh_browser_home">Back to DSH home</string>
+    <string name="dsh_browser_tab_close">Close</string>
+    <string name="dsh_browser_tab_untitled">New tab</string>
+    <string name="dsh_browser_tabs_empty">No open tabs</string>
+    <string name="dsh_browser_info_title">Page info</string>
+    <string name="dsh_browser_info_url">URL</string>
+    <string name="dsh_browser_info_title_label">Title</string>
+    <string name="dsh_browser_info_security">Security</string>
+    <string name="dsh_browser_info_secure">HTTPS encrypted</string>
+    <string name="dsh_browser_info_insecure">Not encrypted (HTTP)</string>
+    <string name="dsh_browser_info_local">Loopback address, never leaves the device</string>
+    <string name="dsh_browser_info_copy">Copy URL</string>
+    <string name="dsh_browser_info_copied">URL copied</string>
 </resources>

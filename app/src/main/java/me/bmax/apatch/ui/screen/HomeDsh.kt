@@ -132,10 +132,13 @@ fun HomeScreenDsh(
         var showRestartConfirm by remember { mutableStateOf(false) }
         // 这次安装是不是**我**发起的：不加它的话，进页面时只要已装就会弹完成提示。
         var installPending by remember { mutableStateOf(false) }
-        // 预装插件勾选框：只在「还没问过」时显示一次。
-        // 放在首页而不是安装流程里，是因为它跟运行时是否已装无关 —— 老用户升级上来
-        // 同样要问一次（清单可能新增了包）。
-        var showSeedAsk by remember { mutableStateOf(DshRuntime.seedAskPending()) }
+        // 预装插件勾选框。
+        //
+        // **不在首页加载时就弹**：预装插件要装进容器，容器还没装的时候问「要不要装
+        // 这些插件」是没有意义的 —— 用户看到的是一个他此刻做不了的决定的弹窗。
+        // 改成在**安装 / 更新运行时那一刻**弹（见下面 installPending 与 onInstall），
+        // 那时容器正在就位，勾选结果立刻会被用到。
+        var showSeedAsk by remember { mutableStateOf(false) }
 
         DshHeroCard(
             phase = state.phase,
@@ -148,7 +151,12 @@ fun HomeScreenDsh(
             onStop = { HarnessService.stop(context) },
             onRestart = { DshRuntime.restart() },
             onOpenWeb = { uiState.openWeb() },
-            onInstall = { showInstallConfirm = true },
+            onInstall = {
+                // 先问预装（若还没问过），再走安装确认。
+                // 顺序反了会变成「装完才问装不装插件」，那时预装流程已经跑过去了。
+                if (DshRuntime.seedAskPending()) showSeedAsk = true
+                showInstallConfirm = true
+            },
             onRestartRequested = { showRestartConfirm = true },
         )
 
@@ -202,6 +210,8 @@ fun HomeScreenDsh(
         val installSettled = state.phase == DshPhase.NOT_READY || state.phase == DshPhase.ERROR
         if (installPending && state.installed && installSettled) {
             installPending = false
+            // 运行时刚装好/刚升级：容器已就位，正是问预装插件的时机。
+            if (DshRuntime.seedAskPending()) showSeedAsk = true
             showInstalledPrompt = true
         }
         if (showInstalledPrompt) {

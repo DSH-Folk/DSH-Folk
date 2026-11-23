@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,23 +12,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Tab
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.bmax.apatch.res.R as CoreR
 
 /**
  * 浏览器模式下的 Via 式导航栏。
@@ -56,6 +65,13 @@ internal fun WebUiBrowserBar(
     onReload: () -> Unit,
     onGoHome: () -> Unit,
     onExitBrowserMode: () -> Unit,
+    /** 点地址栏 / 信息图标：给用户看当前页的完整信息（URL、标题、是否 https）。 */
+    onShowPageInfo: () -> Unit,
+    /** 点「新建标签页」：开一个空标签（回到 DSH 首页）。 */
+    onNewTab: () -> Unit,
+    /** 点「标签总览」：列出所有标签并允许切换 / 关闭。 */
+    onShowTabs: () -> Unit,
+    tabCount: Int = 1,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -89,13 +105,22 @@ internal fun WebUiBrowserBar(
                 IconButton(onClick = onForward, enabled = canGoForward) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowForward, "前进")
                 }
+                // 地址栏整条可点（含左边的信息图标）。
+                //
+                // 真机反馈：信息图标和地址文字**都点不动**。原因是它们只是 Row 里的
+                // 静态 Icon/Text，从来没有 clickable —— 图标看着像个按钮，实际是装饰。
+                // 现在整条 Row 可点，点了展开页面信息（完整 URL / 标题 / 安全状态）。
                 Row(
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onShowPageInfo)
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         Icons.Outlined.Info,
-                        contentDescription = null,
+                        contentDescription = stringResource(CoreR.string.dsh_browser_page_info),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp),
                     )
@@ -108,8 +133,27 @@ internal fun WebUiBrowserBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // 标签总览：显示当前标签数，点了列出全部。
+                //
+                // 用一个带数字角标的方框图标而不是纯图标：用户要能一眼看出
+                // "现在开了几个"。只有 1 个标签时也照常显示 —— 按钮位置固定，
+                // 不会因为标签数变化而左右跳。
+                IconButton(onClick = onShowTabs) {
+                    BadgedBox(
+                        badge = {
+                            if (tabCount > 1) {
+                                Badge { Text(tabCount.toString()) }
+                            }
+                        },
+                    ) {
+                        Icon(Icons.Outlined.Tab, stringResource(CoreR.string.dsh_browser_tabs))
+                    }
+                }
+                IconButton(onClick = onNewTab) {
+                    Icon(Icons.Filled.Add, stringResource(CoreR.string.dsh_browser_new_tab))
+                }
                 IconButton(onClick = onGoHome) {
-                    Icon(Icons.Filled.Home, "回到 DSH 首页")
+                    Icon(Icons.Filled.Home, stringResource(CoreR.string.dsh_browser_home))
                 }
                 IconButton(onClick = onReload) {
                     Icon(Icons.Outlined.Refresh, "刷新")

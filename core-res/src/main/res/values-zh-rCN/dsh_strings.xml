@@ -2300,4 +2300,20 @@
     <string name="dsh_seed_ask_body">首次启动会预装这几个插件，它们提供 WebUI、插件商店、配置备份与云同步。不需要的可以取消勾选，之后不会再自动装回。</string>
     <string name="dsh_seed_ask_confirm">安装所选</string>
     <string name="dsh_seed_ask_skip_all">全部跳过</string>
+    <string name="dsh_browser_page_info">页面信息</string>
+    <string name="dsh_browser_tabs">标签页</string>
+    <string name="dsh_browser_new_tab">新建标签页</string>
+    <string name="dsh_browser_home">回到 DSH 首页</string>
+    <string name="dsh_browser_tab_close">关闭</string>
+    <string name="dsh_browser_tab_untitled">新标签页</string>
+    <string name="dsh_browser_tabs_empty">没有打开的标签页</string>
+    <string name="dsh_browser_info_title">页面信息</string>
+    <string name="dsh_browser_info_url">地址</string>
+    <string name="dsh_browser_info_title_label">标题</string>
+    <string name="dsh_browser_info_security">安全</string>
+    <string name="dsh_browser_info_secure">HTTPS 加密连接</string>
+    <string name="dsh_browser_info_insecure">非加密连接（HTTP）</string>
+    <string name="dsh_browser_info_local">本机回环地址，不经过网络</string>
+    <string name="dsh_browser_info_copy">复制地址</string>
+    <string name="dsh_browser_info_copied">地址已复制</string>
 </resources>

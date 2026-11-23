@@ -554,6 +554,13 @@ class DshWebUiActivity : AppCompatActivity() {
                 //
                 // 声明在 Box 之外、Column 之前：顶栏和悬浮球都要读它。
                 var browserBarVisible by remember { mutableStateOf(false) }
+                // 页面信息弹窗（点地址栏打开）
+                var showPageInfo by remember { mutableStateOf(false) }
+                // 标签总览弹窗
+                var showTabSwitcher by remember { mutableStateOf(false) }
+                // 当前页标题（页面信息里显示）。WebView 的 title 不是 Compose 状态，
+                // 用一个显式变量在 onReceivedTitle 里写回。
+                var pageTitle by remember { mutableStateOf("") }
 
                 // 把「顶栏是否占位」同步给 syncInsetsFromLayout，并触发一次重算：
                 // 顶栏一出现，cssTop 要从「状态栏高度」变成 0，否则页面顶部会多一条空白。
@@ -602,6 +609,16 @@ class DshWebUiActivity : AppCompatActivity() {
                                     browserBarVisible = false
                                     webView?.loadUrl(DshRuntime.webUrl())
                                 },
+                                onShowPageInfo = { showPageInfo = true },
+                                // 新建标签页：当前实现是**单 WebView**，所以「新建」
+                                // 就是回到 DSH 首页开一段新的浏览 —— 与浏览器里
+                                // 「新标签页 = 空白页」的语义一致，不保留上一页的历史。
+                                onNewTab = {
+                                    webView?.loadUrl(DshRuntime.webUrl())
+                                    browserBarVisible = false
+                                },
+                                onShowTabs = { showTabSwitcher = true },
+                                tabCount = 1,
                             )
                         }
                         AndroidView(
@@ -729,6 +746,9 @@ class DshWebUiActivity : AppCompatActivity() {
 
                                     override fun onPageFinished(view: WebView?, u: String?) {
                                         progress = 100
+                                        // 标题写回 Compose 状态：页面信息与标签总览都要显示它。
+                                        // WebView.title 不是可观察的，只能在这里抓一次。
+                                        pageTitle = view?.title.orEmpty()
                                         super.onPageFinished(view, u)
                                     }
 
@@ -988,6 +1008,119 @@ class DshWebUiActivity : AppCompatActivity() {
                     )
 
                     // 导航栏已移到上面的 Column 里（不再叠在 WebView 之上）。
+
+                    // 页面信息：点地址栏打开。
+                    //
+                    // 为什么值得一个弹窗：地址栏只显示截断的 URL，用户看不出这一页
+                    // 到底是不是本机的、有没有走加密。这三件事（完整地址、标题、
+                    // 安全状态）是「我现在在看什么」的全部答案。
+                    if (showPageInfo) {
+                        val ctx = this@DshWebUiActivity
+                        val fullUrl = webView?.url ?: url
+                        val secure = fullUrl.startsWith("https://")
+                        val loopback = fullUrl.startsWith("http://127.0.0.1") ||
+                            fullUrl.startsWith("http://localhost") ||
+                            fullUrl.startsWith("http://[::1]")
+                        AlertDialog(
+                            onDismissRequest = { showPageInfo = false },
+                            title = { Text(stringResource(CoreR.string.dsh_browser_info_title)) },
+                            text = {
+                                Column {
+                                    Text(
+                                        stringResource(CoreR.string.dsh_browser_info_url),
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    Text(
+                                        fullUrl,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                    if (pageTitle.isNotBlank()) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            stringResource(CoreR.string.dsh_browser_info_title_label),
+                                            style = MaterialTheme.typography.labelMedium,
+                                        )
+                                        Text(pageTitle, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        stringResource(CoreR.string.dsh_browser_info_security),
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    Text(
+                                        when {
+                                            loopback -> stringResource(CoreR.string.dsh_browser_info_local)
+                                            secure -> stringResource(CoreR.string.dsh_browser_info_secure)
+                                            else -> stringResource(CoreR.string.dsh_browser_info_insecure)
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
+                                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("url", fullUrl))
+                                    showToast(ctx, ctx.getString(CoreR.string.dsh_browser_info_copied))
+                                }) {
+                                    Text(stringResource(CoreR.string.dsh_browser_info_copy))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showPageInfo = false }) {
+                                    Text(stringResource(android.R.string.cancel))
+                                }
+                            },
+                        )
+                    }
+
+                    // 标签总览。
+                    //
+                    // 当前是**单 WebView**：这里如实显示「只有这一页」，并把关闭
+                    // 这一页的动作接上（关闭 = 回 DSH 首页）。不做成假的列表 ——
+                    // 画出一堆切不动的条目比没有这个按钮更糟。
+                    if (showTabSwitcher) {
+                        AlertDialog(
+                            onDismissRequest = { showTabSwitcher = false },
+                            title = { Text(stringResource(CoreR.string.dsh_browser_tabs)) },
+                            text = {
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                pageTitle.ifBlank { stringResource(CoreR.string.dsh_browser_tab_untitled) },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                            Text(
+                                                webView?.url ?: url,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        TextButton(onClick = {
+                                            showTabSwitcher = false
+                                            webView?.loadUrl(DshRuntime.webUrl())
+                                        }) {
+                                            Text(stringResource(CoreR.string.dsh_browser_tab_close))
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showTabSwitcher = false
+                                    webView?.loadUrl(DshRuntime.webUrl())
+                                }) {
+                                    Text(stringResource(CoreR.string.dsh_browser_new_tab))
+                                }
+                            },
+                        )
+                    }
 
                     if (showPipGuide.value) {
                         PipGuideDialog(
