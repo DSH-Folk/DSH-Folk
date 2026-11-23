@@ -8,7 +8,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
