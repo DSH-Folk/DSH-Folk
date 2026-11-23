@@ -1,0 +1,347 @@
+name: Build DSH-Folk release
+
+# 正式版通道。
+#
+# 与 beta.yml 的关系：构建、签名、校验、产物收集全部复用同一套步骤 —— 正式版与
+# 测试版唯一的差别是**版本名没有 -alpha.N / -beta.N 后缀**、release 不是 prerelease
+# 标记，以及 tag 是 v<X.Y.Z> 而不是 v<X.Y.Z>-<channel>.N。所以这个工作流是 beta.yml
+# 的派生副本，只在版本推导与发布那两步不同。
+#
+# 为什么不做成 beta.yml 的一个 channel 选项：正式版**没有序号**。它的 tag 就是
+# v3.0.0，重发会撞 tag；而测试版的整个序号机制（同核心版本计数 + 1）对正式版无意义。
+# 混在一个工作流里会让那段本已复杂的推导再分叉一次，反而更容易出错。
+
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Version this prerelease leads to (e.g. 1.8.1)'
+        required: true
+        type: string
+      notes:
+        description: 'Extra release notes (optional)'
+        required: false
+        type: string
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # 版本号规则必须与 build.gradle.kts 的基准一致：1.8.0 → 10800。
+      #
+      # versionCode 用**目标版本**的号（1.8.1 → 10801），而不是再加一个 beta 偏移：
+      #  - 它必须大于当前正式版，否则装了正式版的人收不到测试版（compareVersions 判不更新）；
+      #  - 它又不能大于将来那个正式版，否则正式版发出来时装不回去（系统拒绝降级）。
+      # 相同 versionCode 的覆盖安装是允许的（AOSP PackageManagerServiceUtils.checkDowngrade
+      # 只在 after < before 时抛 INSTALL_FAILED_VERSION_DOWNGRADE，相等时只比 revisionCode，
+      # 而我们不设它），所以「beta 与目标正式版同号」正好落在两个约束的交集里。版本**名**
+      # 里的 -beta.N 才是区分先后的那一位，App 侧的 compareVersions 认它（正式版 > 预发布版）。
+      - name: Derive version
+        id: v
+        env:
+          # 自由文本输入必须过 env，**不能**直接写进 run:（同 beta.yml 的理由：
+          # GitHub 在跑脚本之前就展开 ${{ … }}，校验拦不住已经跑掉的代码）。
+          TARGET_INPUT: ${{ inputs.target_version }}
+        run: |
+          TARGET="$TARGET_INPUT"
+          if ! printf '%s' "$TARGET" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::target_version 必须是三段式 X.Y.Z（正式版不带预发布后缀），收到 '$TARGET'"
+            exit 1
+          fi
+          MAJOR=${TARGET%%.*}
+          REST=${TARGET#*.}
+          MINOR=${REST%%.*}
+          PATCH=${REST#*.}
+          CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          # 与 build.gradle.kts 的 baseVersionCode() / baseVersionName() 必须一致。
+          #
+          # 正式版的 versionCode 是**推导值**，不是自由选择：App 侧的更新判断、
+          # 系统的降级检查都按它比。两者脱钩会导致「发出去的正式版装不回去」或
+          # 「装了正式版的人收不到更新」。这里直接比对，不一致就停 ——
+          # 与其发一个版本号错位的正式版，不如让发布失败。
+          BASE=$(grep -oE 'fun baseVersionCode\(\): Int = [0-9]+' build.gradle.kts | grep -oE '[0-9]+$' | head -1)
+          BASE_NAME=$(grep -oE 'fun baseVersionName\(\): String = "[0-9.]+"' build.gradle.kts | grep -oE '[0-9.]+' | head -1)
+          if [ "$BASE_NAME" != "$TARGET" ]; then
+            echo "::error::build.gradle.kts 的 baseVersionName() 是 '$BASE_NAME'，与 target_version '$TARGET' 不一致。先改版本号再发。"
+            exit 1
+          fi
+          if [ "$BASE" != "$CODE" ]; then
+            echo "::error::推导出的 versionCode $CODE 与 baseVersionCode() '$BASE' 不一致。"
+            exit 1
+          fi
+
+          # 正式版 tag 就是 vX.Y.Z，**没有序号**：同一个版本只能发一次。
+          NAME="$TARGET"
+          echo "name=$NAME"   >> "$GITHUB_OUTPUT"
+          echo "code=$CODE"   >> "$GITHUB_OUTPUT"
+          echo "tag=v$NAME"   >> "$GITHUB_OUTPUT"
+          echo "$NAME (versionCode $CODE)"
+
+          if git rev-parse -q --verify "refs/tags/v$NAME" >/dev/null 2>&1; then
+            echo "::error::tag v$NAME 已存在。正式版不能重发同一版本号 —— 要么改版本号，要么先删 tag。"
+            exit 1
+          fi
+      - uses: ./.github/actions/setup-build-env
+
+      # 与 build.yml 的 release job 同一套源码自检：版本说明三处一致、Kotlin 词法闭合、
+      # 原生能力桥的一致性（Cap↔分组↔端点↔资源串）等十项。
+      # 放在编译之前是因为这些问题的报错都指不到真正的那一行，而测试版每次都要
+      # 走一遍完整构建 + 发布，让它们在上面拦下来代价最低。
+      - name: Static source checks
+        run: |
+          # 放在最前：它挂了，后面脚本读文件都可能是错的
+          node tools/check-module-boundary.js
+          node tools/check-cross-module-symbols.js
+          node tools/check-paths.js
+          node tools/check-version-naming.js
+          node tools/check-changelog.js
+          node tools/check-kotlin-comments.js
+          node tools/check-compose-imports.js
+          node tools/check-strings.js
+          node tools/check-i18n.js
+          node tools/check-refs.js
+          node tools/check-native-logic.js
+          node tools/check-native-caps.js
+          node tools/check-native-cli.js
+          node tools/check-web-shim.js
+          node tools/check-userscripts.js
+          node tools/check-backup-logic.js
+          node tools/check-bugreport-files.js
+          node tools/check-text-clipping.js
+          node tools/check-backup-crypto.js
+          node tools/check-wizard-gate.js
+          node tools/check-cookie-samesite.js
+          node tools/check-plugin-update.js
+          node tools/check-plugin-actions.js
+          node tools/check-chroot.js
+          node tools/check-fs-access.js
+          node tools/check-webui-token.js
+          node tools/check-install-recovery.js
+          node tools/check-extensions.js
+          node tools/check-race-channel.js
+          node tools/check-fs-scope.js
+          node tools/check-host-prompt.js
+          node tools/check-file-handoff.js
+          node tools/check-display-server.js
+          node tools/check-shizuku-user-service.js
+          node tools/check-imports.js $(find app/src/main/java -name "*.kt")
+          node tools/check-compose-content.js $(find app/src/main/java -name "*.kt")
+          node tools/check-args.js
+          node tools/check-autostart.js
+          node tools/check-market.js
+          node tools/check-web-permissions.js
+          node tools/check-mic-session.js
+          node tools/check-a11y-own.js
+          node tools/check-runtime-card.js
+          node tools/check-runtime-naming.js
+          node tools/check-launcher-icon.js
+          node tools/check-workflow.js
+          # gh 调用必须有仓库上下文（没有 checkout 的 job 要显式 GH_REPO）。
+          # 2026-11-08 的 runtime-auto 就是栽在这里，且连续失败三次都没人发现。
+          node tools/check-ci-gh.js
+          node tools/check-java-syntax.js
+          node tools/check-web-upload.js
+          node tools/check-session-store.js
+
+      # 与 build.yml 的 release job 同一套校验：缺任何一项就硬失败。
+      # 用 debug key 悄悄签出一个「测试版」的后果更隐蔽 —— 用户装不上，
+      # 而错误信息只会说「应用未安装」。
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PRIVATE_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KEYSTORE_BASE64" ]   || missing="$missing KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ]         || missing="$missing KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ]      || missing="$missing KEY_PRIVATE_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::missing release signing secrets:$missing"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > dsh-folk.jks
+          {
+            printf 'KEYSTORE_FILE=../dsh-folk.jks\n'
+            printf 'KEYSTORE_PASSWORD=%s\n' "$KEYSTORE_PASSWORD"
+            printf 'KEY_ALIAS=%s\n' "$KEY_ALIAS"
+            printf 'KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
+          } > keystore.properties
+
+      # 同 build.yml：细粒度 PAT 读不了 job 日志（logs 接口要 admin 权限），
+      # 所以把 gradle 输出留一份到文件，失败时把编译错误转成注解 ——
+      # 否则「构建失败」就是全部信息。pipefail 不能少，否则 tee 会吞掉退出码。
+      # 单测必须跑在打包之前。
+      #
+      # `assembleRelease` 不编译 `src/test`，所以"测试文件引用了另一个模块里的类"
+      # 这类错会一路绿灯到发布。实测漏过两个真 bug（测试在 :ext-api、被测类在 :app；
+      # SeamRegistry 熔断时 fallback 抛异常）。测试通过才允许出包。
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          ./gradlew test --no-daemon --stacktrace 2>&1 | tee gradle-test.log
+
+      - name: Surface test failures
+        if: failure()
+        run: |
+          { grep -E "^(e:|FAILURE:|\\* What went wrong|[A-Za-z0-9_.]+ > .* FAILED)" gradle-test.log || true; } | head -60 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
+      - name: Build
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -PdshVersionName='${{ steps.v.outputs.name }}' \
+            -PdshVersionCode='${{ steps.v.outputs.code }}' 2>&1 | tee gradle-build.log
+
+      - name: Surface compile errors
+        if: failure()
+        run: |
+          { grep -E "^(e:|w: .*error|FAILURE:|\* What went wrong)" gradle-build.log || true; } | head -60 | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+          tail -40 gradle-build.log | while IFS= read -r line; do
+            echo "::error::${line}"
+          done
+
+      # 静态门禁只能证明**源码**对；这里证明**编出来的 jar** 对：只有 classes.dex 一个条目、
+      # dex 魔数正确、体量没有把 androidx/Compose 拖进来。装错格式的命令能起来、然后在真机上
+      # ClassNotFoundException —— 那一路只有真机才会暴露，所以在打包前先拦一次。
+      - name: Verify display server jar
+        run: node tools/check-display-server.js --jar app/build/generated/displayServer/dsh-display-server.jar
+
+      # R8 混淆映射：release 变体的崩溃栈（如 dsh-fs 的 StackOverflow）里全是 s.d0 之类的
+      # 混淆名，只有 mapping.txt 能把它翻回真实类/方法。beta.yml 改这一步不动 App 源码，
+      # 所以同一 commit 重建出的 mapping 与已发 beta 的混淆名一致，可用来解已有崩溃栈。
+      - name: Upload R8 mapping
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mapping-${{ github.sha }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      # 命名必须带 ABI：App 端 pickApkAsset 按文件名里的 arm64-v8a / x86_64
+      # 挑本机架构的包，名字里没有 ABI 会被当成旧的单包 release 而发错架构。
+      - name: Collect APKs
+        run: |
+          NAME="${{ steps.v.outputs.name }}"
+          found=0
+          for abi in arm64-v8a x86_64; do
+            APK=$(find app/build/outputs/apk/release -name "*${abi}*.apk" -type f | head -1)
+            if [ -z "$APK" ]; then
+              echo "::error::beta APK for ${abi} not produced"
+              continue
+            fi
+            OUT="DSH-Folk-${NAME}-${abi}.apk"
+            mv "$APK" "$OUT"
+            sha256sum "$OUT" > "$OUT.sha256"
+            echo "  $OUT  $(stat -c %s "$OUT") bytes"
+            found=$((found + 1))
+          done
+          if [ "$found" -ne 2 ]; then
+            echo "::error::expected 2 beta APKs (one per ABI), got $found"
+            exit 1
+          fi
+
+      - name: Verify signer
+        run: |
+          checked=0
+          for apk in DSH-Folk-*.apk; do
+            [ -f "$apk" ] || continue
+            keytool -printcert -jarfile "$apk" > signer.txt
+            grep -E "Owner" signer.txt || true
+            if grep -q "CN=Android Debug" signer.txt; then
+              echo "::error::$apk is signed with the Android debug key"
+              rm -f signer.txt
+              exit 1
+            fi
+            rm -f signer.txt
+            checked=$((checked + 1))
+          done
+          if [ "$checked" -ne 2 ]; then
+            echo "::error::expected to verify 2 beta APKs, verified $checked"
+            exit 1
+          fi
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f dsh-folk.jks keystore.properties
+
+      # tag 必须是**版本形**的（v1.8.1-beta.7）：App 的 UpdateChecker 用
+      # ^[vV]?\d+(\.\d+)+([-+].*)?$ 过滤 tag，一个滚动的 `beta-latest` 会被直接忽略，
+      # 开关就成了摆设。每个 beta 一个 tag，所以列表接口取 30 条而不是 10 条。
+      #
+      # 正式版**不带** --prerelease：App 侧默认只接受正式版，加了标记就等于
+      # 让所有人以为自己在用测试版。--latest 让它成为 GitHub 上「最新版本」，
+      # 那是 release 页面直接给出的下载入口。
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 同 Derive version：说明是自由文本，直接写进 run: 会被 shell 当代码解析 ——
+          # 实测就是这么炸的：说明里的 `git+ssh://…` 被当成文件名、`dsh` 被当命令执行，
+          # 展开后的 body 还超过 GitHub 的 125000 字符上限，release 回 422。
+          BETA_NOTES: ${{ inputs.notes }}
+        run: |
+          TAG="${{ steps.v.outputs.tag }}"
+          {
+            printf 'Release build from `%s` (run #%s).\n\n' "${GITHUB_SHA:0:7}" "$GITHUB_RUN_NUMBER"
+            printf 'Signed with the release key, so it upgrades an existing install in place.\n'
+            if [ -n "$BETA_NOTES" ]; then
+              printf '\n%s\n' "$BETA_NOTES"
+            fi
+            # ── 本次改动 ──
+            #
+            # 只给固定模板的话每个版本的更新说明长得一模一样，用户点开更新日志
+            # 看不到"这次到底改了什么"。
+            #
+            # 从提交历史自动取：上一个 tag 到 HEAD 之间的提交标题就是最准确的改动清单。
+            # 取不到（首次发布 / 浅克隆没 tag）时静默跳过，不让发布失败。
+            git fetch --tags --depth=200 >/dev/null 2>&1 || true
+            # 正式版跟"上一个正式 tag"比：只认 vX.Y.Z 形态，排除 v3.0.0-alpha.1 这类
+            # 预发布 tag —— 否则改动清单里会混进测试版已经列过的提交。
+            PREV=$(git tag --list 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+            if [ -n "$PREV" ]; then
+              RANGE="$PREV..HEAD"
+            else
+              RANGE="HEAD"
+            fi
+            COMMITS=$(git log --no-merges --pretty=format:'- %s' "$RANGE" 2>/dev/null | head -n 40 || true)
+            if [ -n "$COMMITS" ]; then
+              printf '\n### 本次改动\n\n%s\n' "$COMMITS"
+            fi
+            FILES=$(git diff --name-only "$RANGE" 2>/dev/null | wc -l | tr -d ' ' || echo 0)
+            if [ -n "$FILES" ] && [ "$FILES" != "0" ]; then
+              printf '\n<sub>%s 个文件改动</sub>\n' "$FILES"
+            fi
+          } > notes.md
+          gh release create "$TAG" \
+            --title "DSH-Folk ${{ steps.v.outputs.name }}" \
+            --notes-file notes.md \
+            --latest \
+            DSH-Folk-*.apk DSH-Folk-*.apk.sha256
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dsh-folk-release-${{ github.sha }}
+          path: |
+            DSH-Folk-*.apk
+            DSH-Folk-*.apk.sha256
+          retention-days: 30
