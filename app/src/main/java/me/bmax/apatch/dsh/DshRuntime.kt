@@ -777,7 +777,11 @@ object DshRuntime : DshRuntimeHost {
         // 换运行时（或本键还不存在）时再给一次机会：见 KEY_SEED_RUNTIME 的说明
         applySeedEnvRetry(p, attempted, installed, shadowed)
 
-        val todo = SEED_PLUGINS.filter { it !in attempted && it !in shadowed }
+        // 用户主动取消勾选的包**永不自动装回**：那是明确的意愿表达，不是"还没轮到"。
+        // 单独一份清单（不是混进 attempted），因为两者的语义不同：
+        // attempted = 试过了；skipped = 用户不要。混在一起会让"用户后来想装了"没有任何入口。
+        val skipped = seedSkippedPackages()
+        val todo = SEED_PLUGINS.filter { it !in attempted && it !in shadowed && it !in skipped }
         val missing = todo.filter { it !in installed }
         if (todo.isNotEmpty() && missing.isEmpty()) {
             persistSeeded(attempted + todo)
@@ -870,13 +874,30 @@ object DshRuntime : DshRuntimeHost {
      * 那几个包的构建脚本并重试（范围仅限 pnpm 点名的，不是全局开关）。返回最终退出码。
      */
     private suspend fun installSeedPkgWithApproval(pkg: String): Int {
-        // 显式 `@latest`：预装包门禁（[applySeedVersionUpgrade]）就是靠这次重装把版本顶上去的，
+        // 版本：按当前运行时的 engines.dsh 挑一个能装的最高版本，而不是无脑 latest。
+        //
+        // 无脑 latest 的坑：插件新版会抬高 engines 要求（`engines.dsh >= 0.3.0`），而用户
+        // 容器里还是 0.2.2 —— 装上后整棵插件树加载失败，本来能用的旧版本反而被弄坏。
+        // 探测失败（网络/运行时版本未知）时 bestVersionFor 返回空串，这里退回 latest，
+        // 行为与改造前一致。
+        val dshVer = prefs().getString(DshEnv.KEY_RUNTIME_VERSION, null).orEmpty()
+        val picked = runCatching { DshPluginRepo.bestVersionFor(pkg, dshVer) }
+            .getOrElse { "" }
+        val version = picked.ifBlank {
+            if (picked.isBlank() && dshVer.isNotBlank()) {
+                logInfo(CoreR.string.dsh_log_seed_version_fallback, pkg, dshVer)
+            }
+            DshPluginRepo.VERSION_LATEST
+        }
+        if (picked.isNotBlank()) logInfo(CoreR.string.dsh_log_seed_version_picked, pkg, picked, dshVer)
+
+        // 显式版本：预装包门禁（[applySeedVersionUpgrade]）就是靠这次重装把版本顶上去的，
         // 而 pnpm 对已声明过的 registry 依赖，`add <裸包名>` 是空操作 → 门禁会静默失效。
         // git 规格（dsh-folk-cloud）由 DshPluginRepo.install 忽略版本、按裸规格重新解析最新提交。
         var out = runCatching {
             DshPluginRepo.install(
                 seedSpec(pkg),
-                DshPluginRepo.VERSION_LATEST,
+                version,
                 onLine = { line -> appendLog(line) },
                 fallbackTgz = seedFallbackTgz(pkg),
             )
@@ -889,7 +910,7 @@ object DshRuntime : DshRuntimeHost {
                 out = runCatching {
                     DshPluginRepo.install(
                         seedSpec(pkg),
-                        DshPluginRepo.VERSION_LATEST,
+                        version,
                         onLine = { line -> appendLog(line) },
                         allowBuilds = pending,
                         fallbackTgz = seedFallbackTgz(pkg),
@@ -1073,6 +1094,37 @@ object DshRuntime : DshRuntimeHost {
         startServer()
         awaitReady()
     }
+
+    /**
+     * 预装清单的只读视图，给 UI 的勾选对话框用。
+     *
+     * **不能叫 `SEED_PLUGINS`**：那会在 object 内部遮蔽同名的顶层常量，让本文件里
+     * 十几处 `SEED_PLUGINS` 静默改为解析到这个属性 —— 功能上还成立（getter 指向顶层），
+     * 但多一层间接、且一旦有人把 getter 写错就是无限递归。换个名字，两件事分开。
+     */
+    val seedPluginList: List<String> get() = me.bmax.apatch.dsh.SEED_PLUGINS
+
+    /** 用户在确认框里取消勾选的包名。 */
+    fun seedSkippedPackages(): Set<String> =
+        prefs().getString(DshEnv.KEY_SEED_PLUGINS_SKIPPED, null)
+            ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }?.toSet()
+            ?: emptySet()
+
+    /**
+     * 记录用户跳过了哪些预装包（`null` = 还没问过）。
+     *
+     * 只写一次：`asked` 标记保证勾选框不会每次冷启动都弹一遍 —— 用户点过取消之后
+     * 再反复问，比不问更烦。后续想装可以在插件商店手动装。
+     */
+    fun setSeedSkipped(pkgs: Set<String>) {
+        prefs().edit {
+            putString(DshEnv.KEY_SEED_PLUGINS_SKIPPED, pkgs.joinToString(","))
+            putBoolean(DshEnv.KEY_SEED_PLUGINS_ASKED, true)
+        }
+    }
+
+    /** 是否还没问过用户要预装哪些（首装/老用户升级都算"没问过"）。 */
+    fun seedAskPending(): Boolean = !prefs().getBoolean(DshEnv.KEY_SEED_PLUGINS_ASKED, false)
 
     /** 预装流程管得着的包：在装的 + 退役的（退役包也要能卸、能清声明）。 */
     private fun managedSeedPackages(): Set<String> =

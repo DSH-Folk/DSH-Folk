@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
@@ -65,10 +65,17 @@ internal fun WebUiBrowserBar(
         exit = slideOutVertically { it },
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+            // 不透明：这条栏现在是**占位**的（把网页挤下去），不是浮在网页上的。
+            // 留半透明会让下方网页透出来，看起来像"盖住了一半"—— 而这正是改造前的问题。
+            //
+            // 状态栏避让：Column 从窗口最顶开始（edge-to-edge），不加这一层的话
+            // 工具栏会被状态栏压住。用 statusBarsPadding 而不是给整页加 padding ——
+            // 只有这条栏需要让开状态栏，WebView 那边由 inset.js 负责。
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding(),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 3.dp,
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         ) {
             Row(
                 modifier = Modifier

@@ -1170,7 +1170,8 @@
     <string name="dsh_native_perm_label_dnd">勿扰访问权</string>
     <string name="dsh_native_perm_label_install">安装未知应用</string>
     <string name="dsh_native_perm_label_full_screen">全屏通知</string>
-    <string name="dsh_native_perm_label_notification_access">通知使用权</string>    <string name="dsh_native_perm_label_usage">应用使用统计</string>
+    <string name="dsh_native_perm_label_notification_access">通知使用权</string>
+    <string name="dsh_native_perm_label_usage">应用使用统计</string>
 
     <string name="dsh_native_os_title">还差 Android 权限</string>
     <string name="dsh_native_os_message">应用内已经允许了，但 Android 层还没给：%1$s</string>
@@ -2293,4 +2294,10 @@
     <string name="dsh_wf_compute_list_join">列表拼接</string>
     <string name="dsh_wf_compute_list_join_desc">把列表各项用分隔符连成一段文本</string>
     <string name="dsh_wf_picker_no_compatible">没有节点的接口能接上这颗针脚</string>
+    <string name="dsh_log_seed_version_picked">预装 %1$s：运行时 dsh %3$s → 选版本 %2$s</string>
+    <string name="dsh_log_seed_version_fallback">预装 %1$s：查不到与 dsh %2$s 兼容的版本，回退到 latest</string>
+    <string name="dsh_seed_ask_title">预装插件</string>
+    <string name="dsh_seed_ask_body">首次启动会预装这几个插件，它们提供 WebUI、插件商店、配置备份与云同步。不需要的可以取消勾选，之后不会再自动装回。</string>
+    <string name="dsh_seed_ask_confirm">安装所选</string>
+    <string name="dsh_seed_ask_skip_all">全部跳过</string>
 </resources>

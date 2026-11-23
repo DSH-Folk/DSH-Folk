@@ -593,6 +593,22 @@ object DshEnv {
     const val KEY_SEEDED_PLUGINS = "seeded_plugins"
 
     /**
+     * 用户在预装确认框里**主动取消勾选**的包名（英文逗号分隔）。
+     *
+     * 与 [KEY_SEEDED_PLUGINS] 是两种不同的事实，必须分开记：
+     *  - `seeded_plugins` = 「试过了」（无论成败），用来避免每次冷启动重跑；
+     *  - `seed_plugins_skipped` = 「用户不要」，用来在后续升级补装时**尊重这个选择**。
+     *
+     * 合成一份的后果：用户取消勾选的包会被当成"装过"，补装逻辑于是永远跳过它 ——
+     * 看起来行为正确，但用户后来想装了也没有任何入口；反过来，若只记 skipped 不记
+     * seeded，每次冷启动都会重新弹一次勾选框，用户点了取消还反复被问。
+     */
+    const val KEY_SEED_PLUGINS_SKIPPED = "seed_plugins_skipped"
+
+    /** 是否已经问过用户「预装哪些插件」（只问一次，之后由 skipped 清单表达意愿）。 */
+    const val KEY_SEED_PLUGINS_ASKED = "seed_plugins_asked"
+
+    /**
      * 已应用的「预装补修」轮次（见 [DshRuntime.SEED_REPAIR_REV]）。
      *
      * [KEY_SEEDED_PLUGINS] 记的是「试过」，无论成败都置位 —— 这在当时是对的（失败不该

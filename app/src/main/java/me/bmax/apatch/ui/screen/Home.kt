@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -210,8 +214,14 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     // TopBar 也要读它来决定是否显示重启菜单，所以 Provide 包在 Scaffold 外面。
     ProvideDshHomeState {
         Scaffold(topBar = {
-            TopBar(navigator)
-        }) { innerPadding ->
+            TopBar(navigator),
+            // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由页面自己补回。
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        }) { innerPadding_raw ->
+            // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
+            val innerPadding = innerPadding_raw.let {
+                it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+            }
             when (homeLayout) {
                 // DSH-Folk 默认首页：DeepSeek Harness 运行时面板
                 "dsh" -> HomeScreenDsh(innerPadding, navigator)

@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -233,7 +237,15 @@ fun DshDeepCleanScreen(navigator: DestinationsNavigator) {
                 }
             }
         },
-    ) { padding ->
+        // 内容延伸到透明的小白条（手势导航条）下方，而不是被它顶开一条实色带。
+        // 底部安全区由页面自己补回（列表 contentPadding / 固定底栏的 navigationBarsPadding），
+        // 否则最后一项会被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding_raw ->
+        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
+        val padding = padding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),

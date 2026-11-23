@@ -1192,7 +1192,8 @@ This overwrites settings files and uninstalls plugins the snapshot does not cont
     <string name="dsh_native_perm_label_dnd">Do Not Disturb access</string>
     <string name="dsh_native_perm_label_install">Install unknown apps</string>
     <string name="dsh_native_perm_label_full_screen">Full-screen notifications</string>
-    <string name="dsh_native_perm_label_notification_access">Notification access</string>    <string name="dsh_native_perm_label_usage">App usage stats</string>
+    <string name="dsh_native_perm_label_notification_access">Notification access</string>
+    <string name="dsh_native_perm_label_usage">App usage stats</string>
 
     <string name="dsh_native_os_title">Android permission still missing</string>
     <string name="dsh_native_os_message">Allowed inside the app, but Android has not granted: %1$s</string>
@@ -2319,4 +2320,10 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_wf_compute_list_join">Join list</string>
     <string name="dsh_wf_compute_list_join_desc">Join every item into one string with a separator</string>
     <string name="dsh_wf_picker_no_compatible">No node has a port that can connect to this one</string>
+    <string name="dsh_log_seed_version_picked">Seeding %1$s: runtime dsh %3$s → picked version %2$s</string>
+    <string name="dsh_log_seed_version_fallback">Seeding %1$s: no version compatible with dsh %2$s, falling back to latest</string>
+    <string name="dsh_seed_ask_title">Bundled plugins</string>
+    <string name="dsh_seed_ask_body">These plugins are installed on first launch: WebUI, plugin market, config backup and cloud sync. Uncheck any you do not want — they will not be reinstalled later.</string>
+    <string name="dsh_seed_ask_confirm">Install selected</string>
+    <string name="dsh_seed_ask_skip_all">Skip all</string>
 </resources>

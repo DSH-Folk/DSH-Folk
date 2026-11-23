@@ -86,7 +86,7 @@ object DshHostPrompt {
      * 20 这一次是「SAF 桥（dsh-saf）」：新增一段讲挂不上的提供器（Termux…）怎么经 SAF 代办、
      * 新增 CAP_USAGE 的 saf 段与 CAP_CAVEAT 的 saf 注意事项。
      */
-    private const val PLUGIN_REV = 20
+    private const val PLUGIN_REV = 21
 
     /**
      * 第二个插件：容器里的工作流工具（workflow_create / run / status / cancel）。
@@ -157,24 +157,6 @@ object DshHostPrompt {
                 if (revOk && dst.isFile && dst.length() > 0L) continue
                 val body = ctx.assets.open(spec.asset).use {
                     it.readBytes().toString(StandardCharsets.UTF_8)
-                }.let { raw ->
-                    // 扩展拦截点：宿主提示词**落盘之前**。
-                    //
-                    // 这就是模型每轮都会读到的 systemPrompt 段（讲 dsh-native 怎么用、有哪些能力）。
-                    // 扩展可以增补自己的用法说明 —— 否则扩展提供的能力对模型等于不存在：
-                    // 工具能调，但模型不知道它存在、不知道语法，实际就不会去用。
-                    //
-                    // 只对**宿主提示词插件**生效，不对工作流插件生效：后者是注册工具的 mjs，
-                    // 改它的正文会让工具注册失败，那是另一类风险，不该被同一条钩子顺带覆盖。
-                    if (spec.asset == ASSET_NAME &&
-                        ExtensionHookRegistry.has(ExtensionHookRegistry.Point.PROMPT_RENDER)
-                    ) {
-                        val payload = mutableMapOf<String, Any?>("prompt" to raw)
-                        ExtensionHookRegistry.runBefore(ExtensionHookRegistry.Point.PROMPT_RENDER, payload)
-                        (payload["prompt"] as? String)?.takeIf { it.isNotBlank() } ?: raw
-                    } else {
-                        raw
-                    }
                 }
                 dst.parentFile?.mkdirs()
                 dst.writeText(body, StandardCharsets.UTF_8)
@@ -380,11 +362,65 @@ object DshHostPrompt {
                 // 这是**状态**不是能力，所以与 a11yService 并列放在事实里（改档位 → 下一轮
                 // 组装就是新的：插件按 mtime 判失效，见类注释）。
                 .put("a11yHideOwn", hf.a11yOwnMode)
+                // 扩展贡献的提示词片段。见 [collectExtensionPrompts] 的说明 ——
+                // 为什么走这条通道而不是改写插件源码。
+                .put("extensionPrompts", collectExtensionPrompts())
                 .toString()
             val f = DshEnv.hostFacts(ctx)
             f.parentFile?.mkdirs()
             f.writeText(json, StandardCharsets.UTF_8)
         }.onFailure { android.util.Log.w(TAG, "写 host-facts 失败: ${it.message}") }
+    }
+
+    /**
+     * 收集扩展要追加到系统提示词里的片段。
+     *
+     * ## 为什么走 host-facts.json，而不是改写插件源码
+     *
+     * 旧实现是在落盘 `dsh-folk-host.mjs` **之前**跑 `PROMPT_RENDER` 钩子，把返回的字符串
+     * 当成新正文写下去。两个 bug：
+     *
+     * 1. **新装的扩展永远不生效**：`ensureInstalled` 的判据是「版本号对得上 + 文件存在」，
+     *    满足就 `continue` —— 钩子根本没机会跑。用户装了扩展，提示词却停在安装那一刻的
+     *    快照上，之后新增/卸载扩展都不会更新。
+     * 2. **扩展写纯文本就会炸**：传给钩子的 `payload["prompt"]` 是 **JavaScript 源码**。
+     *    扩展若按直觉追加一段说明文字（而不是改 JS），写进 .mjs 就是语法错误 ——
+     *    整个插件加载失败，`dsh web` 起不来。
+     *
+     * 现在的做法：钩子只负责**产出纯文本片段**，由这里序列化进 `host-facts.json` 的
+     * `extensionPrompts` 数组；`.mjs` 的 `render()` 读这个数组拼到提示词末尾。
+     * 事实文件按 mtime 每轮失效（见 .mjs 类注释），所以增删扩展**不必重启 DSH**。
+     *
+     * ## 兼容旧写法
+     *
+     * 旧扩展往 `payload["prompt"]` 里塞内容的，这里仍然读 —— 但只当作**追加片段**，
+     * 不再替换正文。这样老扩展不会静默失效，也不会再有机会写坏 JS。
+     *
+     * @return 非空的片段列表；没有任何扩展时返回空列表（.mjs 那边会跳过整段）。
+     */
+    private fun collectExtensionPrompts(): JSONArray {
+        val out = JSONArray()
+        if (!ExtensionHookRegistry.has(ExtensionHookRegistry.Point.PROMPT_RENDER)) return out
+        // sections 是**新增**的推荐写法；prompt 是旧写法的兼容位。
+        val payload = mutableMapOf<String, Any?>(
+            "sections" to mutableListOf<String>(),
+        )
+        runCatching {
+            ExtensionHookRegistry.runBefore(ExtensionHookRegistry.Point.PROMPT_RENDER, payload)
+        }.onFailure {
+            android.util.Log.w(TAG, "PROMPT_RENDER 钩子执行失败: ${it.message}")
+            return out
+        }
+        // 新写法：sections 列表
+        (payload["sections"] as? List<*>)?.forEach { item ->
+            val t = (item as? String)?.trim()
+            if (!t.isNullOrEmpty()) out.put(t)
+        }
+        // 旧写法：prompt 里塞的纯文本（若扩展给的是整份源码就跳过 —— 那说明它在照旧实现做事，
+        // 塞进来只会污染提示词）
+        (payload["prompt"] as? String)?.trim()?.takeIf { it.isNotEmpty() && !it.contains("export const") }
+            ?.let { out.put(it) }
+        return out
     }
 
     /**

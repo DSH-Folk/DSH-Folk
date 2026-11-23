@@ -176,7 +176,7 @@ console.log("\n── 提示词：状态进事实、开着就明说 ──");
   ok(/\.put\("a11yHideOwn", hf\.a11yOwnMode\)/.test(PROMPT) &&
     /a11yOwnMode = A11yOwn\.mode\(c\)/.test(appSrc),
     "host-facts 里带上当前档位（插件按 mtime 失效，改档位下一轮就生效）");
-  ok(/private const val PLUGIN_REV = 20/.test(PROMPT),
+  ok(/private const val PLUGIN_REV = 21/.test(PROMPT),
     "插件内容版本 +1（改了 .mjs 必须抬，否则落盘的还是旧内容）");
   ok(/keep accessibility away from DSH-Folk itself/.test(MJS),
     "常驻说明提到这个开关（讲「存在」，不讲当前档位）");

@@ -41,11 +41,21 @@ must(/onUpdate = \{ viewModel\.update\(/.test(screen),
 must(!/onUpdate = \{ viewModel\.install\(/.test(screen),
   '插件页仍有 onUpdate 直接调 install()（裸包名空操作）');
 
-// 4. 预装包门禁的重装也必须显式 @latest，否则版本顶不上去（静默失效）
+// 4. 预装包门禁的重装也必须带**显式版本**，否则版本顶不上去（pnpm 对已声明的 registry
+//    依赖，`add <裸包名>` 是空操作 → 门禁静默失效）。
+//
+//    版本来源已从写死的 VERSION_LATEST 改为「按运行时 engines.dsh 挑出的最高兼容版本」，
+//    探测失败才退回 VERSION_LATEST。所以断言落在两件事上：
+//      a) 两次安装都用同一个非空 version 变量（不是裸包名）；
+//      b) 那个变量的兜底值确实是 VERSION_LATEST（保证"探测失败"时行为不退化）。
 const seedFn = (runtime.match(/private suspend fun installSeedPkgWithApproval\(pkg: String\): Int \{[\s\S]*?\n    \}/) || [''])[0];
 must(seedFn.length > 0, '找不到 installSeedPkgWithApproval()');
-must((seedFn.match(/DshPluginRepo\.VERSION_LATEST/g) || []).length >= 2,
-  'installSeedPkgWithApproval() 的两次安装（首次 + 放行构建后重试）都要传 VERSION_LATEST');
+must((seedFn.match(/seedSpec\(pkg\),\s*\n\s*version,/g) || []).length >= 2,
+  'installSeedPkgWithApproval() 的两次安装（首次 + 放行构建后重试）都要传显式版本 version');
+must(/val version = picked\.ifBlank \{[\s\S]{0,200}DshPluginRepo\.VERSION_LATEST/.test(seedFn),
+  'version 的兜底是 VERSION_LATEST（探测失败时行为与改造前一致）');
+must(/bestVersionFor\(pkg, dshVer\)/.test(seedFn),
+  '版本按运行时版本探测（engines.dsh 兼容性），不是无脑 latest');
 
 // 6. 插件页开关刷新（真机：停用/启用后开关很大概率不变、实际状态其实已变，找不出规律）。
 //    根因是并发刷新被静默丢弃 + 失败把 isRefreshing 永久挂 true + 详情面板持实体快照。

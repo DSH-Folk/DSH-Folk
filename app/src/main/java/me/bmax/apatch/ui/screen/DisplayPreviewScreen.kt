@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -209,7 +213,15 @@ fun DisplayPreviewScreen(navigator: DestinationsNavigator, displayId: Int? = nul
                 },
             )
         },
-    ) { padding ->
+        // 内容延伸到透明的小白条（手势导航条）下方，而不是被它顶开一条实色带。
+        // 底部安全区由页面自己补回（列表 contentPadding / 固定底栏的 navigationBarsPadding），
+        // 否则最后一项会被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding_raw ->
+        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
+        val padding = padding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -3,6 +3,10 @@ package me.bmax.apatch.ui.screen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -79,7 +83,15 @@ fun ExtensionPageScreen(
                 },
             )
         },
-    ) { inner ->
+        // 内容延伸到透明的小白条（手势导航条）下方，而不是被它顶开一条实色带。
+        // 底部安全区由页面自己补回（列表 contentPadding / 固定底栏的 navigationBarsPadding），
+        // 否则最后一项会被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { inner_raw ->
+        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
+        val inner = inner_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         Box(Modifier.fillMaxSize().padding(inner)) {
             if (page != null) {
                 page.content(Modifier.fillMaxSize())

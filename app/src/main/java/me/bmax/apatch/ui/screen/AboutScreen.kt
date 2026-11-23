@@ -20,6 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -105,13 +109,26 @@ fun AboutScreen(navigator: DestinationsNavigator) {
     Scaffold(
         topBar = {
             TopBar(onBack = dropUnlessResumed { navigator.popBackStack() })
+        },
+        // 让内容延伸到透明的小白条（手势导航条）下方，而不是被它顶开一条实色带。
+        // 底部安全区由列表自己的 contentPadding 补回来（见下面 Column 的 padding），
+        // 否则最后一项会被手势条盖住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { innerPadding_raw ->
+        // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
+        // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
+        // 内部滚动容器一行都不用改。
+        val innerPadding = innerPadding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         }
-    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                // 手动补回底部安全区：contentWindowInsets 归零之后 Scaffold 不再帮我们
+                // 让开手势条，滚到底时最后一块内容会被它压住。
+                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(24.dp))

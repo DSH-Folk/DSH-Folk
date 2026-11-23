@@ -6,6 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -464,8 +468,18 @@ fun ThemeStoreScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // 内容延伸到透明的小白条（手势导航条）下方，而不是被它顶开一条实色带。
+        // 底部安全区由页面自己补回（列表 contentPadding / 固定底栏的 navigationBarsPadding），
+        // 否则最后一项会被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { paddingValues_raw ->
+        // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
+        // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
+        // 内部滚动容器一行都不用改。
+        val paddingValues = paddingValues_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         if (viewModel.isRefreshing) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),

@@ -941,6 +941,25 @@ function render(f) {
     );
   }
 
+  // Extension-contributed fragments.
+  //
+  // Appended last on purpose: these are third-party notes about their own tools, so they read
+  // as an addendum to the host section rather than interrupting the host's own narrative.
+  //
+  // Delivered through host-facts.json instead of by rewriting this file: the facts file is
+  // re-read on mtime every turn, so installing or removing an extension takes effect without
+  // restarting DSH. The old approach patched this .mjs before writing it out, which meant a
+  // newly installed extension never triggered (the installer skipped already-installed files)
+  // and an extension that appended plain prose produced a JS syntax error that broke loading.
+  if (Array.isArray(f.extensionPrompts)) {
+    for (const raw of f.extensionPrompts) {
+      const text = str(raw);
+      if (text === null) continue;
+      lines.push('');
+      lines.push(text);
+    }
+  }
+
   return lines.join('\n');
 }
 

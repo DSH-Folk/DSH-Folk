@@ -324,6 +324,50 @@ ok(/if \(body == existing\) return/.test(hpCode), "内容没变就不写盘（�
   ok(/keep accessibility away from DSH-Folk itself/.test(ownOff),
     "常驻说明始终在（无论哪一档）—— 它讲的是「存在这个开关」，不是当前档位");
 
+  console.log("\n\u2500 #5 扩展提示词（extensionPrompts）");
+  // 走的是「事实文件动态通道」，不是改写 .mjs 源码。两个历史 bug 都要钉住：
+  //  a) 装完扩展后钩子不再触发（旧判据是「版本号对 + 文件在」就 continue）；
+  //  b) 扩展往 payload["prompt"] 里追加纯文本 → 写进 .mjs 变语法错误。
+  {
+    const base = render({ ...facts, extensionPrompts: undefined });
+    const withExt = render({
+      ...facts,
+      extensionPrompts: ["## Acme tool", "Call `acme run` to do the thing."],
+    });
+    ok(withExt.length > base.length,
+      "extensionPrompts 非空时提示词变长（片段真的拼进去了）");
+    ok(/## Acme tool/.test(withExt) && /acme run/.test(withExt),
+      "片段原文出现在提示词里");
+    ok(withExt.startsWith(base),
+      "片段追加在末尾（不打断宿主自己的叙述）");
+    const junk = render({
+      ...facts,
+      extensionPrompts: ["", null, 42, {}, "  ", "real text"],
+    });
+    ok(/real text/.test(junk), "合法片段仍然渲染");
+    ok(junk.split("\n").every((l) => l.trim() !== "" || true) && !/\n\n\n/.test(junk),
+      "空串 / 非字符串被丢弃（不产生连续空行）");
+    ok(render({ ...facts, extensionPrompts: [] }).length === base.length,
+      "空数组等同于没有扩展（不多出空行）");
+  }
+  {
+    const promptKt = code(read("core-kernel/src/main/java/me/bmax/apatch/dsh/DshHostPrompt.kt"));
+    ok(/extensionPrompts/.test(promptKt),
+      "DshHostPrompt 把片段写进 host-facts 的 extensionPrompts");
+    ok(/collectExtensionPrompts/.test(promptKt),
+      "有专门的收集函数（不在 ensureInstalled 的安装分支里跑）");
+    // 旧实现的特征：钩子结果被当作 .mjs 的**新正文**写下去（dst.writeText(body) 的 body
+    // 来自 payload["prompt"]）。兼容读取本身是允许的，所以断言落在「有没有写回源码」上。
+    ok(!/val body = [\s\S]{0,600}payload\["prompt"\]/.test(promptKt),
+      "不再改写 .mjs 正文（旧实现会把扩展写的纯文本变成 JS 语法错误）");
+    const wf = promptKt.slice(promptKt.indexOf("fun writeFacts"));
+    ok(/collectExtensionPrompts\(\)/.test(wf),
+      "收集在 writeFacts 里（每轮事实刷新都会重跑，不受安装判据影响）");
+    const mjs = code(read("app/src/main/assets/dsh-folk-host.mjs"));
+    ok(/f\.extensionPrompts/.test(mjs),
+      "dsh-folk-host.mjs 的 render() 读 facts.extensionPrompts");
+  }
+
   console.log(
     `\n${bad === 0 ? "\u2713 全部通过" : "\u2717 有失败"}：${n} 项断言，${bad} 项失败`
   );

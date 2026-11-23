@@ -403,13 +403,18 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     ok(bareError === null, "脚本未装上时更新调用是空操作（不会抛）");
   }
 
-  // 静态侧：WebView 必须真的铺满整窗，只让键盘把它顶起来
-  // 800 → 2000：退出 PiP 的防双倍顶栏修复给这个 modifier 加了一段 KDoc，
-  // 800 字符会把 windowInsetsPadding 那一行截在窗口外，断言于是假红。
-  // 用 2000 而不是无限：仍然要求在 factory 之前，避免匹配到别处的 modifier。
+  // 静态侧：WebView 在**可用空间内**铺满，只让键盘把它顶起来。
+  //
+  // 布局已从「Box 叠放」改成「Column 上下排布」：浏览器顶栏唤出时占一行，WebView 用
+  // weight(1f) 拿到剩下的高度（像正常浏览器那样把页面挤下去，而不是盖在上面）。
+  // 所以这里断言的是 fillMaxWidth + weight(1f)，而不是原来的 fillMaxSize —— 后者在
+  // Column 里会跟顶栏抢空间，等于把刚修好的遮挡问题换个方式做回来。
   const webViewModifier = webui.match(/AndroidView\(\s*modifier = Modifier([\s\S]{0,2000}?)factory/);
   const modifierSrc = webViewModifier ? webViewModifier[1] : "";
-  ok(/\.fillMaxSize\(\)/.test(modifierSrc), "WebView 铺满整窗");
+  ok(/\.fillMaxWidth\(\)/.test(modifierSrc) && /\.weight\(1f\)/.test(modifierSrc),
+    "WebView 在剩余空间内铺满（Column + weight(1f)，顶栏唤出时被挤下去而不是被盖住）");
+  ok(!/\.fillMaxSize\(\)/.test(modifierSrc),
+    "WebView 不再用 fillMaxSize（在 Column 里会跟顶栏抢空间，等于把遮挡问题做回来）");
   // 键盘用 imeAnimationTarget（目标高度、一步到位）而非 imePadding（逐帧插值，WebView 117 上卡顿）
   ok(/\.windowInsetsPadding\(WindowInsets\.imeAnimationTarget\)/.test(modifierSrc),
     "键盘由 imeAnimationTarget 一步让开（非逐帧 imePadding）");

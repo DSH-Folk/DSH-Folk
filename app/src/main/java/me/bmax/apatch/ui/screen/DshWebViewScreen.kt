@@ -7,6 +7,10 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -108,8 +112,14 @@ fun DshWebViewScreen(navigator: DestinationsNavigator, url: String) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
                 }
             },
-        )
-    }) { padding ->
+        ),
+        // 内容延伸到透明的小白条（手势导航条）下方；底部安全区由页面自己补回。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    }) { padding_raw ->
+        // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
+        val padding = padding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (failed) {
                 Text(

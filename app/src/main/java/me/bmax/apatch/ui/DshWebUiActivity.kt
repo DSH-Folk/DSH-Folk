@@ -328,6 +328,16 @@ class DshWebUiActivity : AppCompatActivity() {
      */
     private var cssInsetTop = 0
 
+    /**
+     * 浏览器导航栏此刻是否**占着布局空间**。
+     *
+     * 与 Compose 里那个 `browserBarVisible` 是同一件事的镜像：这个类需要在
+     * [syncInsetsFromLayout] 里读它，而那里不在组合作用域内、拿不到 Composable 状态。
+     * 由界面在状态变化时写回。
+     */
+    @Volatile
+    private var browserBarShown = false
+
     /** 上一次布局回调里 View 的 top，用来去重（同一次布局会被回调多次）。 */
     private var lastLayoutTop = Int.MIN_VALUE
 
@@ -538,14 +548,53 @@ class DshWebUiActivity : AppCompatActivity() {
                     syncInsetsFromLayout()
                 }
 
-                Box(
+                // 顶栏与 WebView 用 Column 上下排布，而不是叠在同一个 Box 里。
+                //
+                // 叠放的后果（真机反馈）：唤出导航栏时它盖在网页上，半透明底把内容糊住，
+                // 而且被盖住的那一条收不到触摸 —— 用户既看不清也点不到。浏览器的正常行为
+                // 是**把页面挤下去**，让页面按新高度重排。
+                //
+                // Column + weight(1f) 正好是这个语义：顶栏按自身高度占位，WebView 拿到
+                // 剩下的全部高度；收起时顶栏不参与布局（高度 0），WebView 就回到全屏。
+                // 把「顶栏是否占位」同步给 syncInsetsFromLayout，并触发一次重算：
+                // 顶栏一出现，cssTop 要从「状态栏高度」变成 0，否则页面顶部会多一条空白。
+                val barShown = DshEnv.browserMode(this@DshWebUiActivity) && browserBarVisible
+                SideEffect {
+                    if (browserBarShown != barShown) {
+                        browserBarShown = barShown
+                        syncInsetsFromLayout()
+                    }
+                }
+                Column(
                     Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
+                    // 顶栏：只有浏览器模式且用户唤出时才占位。
+                    if (DshEnv.browserMode(this@DshWebUiActivity)) {
+                        WebUiBrowserBar(
+                            visible = browserBarVisible,
+                            currentUrl = webView?.url ?: url,
+                            canGoBack = webView?.canGoBack() == true,
+                            canGoForward = webView?.canGoForward() == true,
+                            onBack = { webView?.goBack() },
+                            onForward = { webView?.goForward() },
+                            onReload = { webView?.reload() },
+                            onGoHome = {
+                                webView?.loadUrl(DshRuntime.webUrl())
+                                browserBarVisible = false
+                            },
+                            onExitBrowserMode = {
+                                DshEnv.setBrowserMode(this@DshWebUiActivity, false)
+                                browserBarVisible = false
+                                webView?.loadUrl(DshRuntime.webUrl())
+                            },
+                        )
+                    }
                     AndroidView(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .weight(1f)
                             // 只有键盘要让开：左右上下的系统栏由页面用内边距避让。
                             // 用 imeAnimationTarget 而非 imePadding：后者跟着输入法弹出动画**逐帧**
                             // 改 WebView 高度，WebView 117 每帧重排又慢又卡，输入框「慢半拍才跟上」。
@@ -928,30 +977,7 @@ class DshWebUiActivity : AppCompatActivity() {
                         onEnterPip = { if (!enterPip()) showPipGuide.value = true },
                     )
 
-                    // Via 式导航栏：长按悬浮球唤出，再长按收起。
-                    if (DshEnv.browserMode(this@DshWebUiActivity)) {
-                        WebUiBrowserBar(
-                            visible = browserBarVisible,
-                            currentUrl = webView?.url ?: url,
-                            canGoBack = webView?.canGoBack() == true,
-                            canGoForward = webView?.canGoForward() == true,
-                            onBack = { webView?.goBack() },
-                            onForward = { webView?.goForward() },
-                            onReload = { webView?.reload() },
-                            // 回 dsh 首页：这是浏览器模式下唯一的「回来」按钮。
-                            // 直接 loadUrl 而不是 goBack —— 用户可能已经漂了十几页，
-                            // 一层层退还可能被站点自己的 pushState 卡住。
-                            onGoHome = {
-                                webView?.loadUrl(DshRuntime.webUrl())
-                                browserBarVisible = false
-                            },
-                            onExitBrowserMode = {
-                                DshEnv.setBrowserMode(this@DshWebUiActivity, false)
-                                browserBarVisible = false
-                                webView?.loadUrl(DshRuntime.webUrl())
-                            },
-                        )
-                    }
+                    // 导航栏已移到上面的 Column 里（不再叠在 WebView 之上）。
 
                     if (showPipGuide.value) {
                         PipGuideDialog(
@@ -1162,7 +1188,9 @@ class DshWebUiActivity : AppCompatActivity() {
         // 原生已避让的量与状态栏高度取差，负数归零：两个值来自不同分发时机，
         // 中间态可能出现 y > statusBarTopPx，负数 padding 会让页面塌掉。
         val effectiveTopPx = (statusBarTopPx - y).coerceAtLeast(0)
-        val cssTop = (effectiveTopPx / statusBarDensity).roundToInt()
+        // 顶栏展开时页面不再需要自己避让状态栏：那一块已经被不透明的工具栏占住了。
+        // 不归零的话，工具栏下方会多出一条与状态栏等高、什么都没有的空白。
+        val cssTop = if (browserBarShown) 0 else (effectiveTopPx / statusBarDensity).roundToInt()
         cssInsetTop = cssTop
         // 诊断日志：真机再出异常时，这一行能直接区分「原生没下推」(y=0)、
         // 「下推了但没扣」(y>0 且 cssTop 没变)、「扣了但页面没收到」。

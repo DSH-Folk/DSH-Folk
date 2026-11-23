@@ -18,6 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -232,7 +236,16 @@ fun DshTerminalScreen(navigator: DestinationsNavigator) {
                 },
             )
         },
-    ) { innerPadding ->
+        // 内容延伸到透明的小白条下方（见 docs：edge-to-edge 页面约定）。
+        // 底部安全区由各页面自己补回，避免最后一项被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { innerPadding_raw ->
+        // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
+        // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
+        // 内部滚动容器一行都不用改。
+        val innerPadding = innerPadding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         if (!installed) {
             Box(
                 Modifier.fillMaxSize().padding(innerPadding),

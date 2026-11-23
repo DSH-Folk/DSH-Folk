@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -262,7 +266,16 @@ fun ScriptMarketScreen(navigator: DestinationsNavigator, initialQuery: String = 
                 onConfirm = { runSearch(1, reset = true) },
             )
         },
-    ) { innerPadding ->
+        // 内容延伸到透明的小白条下方（见 docs：edge-to-edge 页面约定）。
+        // 底部安全区由各页面自己补回，避免最后一项被手势条压住。
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { innerPadding_raw ->
+        // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
+        // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
+        // 内部滚动容器一行都不用改。
+        val innerPadding = innerPadding_raw.let {
+            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+        }
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier

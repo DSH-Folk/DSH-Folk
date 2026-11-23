@@ -81,6 +81,7 @@ import me.bmax.apatch.dsh.PortConflictAction
 import me.bmax.apatch.ui.theme.BackgroundConfig
 import me.bmax.apatch.util.ui.HomeBottomSpacer
 import me.bmax.apatch.res.R as CoreR
+import me.bmax.apatch.ui.component.SeedPluginsDialog
 
 /**
  * DSH-Folk 默认首页。
@@ -131,6 +132,10 @@ fun HomeScreenDsh(
         var showRestartConfirm by remember { mutableStateOf(false) }
         // 这次安装是不是**我**发起的：不加它的话，进页面时只要已装就会弹完成提示。
         var installPending by remember { mutableStateOf(false) }
+        // 预装插件勾选框：只在「还没问过」时显示一次。
+        // 放在首页而不是安装流程里，是因为它跟运行时是否已装无关 —— 老用户升级上来
+        // 同样要问一次（清单可能新增了包）。
+        var showSeedAsk by remember { mutableStateOf(DshRuntime.seedAskPending()) }
 
         DshHeroCard(
             phase = state.phase,
@@ -168,6 +173,22 @@ fun HomeScreenDsh(
                     TextButton(onClick = { showInstallConfirm = false }) {
                         Text(stringResource(CoreR.string.dsh_install_confirm_cancel))
                     }
+                },
+            )
+        }
+
+        // ── 预装插件：勾选确认（只问一次）──
+        if (showSeedAsk) {
+            SeedPluginsDialog(
+                onConfirm = { keep ->
+                    showSeedAsk = false
+                    // 取消勾选的 = 清单里没被选中的那些
+                    val skipped = DshRuntime.seedPluginList.toSet() - keep
+                    DshRuntime.setSeedSkipped(skipped)
+                },
+                onSkipAll = {
+                    showSeedAsk = false
+                    DshRuntime.setSeedSkipped(DshRuntime.seedPluginList.toSet())
                 },
             )
         }

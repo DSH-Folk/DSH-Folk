@@ -786,6 +786,115 @@ object DshPluginRepo {
         return v
     }
 
+    /**
+     * 按当前运行时的 `engines.dsh` 范围，挑一个**这个运行时能装**的最高版本。
+     *
+     * ## 为什么需要它
+     *
+     * 预装/升级此前一律装 `latest`。但插件的 peer/engines 会随版本抬高要求：新版可能
+     * 声明 `engines.dsh >= 0.3.0`，而用户容器里还是 0.2.2 —— 装上后插件树加载失败，
+     * 表现是「本来能用的旧版本被升级弄坏了」。所以要先问清每个候选版本的要求，挑
+     * 当前运行时满足的**最高**那个，而不是无脑取最新。
+     *
+     * ## 为什么从 npm registry 读，而不是读本地 package.json
+     *
+     * 要判断的是**尚未安装**的版本能不能装，本地没有那份 package.json。registry 的
+     * `/pkg` 端点一次返回全部版本的元数据（含各自 engines），一次请求就够。
+     *
+     * @param pkg 包名
+     * @param dshVersion 当前容器里的 dsh 版本（如 `0.2.2-rc.1`）；空 = 读不到，
+     *   此时退回 `latest` 并记日志 —— 拿不到运行时版本就没法做兼容判断，
+     *   不装比装错更糟（用户会以为预装成功了）。
+     * @return 可安装的版本号；探测失败返回空串（调用方据此退回 latest）。
+     */
+    suspend fun bestVersionFor(pkg: String, dshVersion: String): String = withContext(Dispatchers.IO) {
+        if (dshVersion.isBlank()) {
+            Log.i(TAG, "bestVersionFor($pkg): 运行时版本未知，退回 latest")
+            return@withContext ""
+        }
+        val body = runCatching {
+            httpGet("https://registry.npmjs.org/${pkg.replace("/", "%2f")}") ?: return@runCatching ""
+        }.getOrElse {
+            Log.i(TAG, "bestVersionFor($pkg): 拉 registry 失败 (${it.message})，退回 latest")
+            return@withContext ""
+        }
+        if (body.isBlank()) return@withContext ""
+        val picked = runCatching {
+            val versions = JSONObject(body).optJSONObject("versions") ?: return@runCatching ""
+            // 收集「版本号 → engines.dsh」，再按版本从高到低找第一个满足的。
+            val candidates = versions.keys().asSequence()
+                .filter { isStableSemver(it) }
+                .map { v ->
+                    val engines = versions.optJSONObject(v)?.optJSONObject("engines")
+                    v to (engines?.optString("dsh")?.takeIf { it.isNotBlank() })
+                }
+                .toList()
+                .sortedWith { a, b -> compareVersions(b.first, a.first) }
+            val hit = candidates.firstOrNull { (_, range) ->
+                range == null || satisfiesDshRange(dshVersion, range)
+            }
+            hit?.first ?: ""
+        }.getOrElse { "" }
+        if (picked.isBlank()) {
+            Log.i(TAG, "bestVersionFor($pkg): 没有与 dsh $dshVersion 兼容的版本，退回 latest")
+        } else {
+            Log.i(TAG, "bestVersionFor($pkg): dsh $dshVersion → 选 $picked")
+        }
+        picked
+    }
+
+    /** 只考虑正式版：预发布版（`-beta.1` 之类）不该被自动预装选中。 */
+    private fun isStableSemver(v: String): Boolean =
+        v.isNotBlank() && v.firstOrNull()?.isDigit() == true && !v.contains('-')
+
+    /**
+     * `dshVersion` 是否满足 npm 风格的 `engines` 范围。
+     *
+     * 只实现插件实际会用到的几种写法，不做通用 semver 解析 —— 完整的 node-semver
+     * 是个几百行的状态机，为几行判断引进来不划算，而且判错的方向必须明确：
+     * **认不出的写法一律当"满足"**，退回 latest 的行为与改造前一致，
+     * 不会因为我们的解析不全而把用户卡在一个老版本上。
+     */
+    private fun satisfiesDshRange(version: String, range: String): Boolean {
+        val r = range.trim()
+        if (r.isEmpty() || r == "*" || r.equals("latest", true)) return true
+        // 用空格/|| 分隔的多个约束：任一满足即可（与 npm 的 || 语义一致）
+        val anyOf = r.split("||").map { it.trim() }.filter { it.isNotEmpty() }
+        if (anyOf.size > 1) return anyOf.any { satisfiesDshRange(version, it) }
+        // 单个约束组：空格分隔表示"同时满足"（如 ">=0.2.0 <0.3.0"）
+        val parts = r.split(" ").map { it.trim() }.filter { it.isNotEmpty() }
+        if (parts.isEmpty()) return true
+        return parts.all { satisfiesSingle(version, it) }
+    }
+
+    private fun satisfiesSingle(version: String, token: String): Boolean {
+        val t = token.removePrefix("^").removePrefix("~")
+        val op = when {
+            token.startsWith(">=") -> ">="
+            token.startsWith("<=") -> "<="
+            token.startsWith(">") -> ">"
+            token.startsWith("<") -> "<"
+            token.startsWith("=") -> "="
+            token.startsWith("^") -> "^"
+            token.startsWith("~") -> "~"
+            else -> "="
+        }
+        val raw = t.trim().removePrefix("=").removePrefix(">").removePrefix("<").trim()
+        if (raw.isEmpty() || raw == "*") return true
+        // 认不出的写法（如 "latest"、git 引用、通配符组合）当满足处理，见函数注释
+        if (raw.firstOrNull()?.isDigit() != true) return true
+        val c = compareVersions(version, raw)
+        return when (op) {
+            ">=" -> c >= 0
+            "<=" -> c <= 0
+            ">" -> c > 0
+            "<" -> c < 0
+            // ^ 与 ~ 都按「不低于」放宽处理：插件作者写 ^0.2.0 的意图是"别用太老的"，
+            // 严格按 npm 语义还要卡上界，那会在 0.3.x 运行时上把插件全部判成不兼容。
+            else -> c >= 0
+        }
+    }
+
     /** GitHub star。repo 形如 `owner/name`。 */
     fun starsOf(repo: String): Long {
         starCache[repo]?.let { (v, at) ->
