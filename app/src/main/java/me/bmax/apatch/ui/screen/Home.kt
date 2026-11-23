@@ -57,6 +57,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -168,6 +169,14 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     SideEffect {
         HomeDialogGate.homeDialogVisible =
             showWelcomeGuide || showChangelog || showPolicyNotice || showBirthday
+    }
+    // 离场兜底：首页被销毁或切走时把门闩复位。
+    //
+    // 没有这一条，信号可能卡在 true —— 那时 MainActivity 的运行时更新提示会**永远**
+    // 被拦住，用户再也收不到「有新版本」的提示，而界面一切正常，极难排查。
+    // 正常路径下 SideEffect 会把最后一个弹窗关闭后的值写回 false，这里只管异常路径。
+    DisposableEffect(Unit) {
+        onDispose { HomeDialogGate.homeDialogVisible = false }
     }
 
     if (showWelcomeGuide) {

@@ -436,7 +436,7 @@ ok(/scriptsInstalled = installScripts\(/.test(webui),
   const b = webui.indexOf("loadUrl(tabStore?.active?.initialUrl ?: url)");
   ok(a > 0 && b > a, "装在 loadUrl **之前**（document-start 注册只对之后开始的加载生效）");
 }
-ok(/!scriptsInstalled && isLoopback\(u\)/.test(webui) && /injectScriptsNow\(view, u\)/.test(webui),
+ok(/owner\?\.scriptsInstalled != true && isLoopback\(u\)/.test(webui) && /injectScriptsNow\(view, u\)/.test(webui),
   "onPageStarted 的回落只在回环页面上做");
 // 约束变了（浏览器模式）：默认仍钉死回环，**只有**浏览器模式下加载外部站点时才用那一页
 // 自己的 origin 规则。两条都要断言 —— 只断言「还有 loopback」会让「外站也用 loopback」

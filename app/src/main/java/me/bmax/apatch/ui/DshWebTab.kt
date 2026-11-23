@@ -152,6 +152,18 @@ class DshWebTabStore(initialUrl: String) {
         return true
     }
 
+    /**
+     * 按 WebView 实例反查它属于哪个标签。
+     *
+     * **不要用 `active` 代替它**：WebViewClient 的回调可能在**非活动标签**上触发
+     * （后台标签的页面自己跳转、定时刷新、重定向）。那时写 `active` 会把当前正在看的
+     * 那个标签的状态改错 —— 桥的挂载记账尤其致命，见 [DshWebTab.bridgesAttached]。
+     */
+    fun ownerOf(view: android.webkit.WebView?): DshWebTab? {
+        val v = view ?: return null
+        return tabs.firstOrNull { it.webView === v }
+    }
+
     /** 销毁全部标签（Activity 销毁时调用）。 */
     fun releaseAll() {
         tabs.forEach { it.release() }

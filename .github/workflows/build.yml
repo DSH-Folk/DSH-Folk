@@ -192,6 +192,7 @@ jobs:
           node tools/check-version-naming.js
           node tools/check-changelog.js
           node tools/check-kotlin-comments.js
+          node tools/check-compose-imports.js
           node tools/check-strings.js
           node tools/check-i18n.js
           node tools/check-refs.js

@@ -420,7 +420,7 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "键盘由 imeAnimationTarget 一步让开（非逐帧 imePadding）");
   ok(!/\.imePadding\(\)/.test(modifierSrc), "不再用逐帧 imePadding（避免 WebView 逐帧重排卡顿）");
   ok(!/safeDrawing/.test(modifierSrc), "WebView 上不再用 safeDrawing 内边距（那会留出色带）");
-  ok(/installScripts\(/.test(webui) && /!scriptsInstalled && isLoopback\(u\)/.test(webui),
+  ok(/installScripts\(/.test(webui) && /owner\?\.scriptsInstalled != true && isLoopback\(u\)/.test(webui),
     "装上与否分别有 document-start 与 onPageStarted 两条路径（内边距也走这条统一管道）");
 }
 
@@ -577,7 +577,7 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "建 WebView 时真的调用了它、且在 loadUrl **之前**（只定义不调用=补丁永远装不上）");
   ok(/scripts\.forEach \{ WebViewCompat\.addDocumentStartJavaScript\(view, it, rules\) \}/.test(webui),
     "一段一次 document-start 注册（分别编译，一段语法错只毁它自己）");
-  ok(/!scriptsInstalled && isLoopback\(u\)/.test(webui) &&
+  ok(/owner\?\.scriptsInstalled != true && isLoopback\(u\)/.test(webui) &&
     /injectScriptsNow\(view, u\)/.test(webui) &&
     /WebScripts\.injections\(this, url, currentInsets\(\)\)\.forEach/.test(webui),
     "onPageStarted 有回落注入（document-start 不支持时尽力而为），且只对回环 origin");

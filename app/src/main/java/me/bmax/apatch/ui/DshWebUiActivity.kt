@@ -641,7 +641,10 @@ class DshWebUiActivity : AppCompatActivity() {
                         if (DshEnv.browserMode(this@DshWebUiActivity)) {
                             WebUiBrowserBar(
                                 visible = browserBarVisible,
-                                currentUrl = webView?.url ?: url,
+                                // 读**标签**的可观察 url，不是 webView?.url。
+                                // WebView.url 不是 Compose 状态：页内跳转或切标签时它变了
+                                // 也不会触发重组，地址栏就会一直停在旧值。
+                                currentUrl = tabStore?.active?.url ?: url,
                                 canGoBack = webView?.canGoBack() == true,
                                 canGoForward = webView?.canGoForward() == true,
                                 onBack = { webView?.goBack() },
@@ -684,6 +687,16 @@ class DshWebUiActivity : AppCompatActivity() {
                         // 被移除的那个 WebView 不会丢：它还在 tabStore 的标签对象里，
                         // 切回去时 factory 直接把它交还，页面状态（滚动、表单、历史）都还在。
                         val activeTabId = tabStore?.activeId ?: 0L
+                        // 切到这个标签后立刻重算一次内边距。
+                        //
+                        // 为什么必需：cssTop 取决于「顶栏此刻是否占位」，而那个状态是全局的。
+                        // 在标签 A 展开过顶栏、切到标签 B 时，B 的页面是按它**上次**的内边距
+                        // 渲染的 —— 不重算就会看到顶部多一条空白或内容被状态栏压住。
+                        // 旧标签那边由 factory 里的 addOnLayoutChangeListener 负责，但那只在
+                        // 布局真的变化时触发，切标签不一定引起布局变化。
+                        LaunchedEffect(activeTabId) {
+                            syncInsetsFromLayout()
+                        }
                         key(activeTabId) {
                         AndroidView(
                         modifier = Modifier
@@ -699,7 +712,19 @@ class DshWebUiActivity : AppCompatActivity() {
                             // 这个标签已经有 WebView 就直接交还（切回来的场景），
                             // 没有才新建。切走时 AndroidView 只是不再渲染它，
                             // 实例仍在标签对象里，所以历史与页面状态都保留。
-                            tabStore?.active?.webView ?: run {
+                            //
+                            // **交还前必须先解绑**：旧的 ViewFactoryHolder 可能还没完成
+                            // detach，此时直接让新的 holder addView 会抛
+                            // IllegalStateException: The specified child already has a parent。
+                            // 这是切标签最典型的崩溃点，且只在特定时序下复现（快速连点、
+                            // 切标签时页面还在加载），不先做这一步就是埋雷。
+                            run {
+                                val cached = tabStore?.active?.webView
+                                if (cached != null) {
+                                    (cached.parent as? ViewGroup)?.removeView(cached)
+                                }
+                                cached
+                            } ?: run {
                             WebView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -831,6 +856,27 @@ class DshWebUiActivity : AppCompatActivity() {
                                         favicon: android.graphics.Bitmap?,
                                     ) {
                                         progress = 1
+                                        // 按 view 反查标签：后台标签的页面也会走到这里，
+                                        // 一律写 active 会把用户正在看的那个标签改错。
+                                        val owner = tabStore?.ownerOf(view)
+
+                                        // ── 桥的 origin 隔离（安全关键）──
+                                        //
+                                        // 光在 shouldOverrideUrlLoading 里管不够：它只在「页面主动发起
+                                        // 一次导航」时被调用。以下三条路径**绕过它**，把桥带进外站：
+                                        //   - goBack() / goForward()（用户按返回键退回外站）
+                                        //   - 服务端 302 重定向
+                                        //   - 页面内 location 赋值、meta refresh
+                                        // 真机可复现：DSH → 外站（摘桥）→ 回 DSH（挂桥）→ 按返回键
+                                        // → 外站页面上 window.DshFolkDownload 又回来了，那个站点
+                                        // 就能往磁盘写文件。
+                                        //
+                                        // onPageStarted 对**每一条**主文档导航都会触发，是唯一能覆盖
+                                        // 全部路径的时机。放在这里不是"再管一次"，而是真正的兜底。
+                                        if (DshEnv.browserMode(this@DshWebUiActivity) && u != null) {
+                                            setBridgesFor(view, isLoopback(u))
+                                        }
+
                                         // document-start 装不上时的回落：这里注入虽然已经晚于
                                         // 文档开头，但仍早于绝大多数模块求值，能救回一部分场景。
                                         // 每段脚本自己的 document-start 语义就退化成 onPageStarted。
@@ -839,11 +885,12 @@ class DshWebUiActivity : AppCompatActivity() {
                                         // [WebScripts.injections] 里按各自的开关筛过了，
                                         // 这里再问一遍开关就会出现「关掉兼容模式 → 注册返回 false
                                         // → 回落里又把它注进去」这种自相矛盾的路径。
-                                        if (!scriptsInstalled && isLoopback(u)) {
+                                        //
+                                        // 读 owner 而不是 active：脚本注册绑在具体 WebView 上。
+                                        if (owner?.scriptsInstalled != true && isLoopback(u)) {
                                             injectScriptsNow(view, u)
                                         }
                                         // 标签的地址与加载态跟着页面走：标签总览要显示实时值。
-                                        val owner = tabStore?.tabs?.firstOrNull { it.webView === view }
                                         owner?.url = u.orEmpty()
                                         owner?.loading = true
                                         super.onPageStarted(view, u, favicon)
@@ -1813,7 +1860,14 @@ class DshWebUiActivity : AppCompatActivity() {
     override fun onStop() {
         if (!watchingInPip()) {
             runCatching {
-                webView?.onPause()
+                // **逐个**标签都暂停，不能只暂停活动那个。
+                //
+                // 多标签下每个 WebView 都是独立的渲染实例，各自跑自己的 rAF 与定时器。
+                // 只暂停活动标签，后台标签的页面照样在刷 —— 开着三个标签切到后台，
+                // 就是三份 CPU 与网络轮询一起空转。
+                //
+                // pauseTimers() 是进程级开关，调一次即可；onPause() 必须逐个调。
+                tabStore?.tabs?.forEach { it.webView?.onPause() }
                 webView?.pauseTimers()
             }.onFailure { Log.w(TAG, "暂停 WebView 定时器失败（后台可能继续空转）", it) }
         }
@@ -1924,13 +1978,14 @@ class DshWebUiActivity : AppCompatActivity() {
      */
     private fun setBridgesFor(view: WebView?, loopback: Boolean) {
         val v = view ?: return
-        // 记录当前状态，避免同向重复调用（shouldOverrideUrlLoading 会被频繁触发）。
+        // 状态记在**这个 view 所属的标签**上，不是「当前活动标签」。
         //
-        // 这个「同向就跳过」的短路依赖一个前提：**同一个 WebView 实例**。多标签下
-        // 这个前提会破 —— 切标签后 v 是另一个实例，它上面的桥状态与记账无关。
-        // 所以先确认 v 就是当前标签那个 WebView，否则强制走完整流程。
-        val isActiveView = view === webView
-        if (isActiveView && bridgesAttached == loopback) return
+        // 后台标签的页面自己会跳转（重定向、定时刷新、页面内 location 赋值），那些
+        // 回调里 view 不是活动标签。写 active 会把用户正在看的那个标签的记账改错 ——
+        // 于是它下次进外站时「状态没变」被跳过，桥留在外站页面上。
+        val owner = tabStore?.ownerOf(v) ?: return
+        // 同向重复调用直接跳过（shouldOverrideUrlLoading 会被频繁触发）。
+        if (owner.bridgesAttached == loopback) return
         runCatching {
             if (loopback) {
                 v.addJavascriptInterface(BlobBridge(), BLOB_BRIDGE)
@@ -1939,13 +1994,13 @@ class DshWebUiActivity : AppCompatActivity() {
                 v.removeJavascriptInterface(BLOB_BRIDGE)
                 v.removeJavascriptInterface(USERSCRIPT_BRIDGE)
             }
-            bridgesAttached = loopback
+            owner.bridgesAttached = loopback
             Log.i(TAG, "bridges " + (if (loopback) "attached" else "removed") + " for origin switch")
         }.onFailure {
             // 摘桥失败比挂桥失败严重得多：留着一个可被第三方站点调用的写文件接口。
             // 所以失败时按「已摘掉」记账并打警告 —— 下次进回环会重新挂上。
             Log.w(TAG, "bridge toggle failed", it)
-            bridgesAttached = false
+            owner.bridgesAttached = false
         }
     }
 
