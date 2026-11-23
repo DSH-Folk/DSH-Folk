@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -195,9 +196,13 @@ fun DshPluginStoreScreen(navigator: DestinationsNavigator) {
         // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
         // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
         // 内部滚动容器一行都不用改。
-        val innerPadding = innerPadding_raw.let {
-            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-        }
+        val innerPadding = PaddingValues(
+            start = innerPadding_raw.calculateStartPadding(LocalLayoutDirection.current),
+            top = innerPadding_raw.calculateTopPadding(),
+            end = innerPadding_raw.calculateEndPadding(LocalLayoutDirection.current),
+            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
+            bottom = innerPadding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+        )
         if (!runtimeInstalled) {
             DshRuntimeNeeded(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),

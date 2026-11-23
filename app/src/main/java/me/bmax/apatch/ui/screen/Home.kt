@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -218,9 +219,13 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
         }) { innerPadding_raw ->
             // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
-            val innerPadding = innerPadding_raw.let {
-                it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-            }
+            val innerPadding = PaddingValues(
+                start = innerPadding_raw.calculateStartPadding(LocalLayoutDirection.current),
+                top = innerPadding_raw.calculateTopPadding(),
+                end = innerPadding_raw.calculateEndPadding(LocalLayoutDirection.current),
+                // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
+                bottom = innerPadding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+            )
             when (homeLayout) {
                 // DSH-Folk 默认首页：DeepSeek Harness 运行时面板
                 "dsh" -> HomeScreenDsh(innerPadding, navigator)

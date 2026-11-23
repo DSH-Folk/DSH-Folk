@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -655,9 +656,13 @@ fun DshPluginScreen(navigator: DestinationsNavigator) {
         // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
         // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
         // 内部滚动容器一行都不用改。
-        val innerPadding = innerPadding_raw.let {
-            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-        }
+        val innerPadding = PaddingValues(
+            start = innerPadding_raw.calculateStartPadding(LocalLayoutDirection.current),
+            top = innerPadding_raw.calculateTopPadding(),
+            end = innerPadding_raw.calculateEndPadding(LocalLayoutDirection.current),
+            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
+            bottom = innerPadding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+        )
         // 扩展页不看运行时：扩展跑在 App 自己的进程里，与容器毫无关系。没装运行时的用户
         // 同样要能进这一页 —— 尤其是某个扩展把 App 弄崩之后，这里是他唯一能把它关掉的地方。
         if (!runtimeInstalled && group != GROUP_EXTENSIONS) {

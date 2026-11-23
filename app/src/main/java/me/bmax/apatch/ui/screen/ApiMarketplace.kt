@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -108,9 +110,13 @@ fun ApiMarketplaceScreen(
         // contentWindowInsets 归零之后，Scaffold 不再替我们让开手势条。这里把底部
         // 安全区加回 innerPadding：各页面已有的 padding(innerPadding) 于是自动带上它，
         // 内部滚动容器一行都不用改。
-        val paddingValues = paddingValues_raw.let {
-            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-        }
+        val paddingValues = PaddingValues(
+            start = paddingValues_raw.calculateStartPadding(LocalLayoutDirection.current),
+            top = paddingValues_raw.calculateTopPadding(),
+            end = paddingValues_raw.calculateEndPadding(LocalLayoutDirection.current),
+            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
+            bottom = paddingValues_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+        )
         when {
             viewModel.isLoading -> {
                 Box(

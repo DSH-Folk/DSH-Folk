@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -316,9 +318,13 @@ fun FileAccessScreen(navigator: DestinationsNavigator) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     }) { padding_raw ->
         // contentWindowInsets 归零后 Scaffold 不再让开手势条，把底部安全区加回 padding。
-        val padding = padding_raw.let {
-            it.copy(bottom = it.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-        }
+        val padding = PaddingValues(
+            start = padding_raw.calculateStartPadding(LocalLayoutDirection.current),
+            top = padding_raw.calculateTopPadding(),
+            end = padding_raw.calculateEndPadding(LocalLayoutDirection.current),
+            // contentWindowInsets 归零后 Scaffold 不再让开手势条，这里把底部安全区补回来。
+            bottom = padding_raw.calculateBottomPadding() + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+        )
         Column(
             Modifier
                 .padding(padding)
