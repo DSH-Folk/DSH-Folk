@@ -548,14 +548,12 @@ class DshWebUiActivity : AppCompatActivity() {
                     syncInsetsFromLayout()
                 }
 
-                // 顶栏与 WebView 用 Column 上下排布，而不是叠在同一个 Box 里。
+                // 浏览器导航栏的显隐状态：由悬浮球**长按**切换（Via 式）。
+                // 只有开关打开时才可能显示 —— 关着时外链根本进不来，这条栏没有意义。
                 //
-                // 叠放的后果（真机反馈）：唤出导航栏时它盖在网页上，半透明底把内容糊住，
-                // 而且被盖住的那一条收不到触摸 —— 用户既看不清也点不到。浏览器的正常行为
-                // 是**把页面挤下去**，让页面按新高度重排。
-                //
-                // Column + weight(1f) 正好是这个语义：顶栏按自身高度占位，WebView 拿到
-                // 剩下的全部高度；收起时顶栏不参与布局（高度 0），WebView 就回到全屏。
+                // 声明在 Box 之外、Column 之前：顶栏和悬浮球都要读它。
+                var browserBarVisible by remember { mutableStateOf(false) }
+
                 // 把「顶栏是否占位」同步给 syncInsetsFromLayout，并触发一次重算：
                 // 顶栏一出现，cssTop 要从「状态栏高度」变成 0，否则页面顶部会多一条空白。
                 val barShown = DshEnv.browserMode(this@DshWebUiActivity) && browserBarVisible
@@ -565,33 +563,47 @@ class DshWebUiActivity : AppCompatActivity() {
                         syncInsetsFromLayout()
                     }
                 }
-                Column(
+                Box(
                     Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // 顶栏：只有浏览器模式且用户唤出时才占位。
-                    if (DshEnv.browserMode(this@DshWebUiActivity)) {
-                        WebUiBrowserBar(
-                            visible = browserBarVisible,
-                            currentUrl = webView?.url ?: url,
-                            canGoBack = webView?.canGoBack() == true,
-                            canGoForward = webView?.canGoForward() == true,
-                            onBack = { webView?.goBack() },
-                            onForward = { webView?.goForward() },
-                            onReload = { webView?.reload() },
-                            onGoHome = {
-                                webView?.loadUrl(DshRuntime.webUrl())
-                                browserBarVisible = false
-                            },
-                            onExitBrowserMode = {
-                                DshEnv.setBrowserMode(this@DshWebUiActivity, false)
-                                browserBarVisible = false
-                                webView?.loadUrl(DshRuntime.webUrl())
-                            },
-                        )
-                    }
-                    AndroidView(
+                    // 顶栏与 WebView 用 Column 上下排布，而不是叠在同一个 Box 里。
+                    //
+                    // 叠放的后果（真机反馈）：唤出导航栏时它盖在网页上，半透明底把内容糊住，
+                    // 被盖住的那一条还收不到触摸 —— 用户既看不清也点不到。浏览器的正常行为
+                    // 是**把页面挤下去**，让页面按新高度重排。
+                    //
+                    // 为什么 Column 在 Box **里面**而不是替换 Box：这个 Box 里还住着进度条、
+                    // 悬浮球、画中画引导等一堆靠 BoxScope 定位（`.align(...)`）的东西，
+                    // 换成 Column 会让它们全部失去对齐能力。
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        // 顶栏：只有浏览器模式且用户唤出时才占位。
+                        if (DshEnv.browserMode(this@DshWebUiActivity)) {
+                            WebUiBrowserBar(
+                                visible = browserBarVisible,
+                                currentUrl = webView?.url ?: url,
+                                canGoBack = webView?.canGoBack() == true,
+                                canGoForward = webView?.canGoForward() == true,
+                                onBack = { webView?.goBack() },
+                                onForward = { webView?.goForward() },
+                                onReload = { webView?.reload() },
+                                onGoHome = {
+                                    webView?.loadUrl(DshRuntime.webUrl())
+                                    browserBarVisible = false
+                                },
+                                onExitBrowserMode = {
+                                    DshEnv.setBrowserMode(this@DshWebUiActivity, false)
+                                    browserBarVisible = false
+                                    webView?.loadUrl(DshRuntime.webUrl())
+                                },
+                            )
+                        }
+                        AndroidView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
@@ -902,6 +914,7 @@ class DshWebUiActivity : AppCompatActivity() {
                             }
                         },
                     )
+                    } // Column（顶栏 + WebView）到此结束
 
                     // 扩展叠加层：同一 Box 内、WebView 之上。这是 WEBUI_OVERLAY 槽位的第一处真实渲染点。
                     ExtensionWebUiOverlay()
@@ -941,10 +954,6 @@ class DshWebUiActivity : AppCompatActivity() {
                     // 悬浮球在画中画里**也留着**：那是小窗里唯一的出口 —— 点画中画按钮 =
                     // 切回全屏（见 [enterPip]）。以前这里按 inPip 把它藏起来，用户在小窗里
                     // 就再也点不到这个按钮，只剩系统那几个手势可用（用户报的正是这个）。
-                    // 浏览器导航栏的显隐状态：由悬浮球**长按**切换（Via 式）。
-                    // 只有开关打开时才可能显示 —— 关着时外链根本进不来，这条栏没有意义。
-                    var browserBarVisible by remember { mutableStateOf(false) }
-
                     WebUiFloatingBall(
                         // 长按切换导航栏。短按保持原来的环绕菜单不变。
                         // 长按**总要给反馈**：以前只在浏览器模式开启时才切换导航栏，

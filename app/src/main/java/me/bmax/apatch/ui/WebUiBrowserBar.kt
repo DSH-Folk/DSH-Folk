@@ -69,8 +69,7 @@ internal fun WebUiBrowserBar(
             // 留半透明会让下方网页透出来，看起来像"盖住了一半"—— 而这正是改造前的问题。
             //
             // 状态栏避让：Column 从窗口最顶开始（edge-to-edge），不加这一层的话
-            // 工具栏会被状态栏压住。用 statusBarsPadding 而不是给整页加 padding ——
-            // 只有这条栏需要让开状态栏，WebView 那边由 inset.js 负责。
+            // 工具栏会被状态栏压住。只给这条栏让，WebView 那边由 inset.js 负责。
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding(),

@@ -1117,10 +1117,10 @@ object DshRuntime : DshRuntimeHost {
      * 再反复问，比不问更烦。后续想装可以在插件商店手动装。
      */
     fun setSeedSkipped(pkgs: Set<String>) {
-        prefs().edit {
-            putString(DshEnv.KEY_SEED_PLUGINS_SKIPPED, pkgs.joinToString(","))
-            putBoolean(DshEnv.KEY_SEED_PLUGINS_ASKED, true)
-        }
+        prefs().edit()
+            .putString(DshEnv.KEY_SEED_PLUGINS_SKIPPED, pkgs.joinToString(","))
+            .putBoolean(DshEnv.KEY_SEED_PLUGINS_ASKED, true)
+            .apply()
     }
 
     /** 是否还没问过用户要预装哪些（首装/老用户升级都算"没问过"）。 */
