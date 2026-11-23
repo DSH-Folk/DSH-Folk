@@ -19,7 +19,9 @@ const src = read("app/src/main/java/me/bmax/apatch/ui/DshWebUiActivity.kt");
 const must = (c, m) => { if (!c) errors.push(m); };
 
 must(/private var loadedWebToken: String\? = null/.test(src), '缺 loadedWebToken：无法判断要不要重载');
-must(/\n\s+loadUrl\(url\)\n\s+loadedWebToken = DshRuntime\.state\.value\.webToken/.test(src),
+// 多标签后 loadUrl 的实参从 url 变成「标签自己的初始地址」，断言跟着放宽，
+// 原意不变：首屏加载完必须立刻记下 token，否则重载逻辑会把它当成「token 变了」。
+must(/\n\s+loadUrl\(tabStore\?\.active\?\.initialUrl \?: url\)\n\s+loadedWebToken = DshRuntime\.state\.value\.webToken/.test(src),
   '首次 loadUrl 之后没有记下当前 token（那重载逻辑会把首屏也当成「变了」）');
 
 must(/map \{ it\.webToken \}\.distinctUntilChanged\(\)/.test(src),

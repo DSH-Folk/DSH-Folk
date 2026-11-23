@@ -2342,4 +2342,5 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_browser_info_local">Loopback address, never leaves the device</string>
     <string name="dsh_browser_info_copy">Copy URL</string>
     <string name="dsh_browser_info_copied">URL copied</string>
+    <string name="dsh_browser_tab_limit">Up to %1$d tabs at once</string>
 </resources>

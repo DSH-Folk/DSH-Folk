@@ -56,6 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -160,6 +161,13 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     val dismissBirthday: () -> Unit = {
         BirthdayEgg.markShown()
         showBirthday = false
+    }
+
+    // 把「首页有说明性弹窗开着」告诉外面（MainActivity 的运行时更新提示要据此让路）。
+    // 用 SideEffect 而不是在分支里逐个赋值：分支有五个，漏一个就会漏报。
+    SideEffect {
+        HomeDialogGate.homeDialogVisible =
+            showWelcomeGuide || showChangelog || showPolicyNotice || showBirthday
     }
 
     if (showWelcomeGuide) {

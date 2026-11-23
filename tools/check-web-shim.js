@@ -569,8 +569,11 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
     "这条的开关就是「手机回车换行」偏好（关掉不注入）");
   // 定义写对了不等于接上了：反向验证时"删掉调用点"曾经漏网（断言只查了函数定义），
   // 所以这里钉**调用现场**本身。
-  ok(/scriptsInstalled = installScripts\(this, url\)/.test(webui) &&
-    webui.indexOf("scriptsInstalled = installScripts(this, url)") < webui.indexOf("loadUrl(url)"),
+  // 多标签后调用点传的是「标签自己的初始地址」而不是 Activity 的 url，实参变长了。
+  // 用**关键字位置**判先后，不依赖完整实参写法 —— 原意（安装发生在首次 loadUrl 之前）
+  // 正是 document-start 注册能对本次加载生效的前提。
+  ok(/scriptsInstalled = installScripts\(/.test(webui) &&
+    webui.indexOf("scriptsInstalled = installScripts(") < webui.indexOf("loadUrl(tabStore?.active?.initialUrl ?: url)"),
     "建 WebView 时真的调用了它、且在 loadUrl **之前**（只定义不调用=补丁永远装不上）");
   ok(/scripts\.forEach \{ WebViewCompat\.addDocumentStartJavaScript\(view, it, rules\) \}/.test(webui),
     "一段一次 document-start 注册（分别编译，一段语法错只毁它自己）");
@@ -662,8 +665,8 @@ console.log("\n── 沉浸内边距脚本：在假 DOM 里真跑 ──");
   {
     // 钉**顺序**：addDocumentStartJavaScript 只对"调用返回之后才开始加载"的 frame 生效 ——
     // 装在 loadUrl 之后等于对本次加载无效（反向验证：两处都在时会漏）。
-    const installAt = webui.indexOf("scriptsInstalled = installScripts(this, url)");
-    const loadAt = webui.indexOf("loadUrl(url)");
+    const installAt = webui.indexOf("scriptsInstalled = installScripts(");
+    const loadAt = webui.indexOf("loadUrl(tabStore?.active?.initialUrl ?: url)");
     ok(installAt > 0 && loadAt > installAt, "loadUrl **之前**安装（晚了就对本次加载无效）");
   }
   {

@@ -427,10 +427,13 @@ ok(/private fun installScripts\(view: WebView, url: String\): Boolean/.test(webu
 ok(/private fun injectScriptsNow\(view: WebView\?, url: String\?\)/.test(webui) &&
   /WebScripts\.injections\(this, url, currentInsets\(\)\)\.forEach/.test(webui),
   "document-start 装不上时逐段回落");
-ok(/scriptsInstalled = installScripts\(this, url\)/.test(webui), "安装点存在（内置 + 导入共用一个）");
+// 多标签后调用点改成了多行（传的是**标签自己的**初始地址，不是 Activity 那个 url），
+// 断言跟着放宽到「调用点存在且传的是标签地址」——原意（内置与导入共用同一个安装点）不变。
+ok(/scriptsInstalled = installScripts\(/.test(webui),
+  "安装点存在（内置 + 导入共用一个）");
 {
-  const a = webui.indexOf("scriptsInstalled = installScripts(this, url)");
-  const b = webui.indexOf("loadUrl(url)");
+  const a = webui.indexOf("scriptsInstalled = installScripts(");
+  const b = webui.indexOf("loadUrl(tabStore?.active?.initialUrl ?: url)");
   ok(a > 0 && b > a, "装在 loadUrl **之前**（document-start 注册只对之后开始的加载生效）");
 }
 ok(/!scriptsInstalled && isLoopback\(u\)/.test(webui) && /injectScriptsNow\(view, u\)/.test(webui),

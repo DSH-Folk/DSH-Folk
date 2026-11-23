@@ -67,6 +67,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.OpenInBrowser
 import androidx.compose.material.icons.outlined.PictureInPictureAlt
 import androidx.compose.material.icons.outlined.Refresh
@@ -132,6 +133,12 @@ import me.bmax.apatch.dsh.userscripts.Userscripts
 import me.bmax.apatch.dsh.userscripts.WebScripts
 import androidx.core.view.WindowCompat
 import androidx.core.view.ViewCompat
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.key
 
 /**
  * WebUI 打开方式。
@@ -301,11 +308,35 @@ private fun DshCompatShimDialog(
  */
 class DshWebUiActivity : AppCompatActivity() {
 
-    private var webView: WebView? = null
+    /**
+     * 标签集合。
+     *
+     * 多标签 = 多 WebView：标签的浏览状态（前进后退栈、滚动位置、表单内容、JS 上下文）
+     * 全在 WebView 实例里，没有 API 能抽出来再还回去。详见 [DshWebTab] 的类注释。
+     */
+    private var tabStore: DshWebTabStore? = null
 
-    /** 桥当前是否挂着（回环页挂着、外站摘掉）。初值 true：WebView 创建时就挂上了。 */
-    @Volatile
-    private var bridgesAttached = true
+    /**
+     * **当前活动标签**的 WebView。
+     *
+     * 保留这个名字是为了让原有的 27 处 `webView?.xxx()` 调用一行都不用改 ——
+     * 它们本来就该作用于"用户此刻正在看的那个页面"。切换标签时这个值跟着变。
+     */
+    private var webView: WebView?
+        get() = tabStore?.active?.webView
+        set(value) {
+            tabStore?.active?.webView = value
+        }
+
+    /**
+     * 桥当前是否挂着（回环页挂着、外站摘掉）。初值 true：WebView 创建时就挂上了。
+     *
+     * **委托到当前标签**：桥是挂在具体 WebView 实例上的，多标签下用一个 Activity 级
+     * 布尔会串台（详见 [DshWebTab.bridgesAttached] 的注释）。
+     */
+    private var bridgesAttached: Boolean
+        get() = tabStore?.active?.bridgesAttached ?: true
+        set(value) { tabStore?.active?.bridgesAttached = value }
     private var canGoBack = false
 
     /**
@@ -324,7 +355,10 @@ class DshWebUiActivity : AppCompatActivity() {
      * 以前五段各记一个，是因为它们各有各的开关；开关现在在 [WebScripts] 的注册表里，
      * 这里只需要知道「注册这一步成没成」。
      */
-    private var scriptsInstalled = false
+    /** 委托到当前标签：脚本注册绑在具体 WebView 上，不能跨标签共用。 */
+    private var scriptsInstalled: Boolean
+        get() = tabStore?.active?.scriptsInstalled ?: false
+        set(value) { tabStore?.active?.scriptsInstalled = value }
 
     /**
      * 最近一次算出的系统栏内边距（CSS 像素 = dp）。
@@ -402,6 +436,11 @@ class DshWebUiActivity : AppCompatActivity() {
 
         val url = intent?.getStringExtra(EXTRA_URL)?.takeIf { it.isNotBlank() }
             ?: DshRuntime.webUrl()
+
+        // 标签集合在 onCreate 建好：之后所有 WebView 的创建/切换/销毁都以它为准。
+        // 放在这里而不是 Compose 里 remember —— WebView 是 Activity 级资源，
+        // 用 remember 会在配置变化时被重建，那些 WebView 就变成没人认领的孤儿。
+        tabStore = DshWebTabStore(url)
 
         // 必须在 onCreate 里注册（Activity 还没 STARTED），不能等到点击时才注册
         fileChooser = registerForActivityResult(
@@ -563,9 +602,9 @@ class DshWebUiActivity : AppCompatActivity() {
                 var showPageInfo by remember { mutableStateOf(false) }
                 // 标签总览弹窗
                 var showTabSwitcher by remember { mutableStateOf(false) }
-                // 当前页标题（页面信息里显示）。WebView 的 title 不是 Compose 状态，
-                // 用一个显式变量在 onReceivedTitle 里写回。
-                var pageTitle by remember { mutableStateOf("") }
+                // 当前页标题。存在**标签**里而不是这里：切标签后标题要跟着换，
+                // 用局部状态的话切回来标题就没了（WebView.title 不是可观察的）。
+                val pageTitle: String get() = tabStore?.active?.title.orEmpty()
 
                 // 把「顶栏是否占位」同步给 syncInsetsFromLayout，并触发一次重算：
                 // 顶栏一出现，cssTop 要从「状态栏高度」变成 0，否则页面顶部会多一条空白。
@@ -615,17 +654,34 @@ class DshWebUiActivity : AppCompatActivity() {
                                     webView?.loadUrl(DshRuntime.webUrl())
                                 },
                                 onShowPageInfo = { showPageInfo = true },
-                                // 新建标签页：当前实现是**单 WebView**，所以「新建」
-                                // 就是回到 DSH 首页开一段新的浏览 —— 与浏览器里
-                                // 「新标签页 = 空白页」的语义一致，不保留上一页的历史。
+                                // 新建标签：真的开一个新 WebView（独立的历史与页面状态）。
                                 onNewTab = {
-                                    webView?.loadUrl(DshRuntime.webUrl())
-                                    browserBarVisible = false
+                                    val t = tabStore?.newTab(DshRuntime.webUrl())
+                                    if (t == null) {
+                                        showToast(
+                                            this@DshWebUiActivity,
+                                            getString(
+                                                CoreR.string.dsh_browser_tab_limit,
+                                                DshWebTab.MAX_TABS,
+                                            ),
+                                        )
+                                    }
                                 },
                                 onShowTabs = { showTabSwitcher = true },
-                                tabCount = 1,
+                                tabCount = tabStore?.tabs?.size ?: 1,
                             )
                         }
+                        // 切标签时用 key 强制 AndroidView 重建。
+                        //
+                        // AndroidView 的 factory 只在**首次**组合时调用一次，之后一直复用
+                        // 同一个 View。多标签必须让它换实例 —— 每个标签有自己的 WebView。
+                        // 用 activeId 作 key：切换标签 → key 变 → 旧 AndroidView 从组合里移除、
+                        // 新的一棵重建，factory 拿到（或创建）那个标签的 WebView。
+                        //
+                        // 被移除的那个 WebView 不会丢：它还在 tabStore 的标签对象里，
+                        // 切回去时 factory 直接把它交还，页面状态（滚动、表单、历史）都还在。
+                        val activeTabId = tabStore?.activeId ?: 0L
+                        key(activeTabId) {
                         AndroidView(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -637,6 +693,10 @@ class DshWebUiActivity : AppCompatActivity() {
                             // 逐帧跟随需 WebView M139 的 visual-viewport IME 支持，本机内核给不了）。
                             .windowInsetsPadding(WindowInsets.imeAnimationTarget),
                         factory = { ctx ->
+                            // 这个标签已经有 WebView 就直接交还（切回来的场景），
+                            // 没有才新建。切走时 AndroidView 只是不再渲染它，
+                            // 实例仍在标签对象里，所以历史与页面状态都保留。
+                            tabStore?.active?.webView ?: run {
                             WebView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
                                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -751,9 +811,14 @@ class DshWebUiActivity : AppCompatActivity() {
 
                                     override fun onPageFinished(view: WebView?, u: String?) {
                                         progress = 100
-                                        // 标题写回 Compose 状态：页面信息与标签总览都要显示它。
+                                        // 标题写回**这个标签**：页面信息与标签总览都要显示它。
                                         // WebView.title 不是可观察的，只能在这里抓一次。
-                                        pageTitle = view?.title.orEmpty()
+                                        // 按 view 找标签而不是写"当前标签"—— 页面加载完成时
+                                        // 用户可能已经切走了，写到活动标签上会张冠李戴。
+                                        val owner = tabStore?.tabs?.firstOrNull { it.webView === view }
+                                        owner?.title = view?.title.orEmpty()
+                                        owner?.url = view?.url.orEmpty()
+                                        owner?.loading = false
                                         super.onPageFinished(view, u)
                                     }
 
@@ -774,6 +839,10 @@ class DshWebUiActivity : AppCompatActivity() {
                                         if (!scriptsInstalled && isLoopback(u)) {
                                             injectScriptsNow(view, u)
                                         }
+                                        // 标签的地址与加载态跟着页面走：标签总览要显示实时值。
+                                        val owner = tabStore?.tabs?.firstOrNull { it.webView === view }
+                                        owner?.url = u.orEmpty()
+                                        owner?.loading = true
                                         super.onPageStarted(view, u, favicon)
                                     }
 
@@ -915,7 +984,10 @@ class DshWebUiActivity : AppCompatActivity() {
                                 // 「调用返回之后才开始加载」的 frame 生效。内置那几段与用户
                                 // 导入的脚本走的是同一条管道（每段一次注册，互不牵连），
                                 // 顺序与开关都在 [WebScripts] 里。
-                                scriptsInstalled = installScripts(this, url)
+                                scriptsInstalled = installScripts(
+                                    this,
+                                    tabStore?.active?.initialUrl ?: url,
+                                )
                                 webView = this
                                 // 补一次恢复：本页 WebView 是在 Compose factory 里创建的，而 onStart 早于
                                 // 第一次组合 —— 若上一轮 onStop 暂停了全局定时器之后本页被系统回收重建，
@@ -935,11 +1007,16 @@ class DshWebUiActivity : AppCompatActivity() {
                                         syncInsetsFromLayout()
                                     }
                                 }
-                                loadUrl(url)
+                                // 用这个标签自己的初始地址，不是 Activity 那个 url：
+                                // 新建标签时两者相同（都指向 DSH 首页），但恢复已有标签时
+                                // 必须用它当初的地址，否则每个标签都会回到首页。
+                                loadUrl(tabStore?.active?.initialUrl ?: url)
                                 loadedWebToken = DshRuntime.state.value.webToken
                             }
+                            } // run（新建 WebView 的分支）
                         },
                     )
+                    } // key(activeTabId)
                     } // Column（顶栏 + WebView）到此结束
 
                     // 扩展叠加层：同一 Box 内、WebView 之上。这是 WEBUI_OVERLAY 槽位的第一处真实渲染点。
@@ -1080,48 +1157,109 @@ class DshWebUiActivity : AppCompatActivity() {
                         )
                     }
 
-                    // 标签总览。
+                    // 标签总览：真实的多标签列表。
                     //
-                    // 当前是**单 WebView**：这里如实显示「只有这一页」，并把关闭
-                    // 这一页的动作接上（关闭 = 回 DSH 首页）。不做成假的列表 ——
-                    // 画出一堆切不动的条目比没有这个按钮更糟。
+                    // 每一项显示标题 + 地址，点它切过去；右边的 ✕ 关掉那一个。
+                    // 当前活动的那一项用高亮底色标出来 —— 否则用户切完回到列表
+                    // 分不清自己现在在哪一页。
                     if (showTabSwitcher) {
+                        val store = tabStore
+                        val list = store?.tabs ?: emptyList()
                         AlertDialog(
                             onDismissRequest = { showTabSwitcher = false },
-                            title = { Text(stringResource(CoreR.string.dsh_browser_tabs)) },
+                            title = {
+                                Text(
+                                    stringResource(CoreR.string.dsh_browser_tabs) +
+                                        " (" + list.size + "/" + DshWebTab.MAX_TABS + ")",
+                                )
+                            },
                             text = {
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Column(Modifier.weight(1f)) {
-                                            Text(
-                                                pageTitle.ifBlank { stringResource(CoreR.string.dsh_browser_tab_untitled) },
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Text(
-                                                webView?.url ?: url,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                        TextButton(onClick = {
-                                            showTabSwitcher = false
-                                            webView?.loadUrl(DshRuntime.webUrl())
-                                        }) {
-                                            Text(stringResource(CoreR.string.dsh_browser_tab_close))
+                                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                                    if (list.isEmpty()) {
+                                        Text(stringResource(CoreR.string.dsh_browser_tabs_empty))
+                                    }
+                                    for (tab in list) {
+                                        val isActive = tab.id == store?.activeId
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isActive) MaterialTheme.colorScheme.secondaryContainer
+                                                    else MaterialTheme.colorScheme.surface,
+                                                )
+                                                .clickable {
+                                                    store?.select(tab.id)
+                                                    showTabSwitcher = false
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Column(Modifier.weight(1f)) {
+                                                Text(
+                                                    tab.title.ifBlank {
+                                                        stringResource(CoreR.string.dsh_browser_tab_untitled)
+                                                    },
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                                Text(
+                                                    tab.url,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    // 关掉最后一个标签 = 退出浏览模式并回首页，
+                                                    // 而不是留一个没有标签的空壳界面。
+                                                    val stillHas = store?.close(tab.id) ?: false
+                                                    if (!stillHas) {
+                                                        showTabSwitcher = false
+                                                        DshEnv.setBrowserMode(
+                                                            this@DshWebUiActivity,
+                                                            false,
+                                                        )
+                                                        DshWebUi.openInApp(
+                                                            this@DshWebUiActivity,
+                                                            DshRuntime.webUrl(),
+                                                        )
+                                                        finish()
+                                                    }
+                                                },
+                                            ) {
+                                                Icon(
+                                                    Icons.Outlined.Close,
+                                                    stringResource(CoreR.string.dsh_browser_tab_close),
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             },
                             confirmButton = {
                                 TextButton(onClick = {
-                                    showTabSwitcher = false
-                                    webView?.loadUrl(DshRuntime.webUrl())
+                                    val t = store?.newTab(DshRuntime.webUrl())
+                                    if (t != null) showTabSwitcher = false
+                                    else {
+                                        showToast(
+                                            this@DshWebUiActivity,
+                                            getString(
+                                                CoreR.string.dsh_browser_tab_limit,
+                                                DshWebTab.MAX_TABS,
+                                            ),
+                                        )
+                                    }
                                 }) {
                                     Text(stringResource(CoreR.string.dsh_browser_new_tab))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showTabSwitcher = false }) {
+                                    Text(stringResource(android.R.string.cancel))
                                 }
                             },
                         )
@@ -1706,14 +1844,9 @@ class DshWebUiActivity : AppCompatActivity() {
             (getSystemService(PowerManager::class.java)?.isInteractive ?: true)
 
     override fun onDestroy() {
-        // 不销毁的话 WebView 会连着 Activity 一起泄漏
-        runCatching {
-            webView?.let {
-                it.stopLoading()
-                it.destroy()
-            }
-        }
-        webView = null
+        // 必须逐个销毁：只把引用置空不会释放渲染进程，标签开得多时会连着 Activity 一起泄漏。
+        runCatching { tabStore?.releaseAll() }
+        tabStore = null
         // 页面走了但选择器回调还挂着时也要放掉，否则 WebView 内部一直等
         fileChooserCallback?.onReceiveValue(null)
         fileChooserCallback = null
@@ -1788,8 +1921,13 @@ class DshWebUiActivity : AppCompatActivity() {
      */
     private fun setBridgesFor(view: WebView?, loopback: Boolean) {
         val v = view ?: return
-        // 记录当前状态，避免同向重复调用（shouldOverrideUrlLoading 会被频繁触发）
-        if (bridgesAttached == loopback) return
+        // 记录当前状态，避免同向重复调用（shouldOverrideUrlLoading 会被频繁触发）。
+        //
+        // 这个「同向就跳过」的短路依赖一个前提：**同一个 WebView 实例**。多标签下
+        // 这个前提会破 —— 切标签后 v 是另一个实例，它上面的桥状态与记账无关。
+        // 所以先确认 v 就是当前标签那个 WebView，否则强制走完整流程。
+        val isActiveView = view === webView
+        if (isActiveView && bridgesAttached == loopback) return
         runCatching {
             if (loopback) {
                 v.addJavascriptInterface(BlobBridge(), BLOB_BRIDGE)

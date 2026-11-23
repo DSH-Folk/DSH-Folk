@@ -2316,4 +2316,5 @@
     <string name="dsh_browser_info_local">本机回环地址，不经过网络</string>
     <string name="dsh_browser_info_copy">复制地址</string>
     <string name="dsh_browser_info_copied">地址已复制</string>
+    <string name="dsh_browser_tab_limit">最多同时打开 %1$d 个标签页</string>
 </resources>
