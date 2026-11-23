@@ -42,6 +42,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -604,7 +605,8 @@ class DshWebUiActivity : AppCompatActivity() {
                 var showTabSwitcher by remember { mutableStateOf(false) }
                 // 当前页标题。存在**标签**里而不是这里：切标签后标题要跟着换，
                 // 用局部状态的话切回来标题就没了（WebView.title 不是可观察的）。
-                val pageTitle: String get() = tabStore?.active?.title.orEmpty()
+                // 直接读标签的 mutableStateOf，读取本身会建立订阅。
+                val pageTitle: String = tabStore?.active?.title.orEmpty()
 
                 // 把「顶栏是否占位」同步给 syncInsetsFromLayout，并触发一次重算：
                 // 顶栏一出现，cssTop 要从「状态栏高度」变成 0，否则页面顶部会多一条空白。
