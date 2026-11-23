@@ -2343,4 +2343,6 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_browser_info_copy">Copy URL</string>
     <string name="dsh_browser_info_copied">URL copied</string>
     <string name="dsh_browser_tab_limit">Up to %1$d tabs at once</string>
+    <string name="dsh_browser_nav_browser_only">External addresses only work in browser mode</string>
+    <string name="dsh_browser_edit_hint">Enter address</string>
 </resources>

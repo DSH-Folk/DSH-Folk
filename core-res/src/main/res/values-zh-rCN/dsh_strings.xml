@@ -2317,4 +2317,6 @@
     <string name="dsh_browser_info_copy">复制地址</string>
     <string name="dsh_browser_info_copied">地址已复制</string>
     <string name="dsh_browser_tab_limit">最多同时打开 %1$d 个标签页</string>
+    <string name="dsh_browser_nav_browser_only">只有浏览器模式才能打开外部地址</string>
+    <string name="dsh_browser_edit_hint">输入地址</string>
 </resources>

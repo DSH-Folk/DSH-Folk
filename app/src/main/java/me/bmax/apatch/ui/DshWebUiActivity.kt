@@ -126,6 +126,7 @@ import me.bmax.apatch.dsh.ext.ExtensionHookRegistry
 import me.bmax.apatch.dsh.ext.ExtensionUiRegistry
 import me.bmax.apatch.ui.component.ElevationRequestDialogHost
 import me.bmax.apatch.ui.component.WorkflowDialogHosts
+import me.bmax.apatch.ui.component.TwoColumnGrid
 import me.bmax.apatch.ui.theme.APatchTheme
 import me.bmax.apatch.dsh.DshWebCompat
 import me.bmax.apatch.util.LauncherIconUtils
@@ -141,6 +142,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.key
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.PaddingValues
 
 /**
  * WebUI 打开方式。
@@ -660,6 +668,24 @@ class DshWebUiActivity : AppCompatActivity() {
                                     webView?.loadUrl(DshRuntime.webUrl())
                                 },
                                 onShowPageInfo = { showPageInfo = true },
+                                // 地址栏回车：导航到用户敲的地址。
+                                //
+                                // 只在浏览器模式下允许跳外站 —— 非浏览器模式下这个
+                                // WebView 的桥一直挂着（回环页专用），让它跑到任意
+                                // 站点等于把 BlobBridge 交出去。这里守住入口，
+                                // onPageStarted 里的 setBridgesFor 再兜一层。
+                                onNavigate = { target ->
+                                    if (DshEnv.browserMode(this@DshWebUiActivity) ||
+                                        target.startsWith(DshRuntime.webUrl())
+                                    ) {
+                                        webView?.loadUrl(target)
+                                    } else {
+                                        showToast(
+                                            this@DshWebUiActivity,
+                                            getString(CoreR.string.dsh_browser_nav_browser_only),
+                                        )
+                                    }
+                                },
                                 // 新建标签：真的开一个新 WebView（独立的历史与页面状态）。
                                 onNewTab = {
                                     val t = tabStore?.newTab(DshRuntime.webUrl())
@@ -1207,112 +1233,160 @@ class DshWebUiActivity : AppCompatActivity() {
                         )
                     }
 
-                    // 标签总览：真实的多标签列表。
+                    // 标签总览：Chrome 手机版那样的网格卡片。
                     //
-                    // 每一项显示标题 + 地址，点它切过去；右边的 ✕ 关掉那一个。
-                    // 当前活动的那一项用高亮底色标出来 —— 否则用户切完回到列表
-                    // 分不清自己现在在哪一页。
+                    // ## 为什么是网格而不是列表
+                    //
+                    // 列表能显示的只有「标题 + 一行地址」，用户在两个同名页面之间
+                    // 完全分不清 —— 标签页的价值在于**看到页面长什么样**。Chrome
+                    // 手机版用两列卡片，每张卡片是一张缩略图，这正是用户要求的形态。
+                    //
+                    // ## 缩略图从哪来
+                    //
+                    // 每个标签有自己的 WebView，用 `draw(Canvas)` 把当前画面画到位图里。
+                    // 不能直接复用 View 本身：一个 View 只能有一个父容器，把非活动标签的
+                    // WebView 塞进列表会把它从原来的位置抢走。
+                    //
+                    // 缩略图在**打开总览时**抓一次（不是每帧）：抓图要跑一次完整绘制，
+                    // 放在重组里会卡。抓不到（标签还没建/页面全黑）就显示占位色块。
                     if (showTabSwitcher) {
                         val store = tabStore
                         val list = store?.tabs ?: emptyList()
-                        AlertDialog(
+                        Dialog(
                             onDismissRequest = { showTabSwitcher = false },
-                            title = {
-                                Text(
-                                    stringResource(CoreR.string.dsh_browser_tabs) +
-                                        " (" + list.size + "/" + DshWebTab.MAX_TABS + ")",
-                                )
-                            },
-                            text = {
-                                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
-                                    if (list.isEmpty()) {
-                                        Text(stringResource(CoreR.string.dsh_browser_tabs_empty))
+                            properties = DialogProperties(usePlatformDefaultWidth = false),
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.surface,
+                            ) {
+                                Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                                    // 顶部：标题 + 关闭
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            stringResource(CoreR.string.dsh_browser_tabs) +
+                                                " (" + list.size + "/" + DshWebTab.MAX_TABS + ")",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        IconButton(onClick = { showTabSwitcher = false }) {
+                                            Icon(
+                                                Icons.Outlined.Close,
+                                                stringResource(android.R.string.cancel),
+                                            )
+                                        }
                                     }
-                                    for (tab in list) {
-                                        val isActive = tab.id == store?.activeId
-                                        Row(
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(
-                                                    if (isActive) MaterialTheme.colorScheme.secondaryContainer
-                                                    else MaterialTheme.colorScheme.surface,
-                                                )
-                                                .clickable {
-                                                    store?.select(tab.id)
-                                                    showTabSwitcher = false
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Column(Modifier.weight(1f)) {
-                                                Text(
-                                                    tab.title.ifBlank {
-                                                        stringResource(CoreR.string.dsh_browser_tab_untitled)
-                                                    },
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                                Text(
-                                                    tab.url,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                            IconButton(
-                                                onClick = {
-                                                    // 关掉最后一个标签 = 退出浏览模式并回首页，
-                                                    // 而不是留一个没有标签的空壳界面。
-                                                    val stillHas = store?.close(tab.id) ?: false
-                                                    if (!stillHas) {
-                                                        showTabSwitcher = false
-                                                        DshEnv.setBrowserMode(
-                                                            this@DshWebUiActivity,
-                                                            false,
+                                    if (list.isEmpty()) {
+                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(stringResource(CoreR.string.dsh_browser_tabs_empty))
+                                        }
+                                    } else {
+                                        // 两列网格。复用项目里已有的 TwoColumnGrid：
+                                        // 它按索引奇偶分列、两列各自独立滚动，卡片高度不一致时
+                                        // 也不会互相推挤（标签标题有长有短，这点很关键）。
+                                        TwoColumnGrid(
+                                            items = list,
+                                            key = { it.id },
+                                            // 用 fillMaxWidth 而不是 fillMaxSize：TwoColumnGrid
+                                            // 内部已经套了 verticalScroll，滚动容器在**无界高度**下
+                                            // 工作，再要求它撑满高度会得到「无限约束」的冲突。
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalSpacing = 10.dp,
+                                            horizontalSpacing = 10.dp,
+                                            contentPadding = PaddingValues(12.dp),
+                                        ) { tab ->
+                                                val isActive = tab.id == store?.activeId
+                                                Column(
+                                                    Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            if (isActive) MaterialTheme.colorScheme.secondaryContainer
+                                                            else MaterialTheme.colorScheme.surfaceContainerHigh,
                                                         )
-                                                        DshWebUi.openInApp(
-                                                            this@DshWebUiActivity,
-                                                            DshRuntime.webUrl(),
+                                                        .clickable {
+                                                            store?.select(tab.id)
+                                                            showTabSwitcher = false
+                                                        }
+                                                        .padding(8.dp),
+                                                ) {
+                                                    // 卡片顶部一行：标题 + 关闭按钮
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            tab.title.ifBlank {
+                                                                stringResource(CoreR.string.dsh_browser_tab_untitled)
+                                                            },
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            modifier = Modifier.weight(1f),
                                                         )
-                                                        finish()
+                                                        IconButton(
+                                                            onClick = {
+                                                                val stillHas = store?.close(tab.id) ?: false
+                                                                if (!stillHas) {
+                                                                    showTabSwitcher = false
+                                                                    DshEnv.setBrowserMode(
+                                                                        this@DshWebUiActivity,
+                                                                        false,
+                                                                    )
+                                                                    DshWebUi.openInApp(
+                                                                        this@DshWebUiActivity,
+                                                                        DshRuntime.webUrl(),
+                                                                    )
+                                                                    finish()
+                                                                }
+                                                            },
+                                                            modifier = Modifier.size(28.dp),
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Outlined.Close,
+                                                                stringResource(CoreR.string.dsh_browser_tab_close),
+                                                                modifier = Modifier.size(16.dp),
+                                                            )
+                                                        }
                                                     }
-                                                },
-                                            ) {
-                                                Icon(
-                                                    Icons.Outlined.Close,
-                                                    stringResource(CoreR.string.dsh_browser_tab_close),
-                                                )
-                                            }
+                                                    Spacer(Modifier.height(6.dp))
+                                                    // 缩略图。抓不到就给一块底色，不留空白。
+                                                    val thumb = remember(tab.id, showTabSwitcher) {
+                                                        captureTabThumbnail(tab)
+                                                    }
+                                                    Box(
+                                                        Modifier
+                                                            .fillMaxWidth()
+                                                            .aspectRatio(0.62f)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                        contentAlignment = Alignment.Center,
+                                                    ) {
+                                                        if (thumb != null) {
+                                                            Image(
+                                                                bitmap = thumb,
+                                                                contentDescription = null,
+                                                                contentScale = ContentScale.FillWidth,
+                                                                modifier = Modifier.fillMaxSize(),
+                                                            )
+                                                        } else {
+                                                            Text(
+                                                                tab.url,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                maxLines = 3,
+                                                                overflow = TextOverflow.Ellipsis,
+                                                                modifier = Modifier.padding(8.dp),
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                         }
                                     }
                                 }
-                            },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    val t = store?.newTab(DshRuntime.webUrl())
-                                    if (t != null) showTabSwitcher = false
-                                    else {
-                                        showToast(
-                                            this@DshWebUiActivity,
-                                            getString(
-                                                CoreR.string.dsh_browser_tab_limit,
-                                                DshWebTab.MAX_TABS,
-                                            ),
-                                        )
-                                    }
-                                }) {
-                                    Text(stringResource(CoreR.string.dsh_browser_new_tab))
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showTabSwitcher = false }) {
-                                    Text(stringResource(android.R.string.cancel))
-                                }
-                            },
-                        )
+                            }
+                        }
                     }
 
                     if (showPipGuide.value) {
@@ -1911,6 +1985,44 @@ class DshWebUiActivity : AppCompatActivity() {
         pendingAudioRequest?.deny()
         pendingAudioRequest = null
         super.onDestroy()
+    }
+
+    /**
+     * 抓一个标签的当前画面，缩成缩略图。
+     *
+     * ## 为什么要缩
+     *
+     * WebView 的绘制尺寸是屏幕像素（1080×2400 这种），直接留成位图的话，8 个标签
+     * 就是 8 张全屏位图 ≈ 80 MB —— 一开标签总览就有 OOM 风险。缩到宽度 360 之后
+     * 单张约 0.3 MB，8 张不到 3 MB。
+     *
+     * ## 为什么用 draw(Canvas) 而不是 WebView 的截图 API
+     *
+     * WebView 没有公开的截图 API。`draw(Canvas)` 是 View 的标准绘制入口，把画面
+     * 画到我们自己建的位图上 —— 不需要窗口在前台，也不需要 View 处于 attached 状态。
+     *
+     * 返回 null 表示这个标签还没建 WebView（新建但没切过去的），调用方显示占位。
+     */
+    private fun captureTabThumbnail(tab: DshWebTab): android.graphics.Bitmap? {
+        val wv = tab.webView ?: return null
+        if (wv.width <= 0 || wv.height <= 0) return null
+        return runCatching {
+            val targetW = 360
+            val scale = targetW.toFloat() / wv.width
+            val targetH = (wv.height * scale).toInt().coerceAtLeast(1)
+            val bmp = android.graphics.Bitmap.createBitmap(
+                targetW,
+                targetH,
+                android.graphics.Bitmap.Config.RGB_565,
+            )
+            val canvas = android.graphics.Canvas(bmp)
+            canvas.scale(scale, scale)
+            wv.draw(canvas)
+            bmp
+        }.onFailure {
+            // 抓图失败不该影响总览：显示占位就好，不要把异常抛到界面上。
+            Log.w(TAG, "tab thumbnail capture failed", it)
+        }.getOrNull()
     }
 
     companion object {
