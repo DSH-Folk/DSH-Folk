@@ -111,12 +111,23 @@ object PermissionManager {
     fun refresh(ctx: Context, allowRootPrompt: Boolean = false): Status {
         migratePreference(ctx)
         val preferred = readPreference(ctx)
-        val enabled = preferred != Channel.NONE
         val su = detectSu()
         val provider = if (su) detectRootProvider(ctx) else ""
+        // su 是否**真的**能拿到 uid 0。这是设备事实，与"用户有没有启用特权"无关。
+        //
+        // ## 为什么不能把 enabled 串进来
+        //
+        // 原来写的是 `su && enabled && ...`，于是首选通道是「未启用」（出厂默认）时
+        // rootVerified 恒为 false —— 用户 su 明明已授权，界面却一直显示「未验证」，
+        // 点「验证」也不生效：refresh(allowRootPrompt=true) 会真的跑一次 su（授权框也弹了、
+        // 也确实拿到了 uid 0），但结果被 enabled 短路吞掉，读回来仍是 false。
+        // 真机反馈「root 已授权仍然提示未验证，验证也无效」就是这一行。
+        //
+        // 语义应当与 [Status.rootVerified] 的文档一致：su 存在且已确认拿到 uid 0。
+        // 「要不要用 root」由 channel 决定（见下面的 available/auto），不归这里管。
+        //
         // 之前验过就直接信：su 授权是持久的，撤销后用户会来点「刷新权限」重验。
-        // 特权未启用时不验、也不写缓存 —— verifyRoot 会真的跑 su。
-        val rootOk = su && enabled && if (allowRootPrompt) {
+        val rootOk = su && if (allowRootPrompt) {
             verifyRoot().also { prefs(ctx).edit().putBoolean(KEY_ROOT_VERIFIED, it).apply() }
         } else {
             prefs(ctx).getBoolean(KEY_ROOT_VERIFIED, false)

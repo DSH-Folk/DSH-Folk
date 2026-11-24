@@ -1917,7 +1917,7 @@
     <string name="dsh_mode_proroot_denied_title">proroot 现在不可用</string>
     <string name="dsh_mode_proroot_denied_body">proroot 需要 arm64-v8a 架构，且运行时文件必须完整（它们随 APK 分发）。当前设备不满足，已保持原来的容器后端不变。</string>
     <string name="dsh_mode_chroot_denied_title">chroot 需要 Root</string>
-    <string name="dsh_mode_chroot_denied_body">chroot 模式需要可用的 root 或等效特权通道，当前未就绪，已保持原有容器模式。</string>
+    <string name="dsh_mode_chroot_denied_body">chroot 模式需要一条可用的提权通道（root 或等效方式），当前未就绪，已保持原有容器模式。可以到权限通道页看 root / Shizuku / 无线 ADB 三条各自差在哪一步。</string>
     <string name="dsh_mode_denied_ok">知道了</string>
     <string name="dsh_mode_chroot_desc">以真实 root 身份进入容器。注意：chroot 只改根目录、不是沙箱；它可能让工作区沙箱模式可用，但取决于设备内核。</string>
     <string name="dsh_mode_chroot_needs_root">需要 root 权限通道</string>
@@ -2319,4 +2319,7 @@
     <string name="dsh_browser_tab_limit">最多同时打开 %1$d 个标签页</string>
     <string name="dsh_browser_nav_browser_only">只有浏览器模式才能打开外部地址</string>
     <string name="dsh_browser_edit_hint">输入地址</string>
+    <string name="dsh_mode_chroot_denied_open">去配置权限通道</string>
+    <string name="dsh_mode_chroot_no_su">本机未检测到 su。chroot 需要先装一个 root 方案（Magisk / KernelSU / APatch 等）</string>
+    <string name="dsh_mode_chroot_needs_channel_step">已选 root 通道但尚未生效 —— 去权限通道页看它差在哪一步</string>
 </resources>

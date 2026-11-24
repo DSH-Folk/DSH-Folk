@@ -262,7 +262,30 @@ interface ContainerRuntime {
         override fun available(): Boolean =
             KernelEnv.hostFacts(ctx).rootChannelActive
 
-        override fun unavailableReason(): String = ctx.appString(CoreR.string.dsh_mode_chroot_needs_root)
+        /**
+         * 为什么用不了，以及**该去哪配**。
+         *
+         * 分三种情况，因为用户的下一步动作完全不同：
+         *  - 设备上根本没有 su → 得先去装一个 root 方案（Magisk / KernelSU / APatch），
+         *    在应用内配置不了；
+         *  - 有 su 但没启用特权 → 去权限通道页选 root 通道（这一步应用内就能做）；
+         *  - 已启用但通道没生效 → 去权限通道页看它差在哪一步（未验证 / 未授权）。
+         *
+         * 只说一句「需要 root 权限通道」的话，前两种人都会以为是自己没 root。
+         */
+        override fun unavailableReason(): String {
+            val facts = KernelEnv.hostFacts(ctx)
+            val st = PermissionManager.status.value
+            return when {
+                // 已经选了 root 通道，但还没生效：引导去那一页看具体差哪步
+                st.preferred == PermissionManager.Channel.ROOT && !facts.rootChannelActive ->
+                    ctx.appString(CoreR.string.dsh_mode_chroot_needs_channel_step)
+                // 设备上没有 su：应用内配不了，如实说
+                !st.suPresent -> ctx.appString(CoreR.string.dsh_mode_chroot_no_su)
+                // 有 su、但特权没启用：去权限通道页选 root
+                else -> ctx.appString(CoreR.string.dsh_mode_chroot_needs_root)
+            }
+        }
 
         /** 不用宿主 argv 前缀：命令经脚本送进去，见 [spawnArgv]。 */
         override fun baseArgv(rootfsDir: File, hardlinkSupported: Boolean): List<String> = emptyList()

@@ -85,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ramcosta.composedestinations.generated.destinations.PrivilegedChannelScreenDestination
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.ExtensionSettingItems
@@ -666,9 +667,33 @@ fun FunctionSettingsContent(
                                             )
                                         },
                                         confirmButton = {
-                                            TextButton(onClick = { deniedBackend = null }) {
-                                                Text(stringResource(CoreR.string.dsh_mode_denied_ok))
+                                            // chroot 缺的是**一条提权通道**，那件事在权限通道页能配
+                                            // （root / Shizuku / 无线 ADB 三条的现状与各自引导都在那儿）。
+                                            // 只给「知道了」等于告诉用户"你不行"却不告诉他去哪儿 ——
+                                            // 真机反馈要的正是这个出口。
+                                            if (denied == "chroot") {
+                                                TextButton(onClick = {
+                                                    deniedBackend = null
+                                                    navigator.navigate(PrivilegedChannelScreenDestination) {
+                                                        launchSingleTop = true
+                                                    }
+                                                }) {
+                                                    Text(stringResource(CoreR.string.dsh_mode_chroot_denied_open))
+                                                }
+                                            } else {
+                                                TextButton(onClick = { deniedBackend = null }) {
+                                                    Text(stringResource(CoreR.string.dsh_mode_denied_ok))
+                                                }
                                             }
+                                        },
+                                        dismissButton = if (denied == "chroot") {
+                                            {
+                                                TextButton(onClick = { deniedBackend = null }) {
+                                                    Text(stringResource(CoreR.string.dsh_mode_denied_ok))
+                                                }
+                                            }
+                                        } else {
+                                            null
                                         },
                                     )
                                 }

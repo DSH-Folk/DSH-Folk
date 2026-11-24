@@ -1943,7 +1943,7 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_mode_proroot_denied_title">proroot is not available</string>
     <string name="dsh_mode_proroot_denied_body">proroot needs arm64-v8a and a complete set of runtime files (they ship with the APK). This device does not qualify, so the container backend is unchanged.</string>
     <string name="dsh_mode_chroot_denied_title">chroot needs root</string>
-    <string name="dsh_mode_chroot_denied_body">chroot requires an active root or equivalent privilege channel. Keeping the current container backend.</string>
+    <string name="dsh_mode_chroot_denied_body">chroot mode needs a working privilege channel (root or equivalent) and none is ready right now, so the previous container mode is kept. Open the privilege-channel page to see which step root / Shizuku / wireless ADB is each missing.</string>
     <string name="dsh_mode_denied_ok">Got it</string>
     <string name="dsh_mode_chroot_desc">Enter the container as real root. Note: chroot only changes the root directory - it is not a sandbox; it may make the workspace sandbox mode usable, depending on the device kernel.</string>
     <string name="dsh_mode_chroot_needs_root">Requires the root permission channel</string>
@@ -2345,4 +2345,7 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_browser_tab_limit">Up to %1$d tabs at once</string>
     <string name="dsh_browser_nav_browser_only">External addresses only work in browser mode</string>
     <string name="dsh_browser_edit_hint">Enter address</string>
+    <string name="dsh_mode_chroot_denied_open">Set up a privilege channel</string>
+    <string name="dsh_mode_chroot_no_su">No su found on this device. chroot needs a root solution first (Magisk / KernelSU / APatch, etc.)</string>
+    <string name="dsh_mode_chroot_needs_channel_step">The root channel is selected but not active yet — open the privilege-channel page to see which step is missing</string>
 </resources>
