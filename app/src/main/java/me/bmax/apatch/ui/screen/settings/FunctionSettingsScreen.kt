@@ -65,6 +65,7 @@ import com.ramcosta.composedestinations.generated.destinations.DshDeepCleanScree
 import com.ramcosta.composedestinations.generated.destinations.WorkflowScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.HomeScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.PermissionLogScreenDestination
+import com.ramcosta.composedestinations.generated.destinations.PrivilegedChannelScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -501,6 +502,12 @@ internal fun DshSettingsScreen(
                     prorootAvailable = prorootAvailable,
                     chrootAvailable = chrootAvailable,
                     chrootUnavailableReason = chrootReason,
+                    // chroot 缺的是提权通道，那件事只能在权限通道页配。
+                    onOpenChannelPage = {
+                        navigator.navigate(PrivilegedChannelScreenDestination) {
+                            launchSingleTop = true
+                        }
+                    },
                     prorootUnavailableReason = prorootReason,
                     autostartMode = autostartMode,
                     onAutostartModeChange = { m ->

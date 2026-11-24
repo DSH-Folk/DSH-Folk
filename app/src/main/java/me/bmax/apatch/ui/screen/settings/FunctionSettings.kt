@@ -85,7 +85,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ramcosta.composedestinations.generated.destinations.PrivilegedChannelScreenDestination
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.R
 import me.bmax.apatch.ui.component.ExtensionSettingItems
@@ -335,6 +334,14 @@ fun FunctionSettingsContent(
     /** chroot 是否可用（= root 通道就绪）。 */
     chrootAvailable: Boolean,
     chrootUnavailableReason: String,
+    /**
+     * 去权限通道页。
+     *
+     * 用回调而不是把 navigator 传进来：[FunctionSettingsContent] 是纯展示组件
+     * （所有依赖都由参数注入），塞一个 navigator 进去会让它知道导航图长什么样 ——
+     * 这一页只该知道"用户想去配通道"这件事，不该知道那个页面叫什么。
+     */
+    onOpenChannelPage: () -> Unit,
     /** 自启动方式（三条路径，见 [DshAutostart.Mode]）。 */
     autostartMode: DshAutostart.Mode,
     onAutostartModeChange: (DshAutostart.Mode) -> Unit,
@@ -674,9 +681,7 @@ fun FunctionSettingsContent(
                                             if (denied == "chroot") {
                                                 TextButton(onClick = {
                                                     deniedBackend = null
-                                                    navigator.navigate(PrivilegedChannelScreenDestination) {
-                                                        launchSingleTop = true
-                                                    }
+                                                    onOpenChannelPage()
                                                 }) {
                                                     Text(stringResource(CoreR.string.dsh_mode_chroot_denied_open))
                                                 }
