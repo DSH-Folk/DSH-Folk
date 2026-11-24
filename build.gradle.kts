@@ -44,9 +44,9 @@ fun getGitDescribe(): String {
  * `managerVersionCode by extra(getVersionCode())` 在脚本第 11 行就执行，一个声明在
  * 后面的 `val` 此刻还是 0，构建会拿到错误的版本号而不报任何错。函数没有初始化顺序。
  */
-fun baseVersionName(): String = "3.0.3"
+fun baseVersionName(): String = "3.0.4"
 
-fun baseVersionCode(): Int = 30003
+fun baseVersionCode(): Int = 30004
 
 /**
  * 允许 CI 覆盖版本。
