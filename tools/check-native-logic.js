@@ -628,8 +628,14 @@ console.log("\n── 特权通道约束 ──");
   const perm = read("app/src/main/java/me/bmax/apatch/dsh/PermissionManager.kt");
   const autoVerify = perm.slice(perm.indexOf("fun autoVerifyRoot"), perm.indexOf("private fun verifyRoot"));
   ok(autoVerify.length > 0, "存在 autoVerifyRoot");
-  ok(/if \(preferred != null && preferred != Channel\.ROOT\) return/.test(autoVerify),
-    "只在选了 root 或「自动」时才自动验证（明确选 Shizuku/ADB 的人不该被弹 su 框）");
+  // chroot 与特权通道解耦后，判据从「首选是 root 或自动」变成「想要 root」：
+  // 除了 root/自动，还包括「选了 chroot 容器」—— 那条路径自己调 su 起进程，
+  // 不经过特权通道，挡掉它就等于让选了 chroot 的人永远等不到验证。
+  // 明确选 Shizuku / ADB 的人仍然不会被弹 su 框。
+  ok(/val wantsRoot = preferred == null \|\| preferred == Channel\.ROOT/.test(autoVerify) &&
+    /if \(!wantsRoot\) return/.test(autoVerify) &&
+    /== "chroot"/.test(autoVerify),
+    "只在想要 root 时才自动验证（root / 自动 / 选了 chroot；明确选 Shizuku/ADB 的人不该被弹 su 框）");
   ok(/if \(!detectSu\(\)\) return/.test(autoVerify) && /KEY_ROOT_VERIFIED, false\)\) return/.test(autoVerify),
     "没有 su、或已经验过就不重复验");
   ok(/KEY_ROOT_DENIED_AT/.test(autoVerify) && /ROOT_RETRY_MS/.test(autoVerify),

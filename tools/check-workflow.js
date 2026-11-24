@@ -1453,11 +1453,18 @@ console.log("\u2500 #16v chroot 启动方式（真 root，实验性）");
   const fs2 = read("app/src/main/java/me/bmax/apatch/ui/screen/settings/FunctionSettings.kt");
   ok(/class Chroot\(private val ctx: Context\) : ContainerRuntime/.test(rt), '有 Chroot 运行时实现');
   ok(/override fun id\(\) = "chroot"/.test(rt), 'id 是 chroot');
-  // 可用性 = root 通道，不是「沙箱可用」
-  // ContainerRuntime 已下沉 :core-kernel，PrivilegedShell 在 :app（依赖 AIDL 生成类
-  // 的调用点仍在 app），所以走 KernelEnv.HostFacts 注入。
-  ok(/KernelEnv\.hostFacts\(ctx\)\.rootChannelActive/.test(rt),
-    '可用性判定 = root 通道就绪');
+  // 可用性 = **su 能不能拿到 uid 0**，不是「沙箱可用」，也**不是**「特权通道已启用」。
+  //
+  // 后两者曾经混在一起：chroot 读 rootChannelActive，而那个字段在「用户没在权限通道页
+  // 启用特权」时恒为 false —— 于是 su 明明可用，chroot 却不可用。两件事无关：
+  // chroot 的启动脚本自己调 su（见 spawnArgv），不经过 PrivilegedShell 的通道判定。
+  // 所以这里钉的是 rootUsable，且**禁止**再读回 rootChannelActive。
+  ok(/KernelEnv\.hostFacts\(ctx\)\.rootUsable/.test(rt),
+    '可用性判定 = su 能拿到 uid 0（与特权通道启用状态无关）');
+  // 只看**代码**里的读取，注释里点名 rootChannelActive 是在解释为什么不读它。
+  const rtCode = rt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  ok(!/rootChannelActive/.test(rtCode),
+    'chroot 不再依赖 rootChannelActive（那是特权通道的概念）');
   // 关键：chroot 不是沙箱，注释必须写明（避免误导）
   ok(/\*\*chroot 本身不是沙箱\*\*/.test(rt), '类注释明确「chroot 不是沙箱」');
   ok(/landlock is not enforced|landlock-run --probe.*125/.test(rt), '注释记录实测：Landlock 内核层不可用');
