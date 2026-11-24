@@ -321,7 +321,15 @@ interface ContainerRuntime {
         override fun spawnArgv(guest: List<String>, env: Map<String, String>): List<String>? {
             // 解析不到 su 就直接放弃（返回 null → 调用方回退 proot），
             // 而不是拼一条注定以 "su: not found" 失败的 argv。
-            val su = KernelEnv.hostFacts(ctx).suPath ?: return null
+            //
+            // 先读缓存（hostFacts 里那份是纯内存的），**拿不到时才主动探一次** ——
+            // 这里在容器启动的 IO 线程上，可以承担那 10–30 秒的 su→sh 回退。
+            // 不能把这个探测留在 hostFacts 里：那会让主线程在组合期被拖住（真机
+            // 「设了 chroot 后重启卡在开屏图标」就是这么来的）。
+            val su = KernelEnv.hostFacts(ctx).suPath
+                ?: PrivilegedShell.suPathCached()
+                ?: PrivilegedShell.resolveSuPath(ctx)
+                ?: return null
             prepare()
             val dir = workDir(ctx)
             val rootfs = DshEnv.rootfs(ctx)

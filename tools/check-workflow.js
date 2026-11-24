@@ -1510,9 +1510,21 @@ console.log("\u2500 #16w chroot 的 su 路径探测与三处回退（真机反�
     '探测覆盖 KernelSU/APatch 的常见位置');
   ok(/getRootShell\(\)\.newJob\(\)/.test(ps), '借已生效的 root shell 去问（libsu 自己知道怎么找 su）');
   ok(/cachedSuPath/.test(ps), 'su 路径有缓存（不每次启动都重探）');
-  // chroot 必须用探测到的路径
-  ok(/val su = KernelEnv\.hostFacts\(ctx\)\.suPath \?: return null/.test(rt),
-    '解析不到 su 就返回 null（而不是拼一条注定失败的 argv）');
+  // chroot 必须用探测到的路径，且**拿不到时返回 null**（回退 proot，而不是拼一条
+  // 注定以 "su: not found" 失败的 argv）。
+  //
+  // 探测顺序是「hostFacts 缓存 → suPathCached → resolveSuPath」：前两者是纯内存读，
+  // 最后一个才真启动 shell。这个顺序不能反 —— 把 resolveSuPath 放进 hostFacts
+  // 会让主线程在 Compose 组合期被拖住（真机「设了 chroot 后重启卡在开屏图标」）。
+  ok(/val su = KernelEnv\.hostFacts\(ctx\)\.suPath/.test(rt) &&
+    /\?: PrivilegedShell\.suPathCached\(\)/.test(rt) &&
+    /\?: PrivilegedShell\.resolveSuPath\(ctx\)/.test(rt) &&
+    /\?: return null/.test(rt),
+    '解析不到 su 就返回 null（先读缓存、拿不到才探测，而不是拼一条注定失败的 argv）');
+  // 反证：hostFacts 里**不能**直接探测
+  ok(!/suPath = PrivilegedShell\.resolveSuPath/.test(
+    read('app/src/main/java/me/bmax/apatch/APatchApp.kt')),
+    'hostFactsProvider 不直接探测 su 路径（那是主线程热路径，会卡开屏）');
   ok(/shellQuote\(su\) \+ " -c " \+ shellQuote/.test(rt), 'argv 用的是解析出的 su 绝对路径');
   // 关键陷阱：chroot 的 baseArgv 是空列表，简单回退会拼出非法 argv
   ok(/private fun prootBaseArgv\(\): MutableList<String>/.test(dr), '有显式的 proot 回退前缀');

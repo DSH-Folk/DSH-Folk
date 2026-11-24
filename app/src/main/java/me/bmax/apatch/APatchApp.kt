@@ -192,9 +192,19 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
             hostPrefsName = SP_NAME,
             applicationId = BuildConfig.APPLICATION_ID,
         )
+        // ⚠ 这个 lambda 必须**只做内存读**，不能有跨进程调用或 shell 启动。
+        //
+        // 它在热路径上：容器启动判定、写 host-facts.json、每个能力判定都会读它，
+        // 而其中一些调用发生在**主线程**（Compose 组合期的 Chroot.available()）。
+        //
+        // 曾经这里是 PrivilegedShell.reach(c) + resolveSuPath(c)：前者会 detectSu() 与
+        // Shizuku.pingBinder()，后者在拿不到 root 时会走 su→sh→sh 三次回退，每次
+        // 各自 10 秒超时。在没有 root 的设备（模拟器 / 未 root 真机）上，主线程被
+        // 反复拖住，首帧永远出不来 —— 真机反馈「设了 chroot 后重启卡在开屏图标」
+        // 就是这个。现在这两项都改读**缓存**（由 UI 层的探测/验证写入）。
         me.bmax.apatch.dsh.KernelEnv.setHostFactsProvider { c ->
             val nativeOn = DshNativeBridge.enabled(c)
-            val reach = PrivilegedShell.reach(c)
+            val reach = PrivilegedShell.reachCached()
             me.bmax.apatch.dsh.KernelEnv.HostFacts(
                 nativeEnabled = nativeOn,
                 nativeCaps = if (nativeOn) DshNativeBridge.accessMap(c)
@@ -227,7 +237,8 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
                 // 而容器可能在用户从没进过权限页时就被拉起 —— 那时 status 还是默认值，
                 // chroot 会一直显示不可用。缓存由 refresh / autoVerifyRoot 写，跨进程重启保留。
                 rootUsable = PermissionManager.rootUsableCached(c),
-                suPath = PrivilegedShell.resolveSuPath(c),
+                // 同样只读缓存：探测要启动 shell，不能在 hostFacts 里做。
+                suPath = PrivilegedShell.suPathCached(),
             )
         }
         ExtensionEngine.bootstrap(this)

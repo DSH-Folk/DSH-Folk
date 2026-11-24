@@ -157,6 +157,48 @@ object PrivilegedShell {
      * 提示词整段消失：用户刚把通道设成 root、还没点过「刷新权限」，agent 那边看起来就是
      * 「这台设备没有特权」—— 于是它连试都不试，而设备完全能做到。
      */
+    /**
+     * [reach] 的**纯内存**版本：只读已经探测好的状态，不做任何跨进程调用。
+     *
+     * ## 为什么需要它
+     *
+     * [reach] 会 `PermissionManager.refresh(allowRootPrompt = false)`，那里面有
+     * `detectSu()`、`Shizuku.pingBinder()`、`checkSelfPermission()`、`getUid()` ——
+     * 全是跨进程调用，慢且可能阻塞。它适合 UI 层的 IO 协程，**不适合**热路径。
+     *
+     * 热路径（容器启动判定、写 host-facts.json、每个能力判定）现在走这个：
+     * 直接读 [PermissionManager.status] 的快照，那是内存里的 StateFlow，纳秒级。
+     *
+     * 代价是「可能读到还没探测过的默认值」—— 那时返回 null（= 没有提权途径）。
+     * 这是可接受的：调用方要的是"现在能不能用"，而状态还没探测出来时本来就该按
+     * "还不能用"处理。UI 层会负责探测并把结果填进 status。
+     */
+    fun reachCached(): Reach? {
+        val status = PermissionManager.status.value
+        val selected = status.preferred?.takeIf { it != PermissionManager.Channel.NONE }
+        return when (status.channel) {
+            PermissionManager.Channel.ROOT -> Reach(
+                channel = PermissionManager.Channel.ROOT,
+                uid = 0,
+                canRoot = true,
+                selected = selected?.takeIf { it != PermissionManager.Channel.ROOT },
+            )
+            PermissionManager.Channel.SHIZUKU -> Reach(
+                channel = PermissionManager.Channel.SHIZUKU,
+                uid = status.shizukuUid,
+                canRoot = status.shizukuUid == 0,
+                selected = selected?.takeIf { it != PermissionManager.Channel.SHIZUKU },
+            )
+            PermissionManager.Channel.ADB -> Reach(
+                channel = PermissionManager.Channel.ADB,
+                uid = 2000,
+                canRoot = false,
+                selected = selected?.takeIf { it != PermissionManager.Channel.ADB },
+            )
+            PermissionManager.Channel.NONE -> null
+        }
+    }
+
     fun reach(ctx: Context): Reach? {
         val status = PermissionManager.refresh(ctx, allowRootPrompt = false)
         val selected = status.preferred?.takeIf { it != PermissionManager.Channel.NONE }
@@ -371,6 +413,20 @@ object PrivilegedShell {
      *
      * @return su 的绝对路径；拿不到返回 null（调用方应回退 proot）。
      */
+    /**
+     * 只读缓存的 su 路径 —— **不探测**。热路径（hostFacts）用这个。
+     *
+     * 返回 null 表示「还不知道」（没探过或探过没找到）。调用方在拿不到时应当回退，
+     * 而不是在这里触发探测 —— 那会在主线程上跑 30 秒（su→sh→sh 三次回退）。
+     */
+    fun suPathCached(): String? = cachedSuPath?.takeIf { it.isNotEmpty() }
+
+    /**
+     * 探测并缓存 su 的绝对路径。**会启动 shell**，只能在 IO 线程调用。
+     *
+     * 调用点：容器真正要启动 chroot 时（[ContainerRuntime.Chroot.spawnArgv] 里
+     * 先读 [suPathCached]，拿不到才由启动流程在 IO 线程调这个）。
+     */
     fun resolveSuPath(ctx: Context): String? {
         cachedSuPath?.let { return it.takeIf { it.isNotEmpty() } }
         val out = ArrayList<String>()
@@ -390,9 +446,20 @@ object PrivilegedShell {
             getRootShell().newJob().add(probe).to(out, err).exec().isSuccess
         }.getOrNull()
         val path = if (ok == true) out.firstOrNull { it.startsWith("/") }?.trim() else null
-        cachedSuPath = path
+        // **失败也要缓存**（用空串表示「试过，没有」）。
+        //
+        // 这里原来写的是 `cachedSuPath = path`，而 path 为 null 时缓存仍是 null ——
+        // 而 null 的语义是「还没试过」。于是探测失败**不留痕**，下一次 hostFacts()
+        // 会再完整试一遍。hostFacts 是热路径（容器启动、写提示词、每个能力判定都读），
+        // 在**没有 root** 的设备（模拟器 / 未 root 真机）上就是：
+        //
+        //   su 超时 10s → 回退 sh 超时 10s → 再回退一次 → 记 null → 下次重来
+        //
+        // 真机反馈「设了 chroot 启动方式、重启后卡在开屏图标」正是这个循环 ——
+        // 主线程被 hostFacts 反复拖住，首帧永远出不来。
+        cachedSuPath = path ?: ""
         if (path == null) {
-            Log.w(TAG, "解析 su 路径失败：out=${out.take(3)} err=${err.take(3)}")
+            Log.w(TAG, "解析 su 路径失败（已缓存为空，本进程不再重试）：out=${out.take(3)} err=${err.take(3)}")
         } else {
             Log.i(TAG, "su 路径 = $path")
         }
