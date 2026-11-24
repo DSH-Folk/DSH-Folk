@@ -56,6 +56,22 @@ trap cleanup EXIT INT TERM
 # 切回 proot 连穿都穿不过去。umask 000 让本脚本与容器写出的文件对 App uid 可读写
 # （外层目录是 App 私有的 0700，不对外暴露）。
 umask 000
+
+# 护栏：占位符没被替换成功时 MNT/RFS 会是空的，而后面所有命令都以 "$MNT" 为前缀。
+# 空值时 `mkdir -p "$MNT/root/..."` 会退化成 `mkdir -p "/root/..."` —— 真机上
+# 那是**在系统根目录上动手**，最坏情况直接写坏设备。宁可退出让上层回退 proot。
+#
+# 真机日志 `mkdir: '/root': Read-only file system` 就是这个：$MNT 为空，
+# mkdir -p 报的是它第一个创建不了的组件（/root），看起来像"挂载点算错了"，
+# 其实是前缀整个丢了。这一层让这种情况变成一条明确的错误，而不是一堆费解的
+# mount 失败。
+case "$MNT" in
+  ""|"''") echo "[DSH-Folk] MNT 为空（占位符未替换），拒绝执行"; exit 89 ;;
+esac
+case "$RFS" in
+  ""|"''") echo "[DSH-Folk] RFS 为空（占位符未替换），拒绝执行"; exit 89 ;;
+esac
+
 mkdir -p "$MNT" || exit 90
 chmod 0777 "$MNT" 2>/dev/null
 

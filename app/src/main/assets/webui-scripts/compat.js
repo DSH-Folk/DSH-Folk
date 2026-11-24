@@ -235,4 +235,38 @@
         + '-' + h[8]+h[9] + '-' + h[10]+h[11]+h[12]+h[13]+h[14]+h[15];
     };
   }
+  // URL.canParse() / URL.parse()：Chrome 120 才加的一对静态方法。
+  //
+  // dsh 前端有一句 `URL.canParse(...)` 直接调用（没有 typeof 保护），老内核上
+  // 抛 `TypeError: URL.canParse is not a function` —— 而它在会话页的渲染路径上，
+  // 整个 conversation.chat.node 槽位直接崩掉，用户看到的是白屏 + 一条 page error。
+  // 真机（Android 15 / OPPO，WebView 内核较旧）就是这么炸的。
+  //
+  // 语义要与规范一致：
+  //  - canParse(url) / canParse(url, base)：能解析出合法 URL 就是 true，不抛；
+  //  - parse(url) / parse(url, base)：能解析返回 URL，否则返回 null（不是抛）；
+  //  - 只传一个参数时**必须**是绝对 URL —— 规范里 base 缺省意味着不能是相对地址，
+  //    直接用 `new URL(u)` 就正好是这个行为，不要自己拼一个假的 base。
+  if (typeof URL !== 'undefined') {
+    if (typeof URL.canParse !== 'function') {
+      URL.canParse = function(url, base){
+        try {
+          // 单参数走 new URL(url)，双参数走 new URL(url, base) —— 与规范一致
+          if (base === undefined) new URL(url); else new URL(url, base);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      };
+    }
+    if (typeof URL.parse !== 'function') {
+      URL.parse = function(url, base){
+        try {
+          return base === undefined ? new URL(url) : new URL(url, base);
+        } catch (e) {
+          return null;
+        }
+      };
+    }
+  }
 })();

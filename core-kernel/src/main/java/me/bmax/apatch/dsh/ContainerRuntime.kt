@@ -361,6 +361,24 @@ interface ContainerRuntime {
                 )
                 return null
             }
+            // 把三个关键值打进 dsh.log：挂载失败时第一件事就是确认它们没被替换成空。
+            // 真机反馈的 `mkdir: '/root': Read-only file system` 正是"$MNT 为空"的表现，
+            // 而当时没有任何日志能证明这一点，只能靠猜。
+            KernelEnv.log(
+                "[chroot] script vars: RFS=" + rootfs.absolutePath +
+                    " MNT=" + File(dir, "mnt").absolutePath +
+                    " dir=" + dir.absolutePath,
+            )
+            // 把脚本开头（含 MNT=/RFS= 两行赋值）原样打进日志。
+            //
+            // 这一步是为了让「挂载点算错」这类问题一次定位：真机日志里
+            // `mkdir: '/root': Read-only file system` 只有这一行线索，而它可能是
+            // "MNT 为空"、也可能是"guest 路径不对"，光看它分不出来。把生成结果打出来，
+            // 下次再遇到就不用猜。
+            KernelEnv.log(
+                "[chroot] launch.sh head:\n" +
+                    script.lineSequence().take(20).joinToString("\n"),
+            )
             launch.writeText(script, Charsets.UTF_8)
             launch.setExecutable(true, false)
             // 真机兜底：脚本写错一个引号，`su -c sh launch.sh` 只会打印一行
@@ -422,9 +440,13 @@ interface ContainerRuntime {
             val template = ctx.assets.open(LAUNCH_ASSET).use {
                 it.readBytes().toString(StandardCharsets.UTF_8)
             }
+            val mntPath = File(dir, "mnt").absolutePath
             return template
                 .replace("@RFS@", shellQuote(rootfs.absolutePath))
-                .replace("@MNT@", shellQuote(File(dir, "mnt").absolutePath))
+                // 注意：模板第 14 行的注释里也列了 @MNT@ 等占位符（那是给人看的清单）。
+                // Kotlin 的 String.replace 替换**全部**出现，所以注释里那份也会被换掉 ——
+                // 无害（它只是注释），但排查时别被它误导成"替换错了位置"。
+                .replace("@MNT@", shellQuote(mntPath))
                 .replace("@APP_UID@", uid.toString())
                 .replace("@APP_GID@", uid.toString())
                 .replace("@UNMOUNT_TARGETS@", unmountTargets)
