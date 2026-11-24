@@ -285,6 +285,22 @@ object PermissionManager {
     private fun detectSu(): Boolean = SU_PATHS.any { File(it).exists() }
 
     /**
+     * 设备上 su 现在能不能拿到 uid 0 —— **只读缓存，不弹框、不跑 su**。
+     *
+     * 给 chroot 容器用：它只需要「能不能拿到 uid 0」这个设备事实，与用户有没有在
+     * 权限通道页启用特权无关（见 [KernelEnv.HostFacts.rootUsable]）。
+     *
+     * 只读缓存而不是每次真跑 su：这个函数会被 hostFacts 调用，那是热路径，
+     * 每次都 spawn 一个 su 会让每次容器启动都弹一次授权框。
+     *
+     * 缓存由三处写：[refresh] 的 allowRootPrompt 分支、[autoVerifyRoot]、以及用户在
+     * 权限通道页点「重新探测」。所以这里读到 false 不代表 su 不可用，只代表「还没验过」——
+     * 调用方（chroot 的说明文案）据此给出「去权限通道页验一次」的引导。
+     */
+    fun rootUsableCached(ctx: Context): Boolean =
+        detectSu() && prefs(ctx).getBoolean(KEY_ROOT_VERIFIED, false)
+
+    /**
      * 用户选了 root（或「自动」）时，后台替他验一次。
      *
      * ## 为什么必须有这个
@@ -316,8 +332,17 @@ object PermissionManager {
         if (rootAutoTried) return
         val p = prefs(ctx)
         val preferred = readPreference(ctx)
-        // null = 「自动」：用户就是让应用自己挑，root 排在最前面
-        if (preferred != null && preferred != Channel.ROOT) return
+        // null = 「自动」：用户就是让应用自己挑，root 排在最前面。
+        //
+        // NONE（未启用特权）**不再**直接返回：用户可能没启用特权通道、但选了 chroot 容器
+        // —— 那是两条独立的路径（chroot 自己调 su 起进程，不经过特权通道）。挡掉的话，
+        // 选了 chroot 的人永远等不到那次验证，chroot 也就永远不可用。
+        // 真没打算用 root 的人不会选 chroot，所以这里多看一个条件不会带来多余的授权框。
+        val wantsRoot = preferred == null || preferred == Channel.ROOT ||
+            // chroot 容器自己调 su 起进程，不经过特权通道 —— 选了它的人同样需要一次验证。
+            // 读 prefs 而不是 DshRuntime.runtimeId()：后者在 :app，core-kernel 不能依赖它。
+            prefs(ctx).getString(DshEnv.KEY_RUNTIME, "") == "chroot"
+        if (!wantsRoot) return
         if (!detectSu()) return
         if (p.getBoolean(KEY_ROOT_VERIFIED, false)) return
         val deniedAt = p.getLong(KEY_ROOT_DENIED_AT, 0L)

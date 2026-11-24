@@ -221,6 +221,12 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
                         .toString()
                 },
                 rootChannelActive = reach?.channel == PermissionManager.Channel.ROOT,
+                // chroot 用这个：设备上 su 能不能拿到 uid 0，与特权通道启没启用无关。
+                //
+                // 读**缓存**而不是 status.value：status 只在 UI 层调 refresh 之后才有值，
+                // 而容器可能在用户从没进过权限页时就被拉起 —— 那时 status 还是默认值，
+                // chroot 会一直显示不可用。缓存由 refresh / autoVerifyRoot 写，跨进程重启保留。
+                rootUsable = PermissionManager.rootUsableCached(c),
                 suPath = PrivilegedShell.resolveSuPath(c),
             )
         }

@@ -157,8 +157,23 @@ object KernelEnv {
         val restrictedCaps: List<String> = emptyList(),
         /** 提权通道 JSON（PrivilegedShell.reach 的序列化）。null = 没有提权途径。 */
         val elevationJson: String? = null,
-        /** root 通道是否已生效。 */
+        /** root 通道是否已生效（= 用户启用了特权**且**首选是 root）。给特权相关 UI 用。 */
         val rootChannelActive: Boolean = false,
+        /**
+         * 设备上 su 是否真的能拿到 uid 0 —— 与「用户有没有启用特权通道」无关。
+         *
+         * ## 为什么要跟 [rootChannelActive] 分开
+         *
+         * [rootChannelActive] 是「特权通道」的概念：用户要在权限通道页启用它、并选 root，
+         * 才算生效。但 **chroot 容器不需要那条通道** —— 它只需要「能不能拿到 uid 0」这个
+         * 设备事实：它的启动脚本自己调 su（见 ContainerRuntime.Chroot.spawnArgv），
+         * 完全不经过 PrivilegedShell 的通道判定。
+         *
+         * 两者混用会得到一个荒唐的结果：su 明明可用，chroot 却因为「用户没在权限通道页
+         * 启用 root」而不可用 —— 而用户启用那条通道是为了让 agent 用特权命令，
+         * 跟 chroot 容器能不能起没有关系。真机反馈要的就是这个隔离。
+         */
+        val rootUsable: Boolean = false,
         /** root shell 的真实路径（PrivilegedShell.resolveSuPath）。 */
         val suPath: String? = null,
     )

@@ -2322,4 +2322,5 @@
     <string name="dsh_mode_chroot_denied_open">去配置权限通道</string>
     <string name="dsh_mode_chroot_no_su">本机未检测到 su。chroot 需要先装一个 root 方案（Magisk / KernelSU / APatch 等）</string>
     <string name="dsh_mode_chroot_needs_channel_step">已选 root 通道但尚未生效 —— 去权限通道页看它差在哪一步</string>
+    <string name="dsh_mode_chroot_verify_hint">检测到 su，但还没确认能拿到 root 权限。到权限通道页点一次「重新探测」即可（会弹一次系统授权框）</string>
 </resources>

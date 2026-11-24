@@ -258,9 +258,17 @@ interface ContainerRuntime {
 
         override fun displayName() = ctx.appString(CoreR.string.dsh_mode_chroot_name)
 
-        /** 需要 root 通道就绪。不等同于「沙箱可用」—— 沙箱能不能用是 DSH 侧的事。 */
+        /**
+         * 只要设备上 su 真能拿到 uid 0 就可用。
+         *
+         * **不读 rootChannelActive**：那是「特权通道」的启用状态，用户启用它是为了让 agent
+         * 用特权命令；chroot 容器自己调 su 起进程（见 [spawnArgv]），不经过那条通道。
+         * 混用会让「su 可用但没启用特权通道」的人用不了 chroot，而这两件事无关。
+         *
+         * 也不等同于「沙箱可用」—— 沙箱能不能用是 DSH 侧的事，取决于内核。
+         */
         override fun available(): Boolean =
-            KernelEnv.hostFacts(ctx).rootChannelActive
+            KernelEnv.hostFacts(ctx).rootUsable
 
         /**
          * 为什么用不了，以及**该去哪配**。
@@ -274,16 +282,14 @@ interface ContainerRuntime {
          * 只说一句「需要 root 权限通道」的话，前两种人都会以为是自己没 root。
          */
         override fun unavailableReason(): String {
-            val facts = KernelEnv.hostFacts(ctx)
             val st = PermissionManager.status.value
             return when {
-                // 已经选了 root 通道，但还没生效：引导去那一页看具体差哪步
-                st.preferred == PermissionManager.Channel.ROOT && !facts.rootChannelActive ->
-                    ctx.appString(CoreR.string.dsh_mode_chroot_needs_channel_step)
-                // 设备上没有 su：应用内配不了，如实说
+                // 设备上没有 su：应用内配不了，得先装 root 方案
                 !st.suPresent -> ctx.appString(CoreR.string.dsh_mode_chroot_no_su)
-                // 有 su、但特权没启用：去权限通道页选 root
-                else -> ctx.appString(CoreR.string.dsh_mode_chroot_needs_root)
+                // 有 su，但还没验过（缓存里没有 uid 0 的记录）：
+                // chroot 不依赖特权通道，但需要确认 su 真能拿到 uid 0。
+                // 这一句不能说成「去启用 root 通道」—— 那是另一件事。
+                else -> ctx.appString(CoreR.string.dsh_mode_chroot_verify_hint)
             }
         }
 
