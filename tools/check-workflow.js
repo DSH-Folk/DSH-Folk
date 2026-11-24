@@ -1459,8 +1459,14 @@ console.log("\u2500 #16v chroot 启动方式（真 root，实验性）");
   // 启用特权」时恒为 false —— 于是 su 明明可用，chroot 却不可用。两件事无关：
   // chroot 的启动脚本自己调 su（见 spawnArgv），不经过 PrivilegedShell 的通道判定。
   // 所以这里钉的是 rootUsable，且**禁止**再读回 rootChannelActive。
-  ok(/KernelEnv\.hostFacts\(ctx\)\.rootUsable/.test(rt),
+  // 判据是「su 能拿到 uid 0」，且**必须直读 PermissionManager，不能经 hostFacts**。
+  //
+  // 经 hostFacts 会形成无限递归（真机「切到 chroot 后重启卡开屏」的根因）：
+  //   hostFacts() → effectiveRuntimeId() → runtime() → Chroot.available() → hostFacts() → …
+  ok(/PermissionManager\.rootUsableCached\(ctx\)/.test(rt),
     '可用性判定 = su 能拿到 uid 0（与特权通道启用状态无关）');
+  ok(!/KernelEnv\.hostFacts\(ctx\)\.rootUsable/.test(rt),
+    '可用性判定不经过 hostFacts（那条路会递归回自己，卡死主线程）');
   // 只看**代码**里的读取，注释里点名 rootChannelActive 是在解释为什么不读它。
   const rtCode = rt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   ok(!/rootChannelActive/.test(rtCode),

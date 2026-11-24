@@ -183,8 +183,46 @@ object KernelEnv {
 
     fun setHostFactsProvider(p: (android.content.Context) -> HostFacts) { hostFactsProvider = p }
 
-    fun hostFacts(ctx: android.content.Context): HostFacts =
-        hostFactsProvider?.invoke(ctx) ?: HostFacts()
+    /**
+     * 当前线程是否正在构造 hostFacts —— 用来切断**重入**。
+     *
+     * ## 为什么必须有这个
+     *
+     * `hostFactsProvider`（在 :app 的 APatchApp 里）会算 `effectiveRuntimeId()`，
+     * 而那个函数会问「选中的运行时能不能用」—— chroot 的实现是
+     * `available() = hostFacts(ctx).rootUsable`。于是：
+     *
+     * ```
+     * hostFacts() → effectiveRuntimeId() → runtime() → Chroot.available() → hostFacts() → …
+     * ```
+     *
+     * **无限递归**。只要 runtimeId 是 "chroot" 就必现，与有没有 root 无关 ——
+     * 真机反馈「切到 chroot 后重启一直卡在开屏图标」就是这个：主线程在
+     * StackOverflow 之前已经把首帧饿死了。
+     *
+     * ## 为什么返回空快照而不是抛异常
+     *
+     * 重入时抛异常会让"读一个状态"变成崩溃源，而调用方（容器启动判定、写提示词）
+     * 完全没有处理这种异常的准备。返回 [HostFacts] 的默认值语义是"现在还不知道"，
+     * 调用方本来就按"还不能用"处理 —— 这正是重入那一刻的正确答案：
+     * 我们正在算这个状态，还没算出来。
+     *
+     * 用 ThreadLocal 而不是全局标志：多个线程各自读快照是正常且必要的
+     * （IO 线程写提示词与主线程组合期各读一次），全局标志会把它们互相挡掉。
+     */
+    private val buildingFacts = ThreadLocal.withInitial { false }
+
+    fun hostFacts(ctx: android.content.Context): HostFacts {
+        val provider = hostFactsProvider ?: return HostFacts()
+        // 重入：正在算这个状态，先给默认值，别递归下去。
+        if (buildingFacts.get()) return HostFacts()
+        buildingFacts.set(true)
+        return try {
+            provider(ctx)
+        } finally {
+            buildingFacts.set(false)
+        }
+    }
 
     /**
      * 在容器里跑命令并拿输出。

@@ -265,10 +265,24 @@ interface ContainerRuntime {
          * 用特权命令；chroot 容器自己调 su 起进程（见 [spawnArgv]），不经过那条通道。
          * 混用会让「su 可用但没启用特权通道」的人用不了 chroot，而这两件事无关。
          *
+         * ## 为什么直接读 PermissionManager 而不读 hostFacts
+         *
+         * 这不是风格问题，是**防无限递归**：
+         *
+         * ```
+         * hostFacts() → effectiveRuntimeId() → runtime() → Chroot.available() → hostFacts() → …
+         * ```
+         *
+         * 只要 runtimeId 是 "chroot" 就必现。真机反馈「切到 chroot 后重启卡在开屏图标」
+         * 就是这个循环 —— 主线程在 StackOverflow 之前就已经把首帧饿死了。
+         *
+         * [PermissionManager.rootUsableCached] 只读 prefs + 文件 stat，无副作用、无递归，
+         * 语义与 hostFacts.rootUsable 完全一致（后者本来就是从它取的）。
+         *
          * 也不等同于「沙箱可用」—— 沙箱能不能用是 DSH 侧的事，取决于内核。
          */
         override fun available(): Boolean =
-            KernelEnv.hostFacts(ctx).rootUsable
+            PermissionManager.rootUsableCached(ctx)
 
         /**
          * 为什么用不了，以及**该去哪配**。
