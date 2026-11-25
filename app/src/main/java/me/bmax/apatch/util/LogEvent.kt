@@ -397,6 +397,35 @@ suspend fun getBugreportFile(context: Context, window: LogWindow = LogWindow.All
         }.onSuccess { dshHomeLogFile.writeText(it) }
             .onFailure { notes += "容器日志采集失败: ${it.message}" }
 
+        // 服务进程的**原始**输出，单独再收一份（不受时间窗口裁切）。
+        //
+        // ## 为什么必须单独收
+        //
+        // 上面那份 dsh.log 是"按行首时间戳合并 + 按窗口裁切"的结果，它有两个盲区，
+        // 而这两个盲区恰好覆盖了「运行时启动失败」这一整类问题：
+        //
+        // 1. **轮转把它冲掉了**：每次起服务都会 clearLog()，把当前 dsh-web.log 轮转成
+        //    dsh-web.prev.log。chroot 起来 → 2 秒后进程退出 → 自动切 proot → proot 再起一次，
+        //    于是 chroot 那次的输出被挤到 .prev 里，而窗口裁切按"最新一条"对齐，
+        //    短窗口下很容易整段落在窗口外。
+        // 2. **进程被杀时没 flush**：chroot 的启动脚本失败时进程直接退出，缓冲区里
+        //    最后几十行（正是报错那几行）可能还没落盘。
+        //
+        // 真机反馈：chroot 明明起来了（日志里写着 "运行时: chroot（真 root）"），
+        // 两秒后却"服务进程已退出"，而归档里**一个字的 chroot 报错都没有** ——
+        // 只能靠猜。这一份就是给那种情况留的证据。
+        for ((label, file) in listOf(
+            "dsh-web.log" to me.bmax.apatch.dsh.DshEnv.serverLog(apApp),
+            "dsh-web.prev.log" to me.bmax.apatch.dsh.DshEnv.serverLogPrev(apApp),
+        )) {
+            val out = File(bugreportDir, label)
+            runCatching {
+                // 先 flush 内存环形缓冲：LogStore 的行可能还没写盘
+                me.bmax.apatch.dsh.LogStore.named(file).flushForExit()
+                if (file.isFile) out.writeText(redact(file.readText().takeLast(200_000))) else out.writeText("")
+            }.onFailure { notes += "服务日志 $label 采集失败: ${it.message}" }
+        }
+
         // 虚拟屏服务端**自己**的日志（/data/local/tmp/dsh-display.log）。
         //
         // 服务端是 app_process 起的独立进程，它的报错不进 App 的日志系统；而界面在失败时恰恰会

@@ -117,6 +117,13 @@ restore_ownership
 set -- @GUEST_ARGS@
 
 # env -i 起干净环境，再逐个喂我们这份，最后把位置参数摊开
+#
+# 把退出码打出来：宿主只看到"进程退出了"，看不到是 chroot 本身失败、还是容器里的
+# 命令失败、还是信号。真机上 chroot 起来两秒就退出、而日志里一个字的报错都没有，
+# 就是因为这一层完全静默。
 chroot "$MNT" /usr/bin/env -i @ENV@ "$@"
 RC=$?
+if [ "$RC" != 0 ]; then
+  echo "[DSH-Folk] 容器命令退出码 $RC"
+fi
 exit $RC
