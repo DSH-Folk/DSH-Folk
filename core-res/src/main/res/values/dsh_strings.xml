@@ -2349,4 +2349,6 @@ Downloads and replaces container system files while preserving sessions, plugins
     <string name="dsh_mode_chroot_no_su">No su found on this device. chroot needs a root solution first (Magisk / KernelSU / APatch, etc.)</string>
     <string name="dsh_mode_chroot_needs_channel_step">The root channel is selected but not active yet — open the privilege-channel page to see which step is missing</string>
     <string name="dsh_mode_chroot_verify_hint">su was found, but root access has not been confirmed yet. Tap "Check again" on the privilege-channel page once (a system prompt will appear)</string>
+    <string name="dsh_userscripts_builtin_blank_guard">Blank-screen recovery</string>
+    <string name="dsh_userscripts_builtin_blank_guard_summary">Reloads once when the page stays blank for several seconds. While the dsh frontend rebuilds its plugin tree the session service is briefly unavailable and the UI unmounts; only a reload recovers it.</string>
 </resources>

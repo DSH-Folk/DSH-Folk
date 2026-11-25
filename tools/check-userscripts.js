@@ -454,13 +454,21 @@ ok(/browserMode && !loopback\) \{[\s\S]{0,400}Userscripts\.injections\(this, url
 {
   const order = [...webScripts.matchAll(/id = "([\w-]+)",[\s\S]{0,200}?asset = "webui-scripts\/([\w.-]+)"/g)]
     .map((m) => m[2]);
-  ok(order.length === 6, `注册表里 6 条内置（${order.join(" → ")}）`);
+  // 只钉「compat 必须第一、blob-download 必须最后」，不钉总数 ——
+  // 之前写死 6 条，加一条 blank-guard 就红，而那次改动本身是对的。
+  ok(order.length >= 6, `注册表里的内置条数不少于 6（${order.join(" → ")}）`);
+  ok(order[0] === "compat.js", "compat 排第一（别的脚本和页面自己都可能用到它补的 API）");
   ok(order[0] === "compat.js", "compat 排第一（它补的 API 别的脚本与页面都要用）");
   ok(order[1] === "inset.js", "inset 排第二（第一帧就要就位，晚一点就是一跳）");
 
   const runAts = [...webScripts.matchAll(/runAt = RunAt\.(\w+)/g)].map((m) => m[1]);
-  ok(runAts.length === 6 && runAts[5] === "END" && runAts.filter((r) => r === "END").length === 1,
-    `只有 blob 用 RunAt.END（其余 ${runAts.filter((r) => r === "START").length} 条必须 document-start）`);
+  // 同样不钉个数：只要求「补 API / 改首帧 / 拦键盘的必须 START」，
+  // 「页面就绪后才挂监听的用 END」。判断依据是脚本自己的语义，不是它排第几。
+  const endCount = runAts.filter((r) => r === "END").length;
+  ok(runAts[0] === "START" && runAts[1] === "START" && runAts[2] === "START",
+    "compat / inset / composer 必须是 document-start（补 API、首帧内边距、拦键盘都等不到 onPageFinished）");
+  ok(endCount >= 1 && runAts.length - endCount >= 5,
+    `END 只给"页面就绪后才挂监听"的脚本（当前 END ${endCount} 条 / START ${runAts.length - endCount} 条）`);
 
   ok(/if \(!builtinEnabled\(ctx, entry\.id\)\) continue/.test(webScripts),
     "内置逐条过开关（不是一律注入）");

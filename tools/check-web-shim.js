@@ -71,7 +71,7 @@ function builtin(name) {
   return fs.readFileSync(file, "utf8");
 }
 
-const ASSET_FILES = ["compat.js", "inset.js", "composer.js", "a11y-labels.js", "file-upload.js", "blob-download.js"];
+const ASSET_FILES = ["compat.js", "inset.js", "composer.js", "a11y-labels.js", "file-upload.js", "blob-download.js", "blank-guard.js"];
 
 console.log("\n── WebUI 兼容垫片：在缺 API 的环境里真跑 ──");
 

@@ -186,6 +186,28 @@ object WebScripts {
             runAt = RunAt.END,
             asset = "webui-scripts/blob-download.js",
         ),
+        /**
+         * 白屏自愈（`assets/webui-scripts/blank-guard.js`）。
+         *
+         * dsh 前端在插件树重建期间会让 `sessions` 服务短暂不可用，订阅者抛错后整个
+         * `#root` 被卸载 —— 页面白掉，而重建完成后**只有刷新才能恢复**。真机上大约
+         * 40 秒一次，用户体感是「用着用着突然全白」。
+         *
+         * 脚本在页面里判断「`#root` 存在且持续没有任何元素子节点超过 6 秒」，命中就
+         * `location.reload()`；同一次加载最多刷 3 次（刷新救不回来时别把用户困在闪烁里）。
+         *
+         * 为什么在页面里判断而不是宿主侧：空 DOM 有合法原因（首帧、路由切换），
+         * 宿主只能靠猜测，而页面能直接看节点、还能要求「持续为空」。
+         *
+         * 时机是 [RunAt.END]：它不参与首屏，等 DOM 就绪再开始观察。
+         */
+        Entry(
+            id = "blank-guard",
+            titleRes = CoreR.string.dsh_userscripts_builtin_blank_guard,
+            summaryRes = CoreR.string.dsh_userscripts_builtin_blank_guard_summary,
+            runAt = RunAt.END,
+            asset = "webui-scripts/blank-guard.js",
+        ),
     )
 
     /**
