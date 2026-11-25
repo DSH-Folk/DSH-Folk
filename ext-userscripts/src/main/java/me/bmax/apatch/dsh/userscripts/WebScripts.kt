@@ -199,13 +199,15 @@ object WebScripts {
          * 为什么在页面里判断而不是宿主侧：空 DOM 有合法原因（首帧、路由切换），
          * 宿主只能靠猜测，而页面能直接看节点、还能要求「持续为空」。
          *
-         * 时机是 [RunAt.END]：它不参与首屏，等 DOM 就绪再开始观察。
+         * 时机是 [RunAt.START]：白屏可能在页面加载后几秒内就发生，而 END 要等
+         * onPageFinished —— 那时 #root 可能已经空了，观察者还没来得及挂上。
+         * 脚本自己用 readyState 判断"是否还在加载"，START 注入不会误判首帧。
          */
         Entry(
             id = "blank-guard",
             titleRes = CoreR.string.dsh_userscripts_builtin_blank_guard,
             summaryRes = CoreR.string.dsh_userscripts_builtin_blank_guard_summary,
-            runAt = RunAt.END,
+            runAt = RunAt.START,
             asset = "webui-scripts/blank-guard.js",
         ),
     )

@@ -40,13 +40,33 @@ umount_all() {
 # chroot 是**真 root**，它写出的 /root/.dsh、/tmp、/usr/local 归 root；而切回
 # proot/proroot 时进程是 App uid，连读都读不了 —— 真机表现就是 proot 启动直接报
 # `EACCES ... /root/.dsh/profiles/web/cordis.patch.yml`（issue #12）。
-# `find ! -user` 是主判据（干净时只是一次遍历）；toybox 的 find 万一不认它，
-# 退化成无条件 chown 一次，宁可慢也不能漏。
+#
+# ## 只改**属主不对的那几个**，绝不 chown -R 整棵树
+#
+# 这里原来是无条件 `chown -R`（判据只在"要不要跑"上，跑起来就整棵树）。后果是
+# **每次容器命令结束都改写整棵 rootfs 的 ctime** —— 而 dsh 前端有一个
+# `dsh-client-hmr` 插件在监听文件变化，看到 ctime 变了就认为 bundle 变了，
+# 于是重建插件树；重建期间 `sessions` 服务短暂不可用，订阅者抛错，React 卸载
+# 整个 `#root`，**整页白屏**。
+#
+# 真机表现：chroot 下每 40 秒左右白一次（正好是容器命令的执行节奏），而
+# **proot 完全不白** —— 因为 proot 的进程本来就是 App uid，文件属主对，这段
+# 判据为假、chown 从不执行。这个对比是定位它的关键。
+#
+# 现在用 `-exec chown` 只动真正不对的那些：正常情况下一个都不动，ctime 不变，
+# HMR 不误判。代价是 find 要遍历一次（本来就遍历），chown 次数极少。
 restore_ownership() {
-  if ! command -v find >/dev/null 2>&1 ||
-     [ -n "$(find "$RFS/root" ! -user "$APP_UID" 2>/dev/null | head -n 1)" ]; then
-    chown -R "$APP_UID:$APP_GID" "$RFS/root" "$RFS/tmp" "$RFS/usr/local" 2>/dev/null
+  # toybox 的 find 不认 -user 时（极旧系统）退化：只修两个最可能被 root 写脏的目录，
+  # 仍然不用 -R，避免整棵树 ctime 抖动。
+  if ! command -v find >/dev/null 2>&1; then
+    chown "$APP_UID:$APP_GID" "$RFS/root" "$RFS/tmp" "$RFS/usr/local" 2>/dev/null
+    return
   fi
+  for d in "$RFS/root" "$RFS/tmp" "$RFS/usr/local"; do
+    [ -d "$d" ] || continue
+    # -exec ... + 把命中的文件批量交给 chown，命中 0 个就完全不调用
+    find "$d" ! -user "$APP_UID" -exec chown "$APP_UID:$APP_GID" {} + 2>/dev/null
+  done
 }
 
 cleanup() {

@@ -54,9 +54,24 @@ if (template) {
   must(/-d "\$MNT\/usr\/local\/lib\/node_modules\/@deepseek-ai\/dsh"/.test(template),
     '模板缺「残留挂载是否还指向当前 rootfs」的判据（运行时更新后会跑在旧 rootfs 上）');
   must(/restore_ownership\(\) \{/.test(template), '模板缺 restore_ownership()');
-  must(/chown -R "\$APP_UID:\$APP_GID"/.test(template), 'restore_ownership 没有 chown 回 App uid');
-  must(/find "\$RFS\/root" ! -user "\$APP_UID"/.test(template),
-    'restore_ownership 缺 find 短路判据（每次启动都无条件递归 chown 太贵）');
+  // 属主修复必须"只动属主不对的那些"，**不能** chown -R 整棵树。
+  //
+  // chown -R 会改写整棵 rootfs 的 ctime，而 dsh 前端有 dsh-client-hmr 在监听文件变化 ——
+  // 它看到 ctime 变了就重建插件树，重建期间 sessions 服务短暂不可用，React 卸载
+  // #root，整页白屏。真机表现：chroot 下每 40 秒白一次（正好是容器命令的节奏），
+  // 而 **proot 完全不白**（进程本来就是 App uid，判据为假、chown 从不执行）。
+  must(/find "\$RFS\/root" ! -user "\$APP_UID"/.test(template) ||
+    /find "\$d" ! -user "\$APP_UID"/.test(template),
+    'restore_ownership 缺「找出属主不对的文件」这一步');
+  must(/chown "\$APP_UID:\$APP_GID"/.test(template), 'restore_ownership 没有 chown 回 App uid');
+  // 只看**代码行**：注释里会提到 chown -R（解释为什么不能用它），那不算违规。
+  const templateCode = template.split('\n')
+    .filter((l) => !/^\s*#/.test(l))
+    .join('\n');
+  must(!/chown -R /.test(templateCode),
+    'restore_ownership 不能用 chown -R（会改写整棵树 ctime，触发 dsh-client-hmr 误重建 → 白屏）');
+  must(/-exec chown /.test(template),
+    'restore_ownership 应当用 find -exec 只 chown 命中的文件（命中 0 个就完全不调用）');
   // cleanup 里必须先卸载、再修属主；进入前也要修一次
   const cleanupBody = (template.match(/cleanup\(\) \{[\s\S]*?\n\}/) || [''])[0];
   must(/umount_all/.test(cleanupBody), 'cleanup() 没有卸载');
