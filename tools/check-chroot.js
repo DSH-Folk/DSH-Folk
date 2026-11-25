@@ -133,6 +133,29 @@ must(/PrivilegedShell\.tryEnter\(\)/.test(dsh) && /PrivilegedShell\.exec\(appCon
 must(/ContainerRuntime\.Chroot\(appContext\)\.available\(\)/.test(dsh),
   '属主修复没有先判断 root 通道是否就绪');
 
+// ---- 6. 注释里不能出现占位符字面量 ----
+//
+// Kotlin 侧用 String.replace 替换**全部**出现，所以注释里写一份"占位符清单"也会被
+// 替换掉。其中挂载命令行那个占位符展开成**多行**：第一行留在注释里，其余各行漏出来
+// 变成可执行代码，且位置在挂载点变量赋值之前 —— 于是一串挂载命令在变量为空时执行，
+// 退化成 `mkdir -p "/root/workspace/sdcard"`，在系统根目录上动手。
+//
+// 真机表现：`mkdir: '/root': Read-only file system` + 一串挂载失败，
+// 看起来像"挂载点算错"，实际是"前缀整个丢了"。这个坑踩过一次，钉死它。
+{
+  const lines = template.split('\n');
+  const offenders = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!/^\s*#/.test(line)) continue;          // 只看注释行
+    const m = line.match(/@[A-Z][A-Z0-9_]*@/g);
+    if (m) offenders.push(`第 ${i + 1} 行: ${line.trim().slice(0, 70)}`);
+  }
+  must(offenders.length === 0,
+    '模板注释里出现了占位符字面量（会被替换，多行内容会漏成可执行代码）:\n    ' +
+      offenders.join('\n    '));
+}
+
 if (errors.length) {
   console.error('check-chroot FAILED:');
   for (const e of errors) console.error('  ✗ ' + e);

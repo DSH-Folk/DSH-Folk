@@ -10,8 +10,18 @@
 #  - 放在 assets 里，本地与 CI 都能直接 `sh -n` 做语法自检（tools/check-chroot.js），
 #    不必等真机报那一行莫名其妙的行号。
 #
-# 占位符（Kotlin 侧必须逐个 replace，门禁会核对有没有漏）：
-#   @RFS@ @MNT@ @APP_UID@ @APP_GID@ @UNMOUNT_TARGETS@ @MOUNT_LINES@ @GUEST_ARGS@ @ENV@
+# ⚠ 本文件里**不能**把占位符以字面形式写进注释，包括"清单"式的一行。
+#
+# 踩过的坑：这里原本有一行列出全部占位符的注释，而 Kotlin 侧是 String.replace
+# （替换**全部**出现）—— 注释里那份也被替换了。其中「挂载命令行」那个占位符
+# 展开成**多行**：第一行还留在注释里，其余各行漏出来变成可执行代码，位置又在
+# 挂载点变量赋值**之前**。于是一串挂载命令在变量还是空的时候执行，退化成
+# `mkdir -p "/root/workspace/sdcard"` —— 真机日志里那句
+# `mkdir: '/root': Read-only file system` 就是这个。它看起来像"挂载点算错"，
+# 实际是"前缀整个丢了"，而且是在系统根目录上动手。
+#
+# 现在占位符清单由门禁（tools/check-chroot.js）从 Kotlin 侧的 replace 列表反查，
+# 模板里一个都不写。要加新占位符：改 Kotlin，门禁会告诉你模板缺哪一处。
 RFS=@RFS@
 MNT=@MNT@
 APP_UID=@APP_UID@
