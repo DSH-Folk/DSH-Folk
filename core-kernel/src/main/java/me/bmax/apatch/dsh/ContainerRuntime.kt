@@ -369,15 +369,21 @@ interface ContainerRuntime {
                     " MNT=" + File(dir, "mnt").absolutePath +
                     " dir=" + dir.absolutePath,
             )
-            // 把脚本开头（含 MNT=/RFS= 两行赋值）原样打进日志。
+            // 把脚本的**可执行部分**打进日志（跳过注释与空行）。
+            //
+            // 为什么跳过注释：第一版是 take(20)，结果模板抬头那段解释性注释就占满
+            // 了 20 行，真正要看的 RFS=/MNT= 赋值一个字都没打出来 —— 排查时等于没有。
+            // 注释对诊断没有价值，赋值行与挂载命令才有。
             //
             // 这一步是为了让「挂载点算错」这类问题一次定位：真机日志里
             // `mkdir: '/root': Read-only file system` 只有这一行线索，而它可能是
-            // "MNT 为空"、也可能是"guest 路径不对"，光看它分不出来。把生成结果打出来，
-            // 下次再遇到就不用猜。
+            // "MNT 为空"、也可能是"guest 路径不对"，光看它分不出来。
             KernelEnv.log(
-                "[chroot] launch.sh head:\n" +
-                    script.lineSequence().take(20).joinToString("\n"),
+                "[chroot] launch.sh (executable lines):\n" +
+                    script.lineSequence()
+                        .filter { it.isNotBlank() && !it.trimStart().startsWith("#") }
+                        .take(40)
+                        .joinToString("\n"),
             )
             launch.writeText(script, Charsets.UTF_8)
             launch.setExecutable(true, false)
