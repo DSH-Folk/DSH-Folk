@@ -347,7 +347,34 @@ interface ContainerRuntime {
             prepare()
             val dir = workDir(ctx)
             val rootfs = DshEnv.rootfs(ctx)
-            val launch = File(dir, "launch.sh")
+            // **每次调用一个独立文件名**，不能固定叫 launch.sh。
+            //
+            // 这里曾经是 File(dir, "launch.sh")，而 spawnArgv 是**会被并发调用**的：
+            // startServer 起 dsh web 的同时，attachmentDiag / 插件树检查 / 工作区扫描
+            // 都在各自的 IO 线程里起短命命令，它们走同一条路。
+            //
+            // 真机表现（chroot，15:30:59）：两条命令几乎同时进来，A 写完 launch.sh 还没
+            // 执行完，B 就把同一个文件覆盖成自己的内容 —— 于是 bash 读到的是两份脚本的
+            // 混合体，报出这种费解的错：
+            //   /bin/bash: -c: line 1: syntax error near unexpected token ')'
+            //   /bin/bash: -c: line 1: `df -h /root 2adlink -f "$(command -v dsh)" ...`
+            // 前半截来自附件体检命令，后半截来自 dsh web 启动命令，中间整段丢失。
+            // 而日志里只看到"服务进程已退出"，完全指不到这里。
+            //
+            // 用 nanoTime + 随机后缀：同一纳秒内撞名在实际中不会发生，加随机更保险。
+            // 文件留在同一目录（脚本里 ${0%/*} 取的就是它，container-boot.log 也在那），
+            // 不删：体积很小，且下次启动时新文件会覆盖同名旧文件之外的部分 ——
+            // 排障时能翻到上一次真正跑的那份脚本，比只有一份更有用。
+            val launch = File(dir, "launch-" + System.nanoTime() + "-" + (0..999).random() + ".sh")
+            // 清掉上一轮留下的脚本与 boot 日志，只留最近 20 组 —— 每次启动都会新增两个
+            // 文件（.sh 与 .boot.log），不清理会无限累积。留几个是为了能翻上一次跑的脚本。
+            runCatching {
+                (dir.listFiles() ?: emptyArray())
+                    .filter { it.isFile && (it.name.startsWith("launch-") || it.name.startsWith("launch.sh")) }
+                    .sortedByDescending { it.lastModified() }
+                    .drop(40)
+                    .forEach { it.delete() }
+            }
             // guest argv **逐项**传下去：绝不在这里拼成一条命令字符串（拼串就得再 quote 一次，
             // 引号配对与 argv 边界都会失真）。
             //

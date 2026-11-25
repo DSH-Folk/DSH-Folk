@@ -422,14 +422,25 @@ suspend fun getBugreportFile(context: Context, window: LogWindow = LogWindow.All
         //
         // 真机上的表现正是"前两条都是空的、而容器里其实报过错" —— 这一份是那种情况的
         // 唯一证据来源。
-        val containerBootSrc = File(me.bmax.apatch.dsh.ContainerRuntime.Chroot.workDir(apApp), "container-boot.log")
+        // 脚本每次调用都是唯一文件名（见 Chroot.spawnArgv），所以 .boot.log 也是多个。
+        // 取**最新修改的几个**：真正失败的那次往往就是最后写的，而历史那些留着是为了
+        // 排障时能翻「上一次跑的脚本长什么样」。
         val containerBootLog = File(bugreportDir, "container-boot.log")
         runCatching {
-            if (containerBootSrc.isFile) {
-                containerBootLog.writeText(containerBootSrc.readText().takeLast(200_000))
-            } else {
+            val dir = me.bmax.apatch.dsh.ContainerRuntime.Chroot.workDir(apApp)
+            val boots = (dir.listFiles() ?: emptyArray())
+                .filter { it.isFile && it.name.endsWith(".boot.log") }
+                .sortedByDescending { it.lastModified() }
+            if (boots.isEmpty()) {
                 containerBootLog.writeText("")
-                notes += "container-boot.log 不存在（运行时不是 chroot，或启动脚本还没跑到那一行）"
+                notes += "没有 *.boot.log（运行时不是 chroot，或启动脚本还没跑到 tee 那一行）"
+            } else {
+                containerBootLog.writeText(
+                    boots.take(5).joinToString("\n") { f ->
+                        "===== ${f.name}（${f.length()} 字节）=====\n" +
+                            f.readText().takeLast(100_000)
+                    },
+                )
             }
         }.onFailure { notes += "容器启动日志采集失败: ${it.message}" }
         // 走统一的脱敏入口（与 dsh.log / dsh-home-logs.txt 同一套），

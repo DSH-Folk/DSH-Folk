@@ -127,7 +127,9 @@ set -- @GUEST_ARGS@
 # 落盘这份与管道无关，无论 su 怎么处理 fd，容器里真正打印的东西都在这里。
 # 路径在 rootfs 之外（$MNT 挂的是 rootfs，直接写 $MNT 会落到容器里），
 # 所以用启动脚本自己所在目录的上一级 —— 也就是 App 的 files/chroot/。
-BOOTLOG="${0%/*}/container-boot.log"
+# 文件名跟着脚本走（脚本本身已经每次唯一），否则并发的两条命令会互相清空对方的日志 ——
+# 与 launch.sh 固定文件名那次的竞态是同一类问题。
+BOOTLOG="${0%.sh}.boot.log"
 : > "$BOOTLOG" 2>/dev/null
 
 chroot "$MNT" /usr/bin/env -i @ENV@ "$@" 2>&1 | tee -a "$BOOTLOG"
