@@ -388,30 +388,6 @@ interface ContainerRuntime {
                 )
                 return null
             }
-            // 把三个关键值打进 dsh.log：挂载失败时第一件事就是确认它们没被替换成空。
-            // 真机反馈的 `mkdir: '/root': Read-only file system` 正是"$MNT 为空"的表现，
-            // 而当时没有任何日志能证明这一点，只能靠猜。
-            KernelEnv.log(
-                "[chroot] script vars: RFS=" + rootfs.absolutePath +
-                    " MNT=" + File(dir, "mnt").absolutePath +
-                    " dir=" + dir.absolutePath,
-            )
-            // 把脚本的**可执行部分**打进日志（跳过注释与空行）。
-            //
-            // 为什么跳过注释：第一版是 take(20)，结果模板抬头那段解释性注释就占满
-            // 了 20 行，真正要看的 RFS=/MNT= 赋值一个字都没打出来 —— 排查时等于没有。
-            // 注释对诊断没有价值，赋值行与挂载命令才有。
-            //
-            // 这一步是为了让「挂载点算错」这类问题一次定位：真机日志里
-            // `mkdir: '/root': Read-only file system` 只有这一行线索，而它可能是
-            // "MNT 为空"、也可能是"guest 路径不对"，光看它分不出来。
-            KernelEnv.log(
-                "[chroot] launch.sh (executable lines):\n" +
-                    script.lineSequence()
-                        .filter { it.isNotBlank() && !it.trimStart().startsWith("#") }
-                        .take(40)
-                        .joinToString("\n"),
-            )
             launch.writeText(script, Charsets.UTF_8)
             launch.setExecutable(true, false)
             // 真机兜底：脚本写错一个引号，`su -c sh launch.sh` 只会打印一行
