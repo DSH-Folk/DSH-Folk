@@ -414,6 +414,28 @@ suspend fun getBugreportFile(context: Context, window: LogWindow = LogWindow.All
         // 真机反馈：chroot 明明起来了（日志里写着 "运行时: chroot（真 root）"），
         // 两秒后却"服务进程已退出"，而归档里**一个字的 chroot 报错都没有** ——
         // 只能靠猜。这一份就是给那种情况留的证据。
+        // chroot 容器内进程的**原始输出**（launch.sh 用 tee 落的那份）。
+        //
+        // 这一份与上面两条走的是完全不同的采集路径：不经 ProcessBuilder 的管道，
+        // 也不经 LogStore，而是容器里的 shell 自己写文件。所以即使 su 把 fd 搞乱了、
+        // 或者进程被杀导致缓冲区丢失，只要容器里打印过，这里就有。
+        //
+        // 真机上的表现正是"前两条都是空的、而容器里其实报过错" —— 这一份是那种情况的
+        // 唯一证据来源。
+        val containerBootSrc = File(me.bmax.apatch.dsh.ContainerRuntime.Chroot.workDir(apApp), "container-boot.log")
+        val containerBootLog = File(bugreportDir, "container-boot.log")
+        runCatching {
+            if (containerBootSrc.isFile) {
+                containerBootLog.writeText(containerBootSrc.readText().takeLast(200_000))
+            } else {
+                containerBootLog.writeText("")
+                notes += "container-boot.log 不存在（运行时不是 chroot，或启动脚本还没跑到那一行）"
+            }
+        }.onFailure { notes += "容器启动日志采集失败: ${it.message}" }
+        // 走统一的脱敏入口（与 dsh.log / dsh-home-logs.txt 同一套），
+        // 不能自己写 redact() —— 容器里打印的东西同样可能带凭据。
+        redactInPlace(containerBootLog, notes)
+
         for ((label, file) in listOf(
             "dsh-web.log" to me.bmax.apatch.dsh.DshEnv.serverLog(apApp),
             "dsh-web.prev.log" to me.bmax.apatch.dsh.DshEnv.serverLogPrev(apApp),

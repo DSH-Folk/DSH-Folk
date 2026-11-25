@@ -118,12 +118,21 @@ set -- @GUEST_ARGS@
 
 # env -i 起干净环境，再逐个喂我们这份，最后把位置参数摊开
 #
-# 把退出码打出来：宿主只看到"进程退出了"，看不到是 chroot 本身失败、还是容器里的
-# 命令失败、还是信号。真机上 chroot 起来两秒就退出、而日志里一个字的报错都没有，
-# 就是因为这一层完全静默。
-chroot "$MNT" /usr/bin/env -i @ENV@ "$@"
-RC=$?
+# ## 为什么要把容器输出再 tee 一份到文件
+#
+# 宿主通过 ProcessBuilder 读这个进程的 stdout，但**经过 su 之后那条管道不可靠**：
+# 真机上 chroot 明明起来了（容器内的探测命令都跑通了），而 dsh web 的输出一个字都
+# 没到宿主的日志里，进程却已经退出 —— 只能看到"服务进程已退出"，看不到为什么。
+#
+# 落盘这份与管道无关，无论 su 怎么处理 fd，容器里真正打印的东西都在这里。
+# 路径在 rootfs 之外（$MNT 挂的是 rootfs，直接写 $MNT 会落到容器里），
+# 所以用启动脚本自己所在目录的上一级 —— 也就是 App 的 files/chroot/。
+BOOTLOG="${0%/*}/container-boot.log"
+: > "$BOOTLOG" 2>/dev/null
+
+chroot "$MNT" /usr/bin/env -i @ENV@ "$@" 2>&1 | tee -a "$BOOTLOG"
+RC=${PIPESTATUS[0]:-$?}
 if [ "$RC" != 0 ]; then
-  echo "[DSH-Folk] 容器命令退出码 $RC"
+  echo "[DSH-Folk] 容器命令退出码 $RC" | tee -a "$BOOTLOG"
 fi
 exit $RC
