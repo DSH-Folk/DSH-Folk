@@ -118,8 +118,17 @@ class DshHomeUiState internal constructor(
     private val onAskWebUi: () -> Unit,
 ) {
     val isRunning: Boolean get() = phase == DshPhase.RUNNING
+    /**
+     * 是否处于"用户已经点了按钮、正在等"的阶段。
+     *
+     * 必须包含 [DshPhase.PREPARING] —— 那是点下启动后、真正拉起进程前的那 1–5 秒
+     * （打补丁、刷 CLI、修属主）。漏掉它的话，界面在这段时间会落回默认的「▶ 启动」，
+     * 用户看到按钮又变回可点状态，以为没点上，于是反复点 —— 而每次点击都在启动锁上排队，
+     * 反而更慢。
+     */
     val isBusy: Boolean
-        get() = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING || phase == DshPhase.STARTING
+        get() = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING ||
+            phase == DshPhase.PREPARING || phase == DshPhase.STARTING
     val isError: Boolean get() = phase == DshPhase.ERROR
 
     /** 运行方式显示名（proot / proroot）。 */

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.bmax.apatch.BuildConfig
 import me.bmax.apatch.dsh.DshRuntime
+import me.bmax.apatch.dsh.DshSource
 import org.json.JSONObject
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
@@ -283,10 +284,10 @@ object ExtensionMarket {
     // ────────────────────── 以下都是阻塞实现（调用方保证已在 IO 线程） ──────────────────────
 
     /** 拉目录 + 解析。同步版：[fetchIndex] 负责线程与异常边界，这里只管「做对」。 */
-    private fun fetchIndexBlocking(rawUrl: String): List<MarketEntry> {
-        val url = parseHttpsUrl(rawUrl, "市场目录地址")
-        return parseIndex(httpGetText(url))
-    }
+    private fun fetchIndexBlocking(rawUrl: String): List<MarketEntry> =
+        // 走镜像回退：raw.githubusercontent 在国内直连经常不通，
+        // 而宿主其它地方早就有镜像池，市场不该是唯一漏网的。
+        parseIndex(withMirrorFallback(rawUrl) { url -> httpGetText(url) })
 
     /**
      * 链接安装的阻塞实现：下载到缓存 → 解压 → 校验 manifest → 交给 registry。
@@ -304,12 +305,14 @@ object ExtensionMarket {
      * 不调 installFromDir（那一步才会真正落到扩展目录并登记）。
      */
     private fun previewFromUrlBlocking(ctx: Context, rawUrl: String): ExtensionManifest {
-        val url = parseHttpsUrl(rawUrl, "扩展下载地址")
+        // 先校验原址合法（只接受 https）。真正的连接由 withMirrorFallback 逐条尝试，
+        // 但原址不合法就没必要开始了 —— 用户贴错链接时该立刻告诉他。
+        parseHttpsUrl(rawUrl, "扩展下载地址")
         val work = File(ctx.cacheDir, "ext-preview-" + System.currentTimeMillis())
         if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
         try {
             val zip = File(work, "extension.zip")
-            downloadTo(url, zip, expectedSha256 = "")
+            withMirrorFallback(rawUrl) { u -> downloadTo(u, zip, expectedSha256 = "") }
             return peekManifest(zip, work)
         } finally {
             work.deleteRecursively()
@@ -363,12 +366,14 @@ object ExtensionMarket {
     }
 
     private fun installFromUrlBlocking(ctx: Context, rawUrl: String): ExtensionManifest {
-        val url = parseHttpsUrl(rawUrl, "扩展下载地址")
+        parseHttpsUrl(rawUrl, "扩展下载地址")
         val work = File(ctx.cacheDir, "ext-link-" + System.currentTimeMillis())
         if (!work.mkdirs()) throw MarketFailure("无法创建临时目录，请检查存储空间")
         try {
             val zip = File(work, "extension.zip")
-            downloadTo(url, zip, expectedSha256 = "")
+            // 用户贴的 github 链接同样走镜像回退：这条路径没有 sha256（我们事先不知道摘要），
+            // 但镜像只能原样转发，不改变"内容来自哪个 Release"这件事。
+            withMirrorFallback(rawUrl) { u -> downloadTo(u, zip, expectedSha256 = "") }
             return installFromZip(ctx, zip, work)
         } finally {
             // 无论成败都清掉：缓存里留一堆半截 zip 只会占地方
@@ -469,7 +474,8 @@ object ExtensionMarket {
         if (!SHA256_RE.matches(entry.sha256.trim().lowercase())) {
             throw MarketFailure("市场条目缺少合法的 sha256（应为 64 位十六进制），拒绝安装")
         }
-        val url = parseHttpsUrl(entry.downloadUrl, "扩展下载地址")
+        // 原址合法性先验：不合法就没必要进候选链（用户看到的是"链接不对"而不是"连不上"）。
+        parseHttpsUrl(entry.downloadUrl, "扩展下载地址")
 
         // 2) 临时目录 cacheDir/extension_download/<id>/。id 已由 isValidId 保证不含分隔符
         //    与 ..，所以这里拼路径是安全的；目录名带 id 也便于把残留对上号。
@@ -481,7 +487,11 @@ object ExtensionMarket {
                 throw MarketFailure("安装失败：无法创建临时目录（缓存分区不可写）")
             }
             val archive = File(tempRoot, "package.dshx")
-            downloadTo(url, archive, entry.sha256.trim())
+            // 走镜像回退。sha256 由 downloadTo 边下边算并强校验，
+            // 所以从镜像拿包不会引入篡改风险 —— 内容对不上就直接被拒。
+            withMirrorFallback(entry.downloadUrl) { u ->
+                downloadTo(u, archive, entry.sha256.trim())
+            }
 
             // 解压进单独的子目录：安装包本身（package.dshx）不该被 installFromDir 一起复制进扩展目录
             val unpacked = File(tempRoot, "unpacked")
@@ -591,6 +601,56 @@ object ExtensionMarket {
             if (cap.isNotEmpty()) out.add(cap)
         }
         return out
+    }
+
+    /**
+     * 按镜像候选链依次尝试，第一个成功的胜出。
+     *
+     * ## 为什么需要它
+     *
+     * 这里原来直接裸连 `github.com`。国内网络下直连经常 10 秒超时，用户看到的是
+     * 「连不上扩展下载地址: failed to connect to github.com... after 10000ms」——
+     * 而宿主别处（运行时下载、插件截图、APK 更新）早就有一套 gh-proxy 镜像回退，
+     * 只有扩展市场漏了。
+     *
+     * ## 为什么回退是安全的
+     *
+     * `.dshx` 有**强制 sha256 校验**（见 [downloadTo] 边下边算摘要）。镜像只能提供
+     * 与摘要一致的内容，否则直接被拒 —— 所以从镜像拿包不会引入篡改风险。
+     * 目录（index.json）没有摘要，但它的作用只是列出条目，真正的完整性由每个包的
+     * sha256 保证。
+     *
+     * ## 失败语义
+     *
+     * 全部候选都失败时，抛**最后一个**错误。那条通常最有信息量（往往是直连的
+     * 超时，而用户最能理解）。
+     */
+    private fun <T> withMirrorFallback(rawUrl: String, action: (URL) -> T): T {
+        val candidates = runCatching { DshSource.proxyCandidates(rawUrl) }
+            .getOrElse { listOf(rawUrl) }
+            .ifEmpty { listOf(rawUrl) }
+
+        var lastError: Throwable? = null
+        for ((index, candidate) in candidates.withIndex()) {
+            val url = runCatching { parseHttpsUrl(candidate, "市场地址") }.getOrElse { e ->
+                lastError = e
+                continue
+            }
+            try {
+                return action(url)
+            } catch (e: Throwable) {
+                lastError = e
+                // 还有候选就继续：单条线路失败不该让整个安装失败。
+                // 记一行日志，排查时能看出"是第几条失败的"。
+                if (index < candidates.size - 1) {
+                    ExtLog.log(
+                        "市场线路失败（第 " + (index + 1) + "/" + candidates.size + " 条），换下一条：" +
+                            (e.message ?: e.javaClass.simpleName),
+                    )
+                }
+            }
+        }
+        throw lastError ?: MarketFailure("没有可用的下载线路")
     }
 
     /** GET 一段文本（目录）。超时与 UA 统一在 openConnection 里设，这里只管状态码与读取上限。 */

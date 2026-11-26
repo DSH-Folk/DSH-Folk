@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -412,7 +413,9 @@ private fun DshHeroCard(
     onRestartRequested: () -> Unit,
 ) {
     val running = phase == DshPhase.RUNNING
-    val busy = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING || phase == DshPhase.STARTING
+    // 含 PREPARING：见 DshHomeUiState.isBusy 的注释（漏掉它按钮会落回「▶ 启动」）。
+    val busy = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING ||
+        phase == DshPhase.PREPARING || phase == DshPhase.STARTING
     val error = phase == DshPhase.ERROR
 
     // 运行中呼吸动画，与 FolkPatch HeroStatusCard 一致的观感
@@ -524,6 +527,12 @@ private fun DshHeroCard(
                         // 自己点的是"开始跑"，实际触发了一次大下载，流量和等待都不可预期。
                         // 拆开之后：没装时按钮如实说「安装」，且点它有下载前告知；
                         // 装完不自动启动，由弹窗问一句。
+                        // 文案必须跟着 phase 走，不能只靠 enabled 变灰。
+                        //
+                        // 以前 busy 只控制 enabled：准备/启动期间按钮变灰但**文案仍是「启动」**，
+                        // 用户看不出系统在做什么，只觉得"点了没反应"。现在明确说"正在做什么"。
+                        val preparing = phase == DshPhase.PREPARING
+                        val starting = phase == DshPhase.STARTING
                         Button(
                             onClick = if (installed) onStart else onInstall,
                             enabled = !busy,
@@ -532,15 +541,30 @@ private fun DshHeroCard(
                                 contentColor = content,
                             ),
                         ) {
-                            Icon(
-                                if (installed) Icons.Outlined.PlayArrow else Icons.Outlined.Download,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
+                            if (preparing || starting) {
+                                // 进行中：转圈 + 阶段文案。图标换成进度指示，
+                                // 避免"▶"和"正在启动"同时出现造成的语义矛盾。
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = content,
+                                )
+                            } else {
+                                Icon(
+                                    if (installed) Icons.Outlined.PlayArrow else Icons.Outlined.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(
-                                    if (installed) CoreR.string.dsh_start else CoreR.string.dsh_install
+                                    when {
+                                        preparing -> CoreR.string.dsh_phase_preparing
+                                        starting -> CoreR.string.dsh_phase_starting
+                                        installed -> CoreR.string.dsh_start
+                                        else -> CoreR.string.dsh_install
+                                    }
                                 )
                             )
                         }
