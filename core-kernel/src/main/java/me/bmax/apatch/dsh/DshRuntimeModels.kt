@@ -39,7 +39,28 @@ import org.json.JSONObject
  * 只是原先都堆在同一个文件里 —— 同包移动，所有 import 与调用点零改动。
  */
 
-enum class DshPhase { NOT_READY, DOWNLOADING, EXTRACTING, STARTING, RUNNING, ERROR }
+enum class DshPhase {
+    NOT_READY,
+    DOWNLOADING,
+    EXTRACTING,
+
+    /**
+     * 已点「启动」，正在做**起进程之前**的准备工作：打补丁、刷 CLI、修 rootfs 属主。
+     *
+     * ## 为什么要跟 [STARTING] 分开
+     *
+     * 这些准备工作是同步跑的，真机上要 1–5 秒。以前它们全部做完才第一次设 phase，
+     * 于是用户点完按钮后界面**一点反应都没有** —— 看起来像卡死，很多人会连点几次
+     * （每次都在锁上排队，反而更慢）。
+     *
+     * 现在点下去立刻进 PREPARING，用户马上看到「准备中…」，准备完再进 STARTING。
+     */
+    PREPARING,
+
+    STARTING,
+    RUNNING,
+    ERROR,
+}
 
 /** 端口冲突时用户的选择。 */
 enum class PortConflictAction { AUTO, MANUAL, FORCE }

@@ -260,6 +260,7 @@ fun dshPhaseLabelOf(phase: DshPhase, installed: Boolean): String = stringResourc
             if (installed) CoreR.string.dsh_phase_stopped else CoreR.string.dsh_phase_not_ready
         DshPhase.DOWNLOADING -> CoreR.string.dsh_phase_downloading
         DshPhase.EXTRACTING -> CoreR.string.dsh_phase_extracting
+        DshPhase.PREPARING -> CoreR.string.dsh_phase_preparing
         DshPhase.STARTING -> CoreR.string.dsh_phase_starting
         DshPhase.RUNNING -> CoreR.string.dsh_phase_running
         DshPhase.ERROR -> CoreR.string.dsh_phase_error

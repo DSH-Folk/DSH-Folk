@@ -129,6 +129,27 @@ object DshLogging {
         for (f in appLogFiles()) LogStore.named(f).clear()
     }
 
+    /**
+     * 运行日志的**增量订阅者**（极简壳扩展用它做实时滚动日志）。
+     *
+     * 用 CopyOnWriteArrayList：订阅/退订发生在 UI 线程，而 appendLog 可能来自任意线程
+     * （容器输出、IO 协程）。CopyOnWrite 让遍历期间不用加锁，而订阅者的增删本来就很稀疏。
+     *
+     * 回调里抛异常**必须**吞掉并继续通知下一个：一个扩展写坏不该让日志系统本身崩，
+     * 更不该影响别的订阅者。
+     */
+    private val logListeners = java.util.concurrent.CopyOnWriteArrayList<(String) -> Unit>()
+
+    /**
+     * 订阅增量日志。返回取消订阅的函数（幂等）。
+     *
+     * 只发**新写入**的行，不回放历史 —— 需要历史请先调 [tailLog]。
+     */
+    fun observeLogs(onLine: (String) -> Unit): () -> Unit {
+        logListeners.add(onLine)
+        return { logListeners.remove(onLine) }
+    }
+
     fun appendLog(line: String) {
         if (K.appContextOrNull() != null) {
             LogStore.named(DshEnv.serverLog(K.appContext)).append(line)
@@ -138,6 +159,11 @@ object DshLogging {
             // （beta.238 的 shell 扩展不生效、dsh.log 里一条 [ext] 都没有，就是这么来的）。
             // 退到 logcat，至少 bugreport 的 logcat.txt 里还找得到。
             android.util.Log.i("DSH-Folk", line)
+        }
+        // 通知订阅者。放在两条落盘路径**之后**：先保证日志不丢，再谈实时展示。
+        // 遍历期间有人退订也安全（CopyOnWriteArrayList 的迭代器是快照）。
+        for (l in logListeners) {
+            runCatching { l(line) }
         }
     }
 

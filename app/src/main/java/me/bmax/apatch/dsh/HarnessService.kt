@@ -104,7 +104,9 @@ class HarnessService : Service() {
             CoreR.string.dsh_notif_running,
             "http://127.0.0.1:${DshRuntime.state.value.port}",
         )
-        DshPhase.STARTING -> appString(CoreR.string.dsh_notif_starting)
+        // 准备中与启动中在通知栏上用同一句「正在启动」：用户不需要区分这两个内部阶段，
+        // 界面上的「准备中…」已经给足反馈了。
+        DshPhase.PREPARING, DshPhase.STARTING -> appString(CoreR.string.dsh_notif_starting)
         DshPhase.DOWNLOADING, DshPhase.EXTRACTING -> appString(CoreR.string.dsh_notif_installing)
         DshPhase.ERROR -> appString(CoreR.string.dsh_notif_error)
         DshPhase.NOT_READY -> appString(CoreR.string.dsh_notif_stopped)

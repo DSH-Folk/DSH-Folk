@@ -157,6 +157,10 @@ object SeamRegistry {
         override fun start(context: Context) = false
         override fun hold(context: Context) { }
         override fun log(message: String) { }
+        // 没有运行时就没有日志：给空列表与一个什么都不做的取消函数。
+        // 这里**不能**抛 —— 扩展在壳里画启动屏时第一帧就会调它，抛异常等于整页崩掉。
+        override fun recentLogs(limit: Int): List<String> = emptyList()
+        override fun observeLogs(onLine: (String) -> Unit): () -> Unit = { }
     }
 
     private object UnavailableEvent : EventSeam {

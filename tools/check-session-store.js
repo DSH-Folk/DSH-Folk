@@ -27,11 +27,15 @@ ok(/!importOkNow \|\| !publishOk \|\| !materializeOk/.test(runtime) && /持久�
 ok(/out\.contains\("await rename\(tmp, finalPath\);"\)/.test(runtime),
   '幂等判定用「效果」而不是 marker（老版本只打过 migration 也能补上 create）');
 ok(/private fun sessionStoreDeepDiag\(\)/.test(runtime), '有 sessionStoreDeepDiag() 体检（两层：sessions/<cwd>/<id>/file）');
-ok(/^        sessionStoreDeepDiag\(\)$/m.test(runtime), 'startServer 里调用体检');
+// 体检要起一个 node 进程遍历整棵 sessions 树，属于排查工具 —— 只在诊断模式下跑。
+// 断言的是「被 diagnosticMode() 包住」，不是「无条件调用」：后者正是本次要清掉的热路径开销。
+ok(/if \(diagnosticMode\(\)\) \{\s*\n\s*sessionStoreDeepDiag\(\)/m.test(runtime),
+  'startServer 里在诊断模式下调用体检（默认不跑，避免每次启动起 node 扫盘）');
 ok(/danglingRemoved/.test(runtime) && /locks=/.test(runtime),
   '体检统计文件/锁/符号链接/悬空项（可判定是链接问题还是根本没有文件）');
-ok(/private fun patchAgentTeamDiag\(\)/.test(runtime) && /^        patchAgentTeamDiag\(\)$/m.test(runtime),
-  '有并调用 Agent Teams 诊断补丁');
+ok(/private fun patchAgentTeamDiag\(\)/.test(runtime) &&
+  /if \(diagnosticMode\(\)\) \{\s*\n\s*patchAgentTeamDiag\(\)/m.test(runtime),
+  '有 Agent Teams 诊断补丁，且在诊断模式下调用（它要往容器里打代码，不该每次启动都跑）');
 ok(/\[DSH-Folk team\] spawn failed/.test(runtime), '失败时把 AggregateError 的成员完整打进日志');
 // 新建会话走的是 materializePosix（不是 migration），必须单独覆盖
 ok(/^\s*out = out\.replace\("\\t\\t\\tawait link\(tmp, finalPath\);", "\\t\\t\\tawait rename\(tmp, finalPath\);"\)$/m.test(runtime),

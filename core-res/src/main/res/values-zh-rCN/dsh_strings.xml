@@ -2325,4 +2325,5 @@
     <string name="dsh_mode_chroot_verify_hint">检测到 su，但还没确认能拿到 root 权限。到权限通道页点一次「重新探测」即可（会弹一次系统授权框）</string>
     <string name="dsh_userscripts_builtin_blank_guard">白屏自愈</string>
     <string name="dsh_userscripts_builtin_blank_guard_summary">页面整片空白超过几秒时自动刷新一次。dsh 前端在插件树重建期间会让会话服务短暂不可用，界面被卸载后只有刷新才能恢复。</string>
+    <string name="dsh_phase_preparing">准备中…</string>
 </resources>

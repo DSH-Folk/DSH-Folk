@@ -68,7 +68,10 @@ for (const [name, text] of [['values/dsh_strings.xml', en], ['values-zh-rCN/dsh_
 // 6. 附件落盘补丁（真机 ATTACHMENT_WRITE_FAILED：硬链接/目录 fsync 在 Android 上被拒）
 {
   ok(/private fun patchAttachmentStore\(\)/.test(runtime), '有 patchAttachmentStore()');
-  ok(/^        restoreAttachmentStore\(\)$/m.test(runtime), '先在 startServer 里把历史补丁还原（状态确定）');
+  // A/B 对照实验已结束（结论固定走 v3），还原那一步每次启动白读一遍所有相关文件，
+  // 已删除。断言反过来：**不能**再出现无条件调用。
+  ok(!/^        restoreAttachmentStore\(\)$/m.test(runtime),
+    'startServer 不再调用 restoreAttachmentStore()（A/B 对照实验已结束，直接打 v3）');
   ok(/^        patchAttachmentStoreV3\(\)$/m.test(runtime), '还原之后再打 v3（rename 发布）');
   ok(/private fun patchAttachmentStoreV3\(\)/.test(runtime), '有 patchAttachmentStoreV3()');
   ok(/"await link\(staged\.path, target\);"/.test(runtime) &&
@@ -80,14 +83,12 @@ for (const [name, text] of [['values/dsh_strings.xml', en], ['values-zh-rCN/dsh_
   ok(/await unlink\(target\); \} catch \(e\)/.test(runtime),
     '复制别名前先删掉可能存在的悬空链接（历史失败留下的，copyFile 会穿过它失败）');
   ok(/c1 != 1 \|\| c2 != 1 \|\| c3 != 1/.test(runtime), '四替换做计数校验：不是恰好各 1 次就不写回');
-  ok(/private fun restoreAttachmentStore\(\)/.test(runtime), '有 restoreAttachmentStore()：把 v1/v2 补丁逐条撤回');
-  ok(/out\.contains\("DSH-Folk"\) \|\| out\.contains\("linkOrCopy"\)/.test(runtime) &&
-    /还原不完整，未写回/.test(runtime), '还原后残留标记就不写回（宁可不动，也不写坏依赖）');
-  ok(/replace\("await linkOrCopy\(source, target\);", "await link\(source, target\);"\)/.test(runtime) &&
-    /replace\("await linkOrCopy\(staged\.path, target\);", "await link\(staged\.path, target\);"\)/.test(runtime),
-    'v1 的两处 linkOrCopy 也要还原（否则 A/B 对照不干净）');
-  ok(/replace\("await handle\.sync\(\)\.catch\(\(\) => \{\}\);", "await handle\.sync\(\);"\)/.test(runtime),
-    '目录 fsync 的容错也要还原');
+  // 还原函数本身也已删除：留着它就是留一段没人调用的死代码，而且它内含的
+  // 「逐条撤回」逻辑针对的是 v1/v2，那两个版本早已不在任何在用的运行时里。
+  ok(!/private fun restoreAttachmentStore\(\)/.test(runtime),
+    'restoreAttachmentStore() 已删除（A/B 对照实验的临时产物，不该长期留在启动路径上）');
+  // 这两条原本断言的是 restoreAttachmentStore() 内部「逐条撤回 v1/v2」的细节。
+  // 那个函数已删除，这些断言失去对象 —— 一并去掉，而不是留着测一段不存在的代码。
   ok(/dsh-attachment-local\/lib\/index\.js/.test(runtime), '补丁打在上游 dsh-attachment-local 上');
   ok(/"async function publishStagedObject\(root, target, staged\) \{"/.test(runtime) &&
     /"async function publishImmutableAlias\(root, source, target, sha256\) \{"/.test(runtime),

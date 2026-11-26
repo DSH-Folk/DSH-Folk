@@ -62,6 +62,26 @@ internal class HostRuntimeSeam : RuntimeSeam {
         DshRuntime.attach(context)
     }
 
+    override fun recentLogs(limit: Int): List<String> =
+        // tailLog 返回的是多行字符串（最后 limit 行）。拆成列表交给扩展 ——
+        // 给它一整块字符串的话，每个扩展都要自己再 split 一次。
+        runCatching { DshRuntime.tailLog(limit).lineSequence().filter { it.isNotBlank() }.toList() }
+            .getOrDefault(emptyList())
+
+    override fun observeLogs(onLine: (String) -> Unit): () -> Unit {
+        // 直接转发宿主的订阅。**不做线程切换**：DshLogging.observeLogs 在写入线程上回调，
+        // 而写入可能来自容器输出线程。这里切到主线程 —— 扩展的回调多半直接改 Compose
+        // state，跨线程改会抛 IllegalStateException。
+        val unsubscribe = DshRuntime.observeLogs { line ->
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                runCatching { onLine(line) }
+            } else {
+                main.post { runCatching { onLine(line) } }
+            }
+        }
+        return unsubscribe
+    }
+
     // DshRuntime.awaitRunning 是 suspend（它内部真的在挂起等待运行时起来），
     // 而 seam 接口是同步的 —— 调用方（工作流节点）本来就在自己的一轮同步逻辑里，
     // 给它 suspend 会逼整条链改成协程。这里 runBlocking 桥一下：

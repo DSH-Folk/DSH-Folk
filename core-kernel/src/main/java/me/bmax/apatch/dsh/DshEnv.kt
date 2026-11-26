@@ -286,6 +286,14 @@ object DshEnv {
     const val KEY_AUTOSTART_CONTAINER = "dsh_autostart_container"
 
     /**
+     * 诊断模式（见 `DshRuntime.diagnosticMode`）。
+     *
+     * 打开后会额外跑会话目录深扫与 Agent Teams 诊断 —— 两者都要起容器进程，慢，
+     * 但能在下一次同类故障时直接把结论写进日志。默认关。
+     */
+    const val KEY_DIAGNOSTIC_MODE = "dsh_diagnostic_mode"
+
+    /**
      * 打开 App 后自动启动 DSH 服务（默认**关**）。
      *
      * 与 [KEY_AUTOSTART_MODE] 是两件事：那是**设备开机**后自启，这是**用户打开应用**时
