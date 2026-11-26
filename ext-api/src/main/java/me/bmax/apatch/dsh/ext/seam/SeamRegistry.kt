@@ -213,6 +213,16 @@ object SeamRegistry {
         override fun openWebUi() {}
         override fun toast(message: String) {}
         override fun language() = "en"
+        // 没有 UI 宿主就没有悬浮窗能力：一律报"没权限"、show 返回 false。
+        // 这里**不能**抛 —— 扩展在 onLoad 里查权限是常见写法，抛异常等于扩展加载失败。
+        override fun hasOverlayPermission() = false
+        override fun openOverlaySettings() {}
+        override fun showGlobalOverlay(
+            ownerId: String,
+            content: androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
+        ) = false
+        override fun hideGlobalOverlay(ownerId: String) {}
+        override fun hideAllOverlaysOf(ownerId: String) {}
     }
 
     private object UnavailableThemeBackup : ThemeBackupSeam {

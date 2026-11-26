@@ -172,6 +172,29 @@ class APApplication : Application(), Thread.UncaughtExceptionHandler, ImageLoade
         // 太晚（那时首帧已经在 measure 了），会撞未初始化的 lateinit 直接崩。
         me.bmax.apatch.dsh.DshRuntime.init(this)
 
+        // 把运行时状态变化转成扩展事件（RUNTIME_STATE）。
+        //
+        // 用回调注入而不是让 core-kernel 直接调 HostEvents：:core-kernel 是被 :app
+        // 依赖的底层模块，反向引用会成环。setState 是状态的唯一写入口，挂在这里
+        // 就不会漏掉任何一种状态转换。
+        me.bmax.apatch.dsh.DshKernelState.setStateListener { st ->
+            me.bmax.apatch.dsh.ext.seam.HostEvents.runtimeState(
+                installed = st.installed,
+                running = st.phase == me.bmax.apatch.dsh.DshPhase.RUNNING,
+                installing = st.phase == me.bmax.apatch.dsh.DshPhase.DOWNLOADING ||
+                    st.phase == me.bmax.apatch.dsh.DshPhase.EXTRACTING,
+                progress = st.progress,
+                message = st.message,
+            )
+        }
+
+        // 主题变化也转给扩展（THEME_CHANGED）。只注册一次 observer，
+        // 靠 refreshTheme 这个唯一信号驱动，不必去每个改主题的地方插代码。
+        runCatching { me.bmax.apatch.ui.theme.installThemeEventBridge() }
+
+        // 全局悬浮窗托管：绑 Context 才能挂窗口。
+        me.bmax.apatch.dsh.ext.seam.GlobalOverlayHost.attach(this)
+
         // ② 加载「已启用且未被熔断」的扩展。bootstrap 自己吞异常：扩展系统坏掉也不能让 App 起不来。
         //
         // **必须排在 DshRuntime.init 之后**：DshRuntime.appendLog 只在本对象持有 appContext 时才

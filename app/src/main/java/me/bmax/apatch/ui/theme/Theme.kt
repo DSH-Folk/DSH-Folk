@@ -93,6 +93,44 @@ fun ColorScheme.toAmoled(): ColorScheme = copy(
 
 val refreshTheme = MutableLiveData(false)
 
+/**
+ * 主题变化的扩展广播。
+ *
+ * ## 为什么挂在 LiveData 的 observer 上
+ *
+ * `refreshTheme` 是主题刷新的**唯一**信号（导入主题、重置主题、跟随系统切换都会
+ * `postValue(true)`）。UI 侧已经靠它刷新，这里再挂一个 observer 就能把同一件事
+ * 转给扩展，不必去每个改主题的地方各插一行 —— 那种做法一定会漏。
+ *
+ * ## 为什么在文件顶层注册
+ *
+ * 这个文件在 :app 的 Application 启动路径上被加载，observer 只注册一次。
+ * 放在 Composable 里的话，每次重组都可能重复注册，越积越多。
+ */
+private val themeEventObserver = androidx.lifecycle.Observer<Boolean> { changed ->
+    if (changed == true) {
+        runCatching {
+            val dark = me.bmax.apatch.dsh.DshKernelState.ready &&
+                me.bmax.apatch.dsh.DshKernelState.appContext.resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+            val accent = if (me.bmax.apatch.dsh.DshKernelState.ready) {
+                me.bmax.apatch.dsh.DshKernelState.prefs()
+                    .getString("custom_color", "indigo").orEmpty()
+            } else {
+                "indigo"
+            }
+            me.bmax.apatch.dsh.ext.seam.HostEvents.themeChanged(dark, accent)
+        }
+    }
+}
+
+/** 由 Application 调用一次，把主题变化转给扩展。 */
+fun installThemeEventBridge() {
+    runCatching { refreshTheme.observeForever(themeEventObserver) }
+        .onFailure { android.util.Log.w("Theme", "主题事件桥注册失败：" + it.message) }
+}
+
 // Default dark ripple alpha (~10% pressed) is nearly invisible on near-black
 // surfaceContainer backgrounds, so boost it for clear press feedback at night
 private val DarkRippleAlpha = RippleAlpha(

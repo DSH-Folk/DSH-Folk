@@ -67,4 +67,22 @@ internal class HostUiSeam(private val ctx: Context) : UiSeam {
     override fun language(): String = runCatching {
         (AppCompatDelegate.getApplicationLocales()[0] ?: Locale.getDefault()).toLanguageTag()
     }.getOrDefault("en")
+
+    // ── 全局悬浮窗：全部转给 GlobalOverlayHost ──
+    //
+    // 为什么不在这个类里直接管窗口：ExtensionEngine 卸载扩展时也要摘窗口，而它
+    // 拿不到 UiSeam 实例（那是给扩展用的）。托管逻辑放独立 object，两边都能调。
+
+    override fun hasOverlayPermission(): Boolean = GlobalOverlayHost.hasPermission(ctx)
+
+    override fun openOverlaySettings() = GlobalOverlayHost.openSettings(ctx)
+
+    override fun showGlobalOverlay(
+        ownerId: String,
+        content: androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
+    ): Boolean = GlobalOverlayHost.show(ownerId, content)
+
+    override fun hideGlobalOverlay(ownerId: String) = GlobalOverlayHost.hide(ownerId)
+
+    override fun hideAllOverlaysOf(ownerId: String) = GlobalOverlayHost.hideAllOf(ownerId)
 }

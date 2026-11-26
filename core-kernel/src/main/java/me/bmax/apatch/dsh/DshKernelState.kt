@@ -56,6 +56,28 @@ object DshKernelState {
 
     fun setState(update: (DshState) -> DshState) {
         stateFlow.update(update)
+        // 广播给扩展。
+        //
+        // 放在这里而不是各调用点：`setState` 是**唯一**的状态写入口（全仓库 51 处写状态
+        // 都走它），在这里发就不会漏。散在各处发的话，新增一个状态转换点就少一次广播，
+        // 而漏掉的表现是"扩展偶尔收不到" —— 最难查的那种。
+        //
+        // core-kernel 不能依赖 :app 的 HostEvents（依赖方向相反），所以这里用回调注入：
+        // 宿主在 Application.onCreate 里把自己那份实现塞进来。
+        stateListener?.invoke(stateFlow.value)
+    }
+
+    /**
+     * 状态变化的旁路监听（宿主用它给扩展广播事件）。
+     *
+     * 为什么是可变回调而不是构造参数：core-kernel 是被 :app 依赖的底层模块，
+     * 它没法反向引用 :app 里的 HostEvents。用回调把依赖倒过来。
+     */
+    @Volatile
+    private var stateListener: ((DshState) -> Unit)? = null
+
+    fun setStateListener(listener: ((DshState) -> Unit)?) {
+        stateListener = listener
     }
 
     /**

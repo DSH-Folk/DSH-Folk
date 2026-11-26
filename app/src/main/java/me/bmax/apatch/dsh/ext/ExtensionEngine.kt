@@ -80,6 +80,10 @@ object ExtensionEngine {
             for (rec in records) {
                 val ext = ExtensionLoader.boot(ctx, rec) ?: continue
                 loaded[rec.id] = ext
+                // 广播"这个扩展被启用了"。
+                // 放在 boot 成功之后而不是循环开头：加载失败的扩展没有"启用"可言，
+                // 提前发会让订阅者以为它在跑。
+                me.bmax.apatch.dsh.ext.seam.HostEvents.extensionEnabled(rec.id)
             }
             ExtensionBootPipeline.markBootstrapped()
             ExtLog.info("已加载 " + loaded.size + " 个扩展")
@@ -102,6 +106,13 @@ object ExtensionEngine {
      */
     fun notifyContainerReady(ctx: Context) {
         if (!me.bmax.apatch.dsh.DshEnv.isRuntimeInstalled(ctx)) return
+        // 先广播事件，再逐个回调扩展。
+        //
+        // 顺序：事件是"发生了"的通知（订阅者可能不止扩展），回调是"轮到你了"。
+        // 广播在前，订阅者就能在扩展自己的 onContainerReady 之前先知道容器已就绪。
+        me.bmax.apatch.dsh.ext.seam.HostEvents.containerReady(
+            me.bmax.apatch.dsh.DshEnv.rootfs(ctx).absolutePath,
+        )
         for ((id, ext) in loaded) {
             runCatching {
                 ext.onContainerReady(ExtensionHostImpl(id, ctx.applicationContext, capsOf(ctx, id)))
@@ -132,9 +143,14 @@ object ExtensionEngine {
             ExtensionHookRegistry.unregisterAll(id)
             ExtensionUiRegistry.unregisterAll(id)
             ExtensionBootPipeline.unregisterAll(id)
+            // 摘掉这个扩展挂的全局悬浮窗。
+            // 不摘的话，扩展卸载后窗口还留在屏幕上，而它已经没有任何代码在跑 ——
+            // 用户点它、拖它都没有反应，只能重启手机。这类"僵尸悬浮窗"是最难解释的故障。
+            me.bmax.apatch.dsh.ext.seam.GlobalOverlayHost.hideAllOf(id)
             // 容器命令按落盘的归属标记收回：进程可能重启过，内存里没有记录，
             // 只有标记文件能告诉宿主"这些命令是它装的"。
             AppExtensionContainer.removeAllOf(ctx, id)
+            me.bmax.apatch.dsh.ext.seam.HostEvents.extensionDisabled(id)
             ExtLog.info("已卸载：" + id)
         }
     }
