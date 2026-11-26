@@ -66,11 +66,27 @@ internal fun rememberDshShellHost(
         object : ShellHost {
             override fun navigate(tabId: String) {
                 val dest = BottomBarDestination.entries.firstOrNull { tabIdOf(it) == tabId } ?: return
-                navController.navigate(dest.direction.route) {
-                    // 与 [me.bmax.apatch.ui.screen.BottomBar] 完全一致：不同的话返回栈行为会分叉
-                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                // 必须防住「NavHost 还没组合」这一瞬间。
+                //
+                // 外壳扩展接管后，NavHost 由**它**渲染（通过 hostContent 参数）。如果外壳
+                // 在某一帧没把 hostContent 放进组合树，navController.graph 就是未初始化的，
+                // 而下面 popUpTo(navController.graph.startDestinationId) 会直接抛
+                // IllegalStateException 让整个 App 闪退 —— 用户点一下「设置」就崩。
+                //
+                // 这不是外壳的错就该由外壳承担：外壳是新写的三方代码，宿主必须假设它会出错。
+                // 拿不到 graph 时静默返回，比崩溃好得多。
+                val graph = runCatching { navController.graph }.getOrNull() ?: return
+                runCatching {
+                    navController.navigate(dest.direction.route) {
+                        // 与 [me.bmax.apatch.ui.screen.BottomBar] 完全一致：不同的话返回栈行为会分叉
+                        popUpTo(graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }.onFailure {
+                    me.bmax.apatch.dsh.ext.ExtLog.log(
+                        "外壳导航失败（" + tabId + "）：" + (it.message ?: it.javaClass.simpleName),
+                    )
                 }
             }
 

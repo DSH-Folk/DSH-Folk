@@ -104,7 +104,15 @@ internal class HostRuntimeSeam : RuntimeSeam {
 
 /** 宿主 `DshState` → seam 的 `RuntimeState`。只做投影，不改语义。 */
 private fun me.bmax.apatch.dsh.DshState.toSeam() = RuntimeState(
-    installed = phase != DshPhase.NOT_READY,
+    // 用 DshState.installed 这个**真值**，不要用 phase 猜。
+    //
+    // 这里原来是 `phase != DshPhase.NOT_READY`，而 DshState 自己就有 installed 字段 ——
+    // 猜错的原因很具体：容器装好但**没启动**时，phase 就是 NOT_READY（那表示"服务没在跑"，
+    // 不是"没装"）。于是 runtime.state().installed 恒为 false，任何靠它判断
+    // "能不能启动"的扩展都会认为运行时没装。
+    //
+    // 真机表现：极简启动壳永远停在「未安装」，即使容器早就装好了。
+    installed = installed,
     running = phase == DshPhase.RUNNING,
     installing = phase == DshPhase.DOWNLOADING || phase == DshPhase.EXTRACTING,
     progress = progress,

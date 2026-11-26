@@ -1138,6 +1138,18 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
 
+                        // ── 应用内叠加槽位（HOME_CARD）────────────────────────────
+                        //
+                        // 这是**宿主界面最上层**的一块浮层，扩展可以往这里放常驻内容
+                        // （桌宠就是典型：它要盖在所有页面上，而不是塞进某一页里）。
+                        //
+                        // 之前 HOME_CARD 只有定义、全仓 0 处渲染 —— 扩展注册了也永远看不见。
+                        // 桌宠「仅应用内」档位不显示，根因就在这里。
+                        //
+                        // 放在底栏之前：底栏属于导航 chrome，浮层不该盖住它，
+                        // 否则用户点不到返回键。
+                        ExtensionOverlaySlot(Modifier.fillMaxSize())
+
                         if (!useNavigationRail && activeShell == null) {
                             if (isFloatingMode) {
                                 // Back press on a non-home tab returns to the home tab
@@ -1198,4 +1210,50 @@ class MainActivity : AppCompatActivity() {
             dismissSplash()
         }, 3000)
     }
+
+/**
+ * 应用内叠加槽位（[ExtensionUiRegistry.Slot.HOME_CARD]）。
+ *
+ * ## 它解决什么
+ *
+ * 扩展需要一块「盖在所有页面上」的区域 —— 桌宠是典型例子：它要在首页、终端页、
+ * 设置页都出现，而不是塞进某一页的内容里。具名槽位（EXTENSIONS_PAGE_TOP 那种）
+ * 只能插在固定页面里，做不到这点。
+ *
+ * ## 为什么以前不显示
+ *
+ * `HOME_CARD` 这个常量早就定义了，但**全仓 0 处渲染** —— 扩展注册进来之后
+ * 永远没人读它。桌宠「仅应用内」档位不显示的根因就在这里（不是扩展的问题）。
+ *
+ * ## 为什么画在底栏之前
+ *
+ * 这个 Box 里后面还会画底栏/导航栏，那些是导航 chrome。浮层盖住它们的话，
+ * 用户点不到返回键 —— 桌宠在右下角，正好会压住浮动底栏。
+ *
+ * ## 只处理 INSERT_*
+ *
+ * 这个位置没有「宿主原有内容」可被 REPLACE/WRAP（它本身就是一块空浮层），
+ * 所以只认 INSERT_BEFORE / INSERT_AFTER。REPLACE 在这里没有对象可替换，
+ * 静默忽略比让它把整层清空安全。
+ */
+@Composable
+private fun ExtensionOverlaySlot(modifier: Modifier = Modifier) {
+    val entries = me.bmax.apatch.dsh.ext.ExtensionUiRegistry
+        .slotEntries(me.bmax.apatch.dsh.ext.ExtensionUiRegistry.Slot.HOME_CARD)
+    if (entries.isEmpty()) return
+
+    // 浮层不该拦截触摸：它铺满整屏，若默认消费事件，下面所有页面都点不动。
+    // 具体内容自己决定要不要响应点击（桌宠只在自己的图形上响应）。
+    Box(modifier) {
+        for (e in entries) {
+            when (e.op) {
+                me.bmax.apatch.dsh.ext.ExtensionUiRegistry.SlotOp.INSERT_BEFORE,
+                me.bmax.apatch.dsh.ext.ExtensionUiRegistry.SlotOp.INSERT_AFTER,
+                -> e.content(Modifier.fillMaxSize())
+                else -> Unit   // REPLACE / REMOVE / WRAP 在空浮层上没有意义
+            }
+        }
+    }
+}
+
 }

@@ -189,10 +189,19 @@ must(/override fun resetToDefaultShell\(\)/.test(shellHostImpl),
   "ShellHost 没有实现 resetToDefaultShell：外壳画坏时用户没有回去的路");
 must(/override fun currentTabStates\(\)/.test(shellHostImpl),
   "ShellHost 没有实现可观察的当前页：返回键切页时外壳高亮会不同步");
-// 导航参数必须与底栏同一套，否则同一台机器两种返回栈行为
-must(/popUpTo\(navController\.graph\.startDestinationId\) \{ saveState = true \}/.test(shellHostImpl) &&
+// 导航参数必须与底栏同一套，否则同一台机器两种返回栈行为。
+// 用 startDestinationId 而不是写死的路由：底栏与外壳必须从同一个 graph 取。
+must(/startDestinationId\b/.test(shellHostImpl) && /saveState = true/.test(shellHostImpl) &&
   /launchSingleTop = true/.test(shellHostImpl) && /restoreState = true/.test(shellHostImpl),
   "ShellHost 的 navigate 没有用与底栏一致的 popUpTo/launchSingleTop/restoreState");
+
+// graph 未初始化时必须软失败，不能崩。
+//
+// 真机踩过：外壳扩展没把 hostContent 放进组合树时，navController.graph 是未初始化的，
+// popUpTo(graph.startDestinationId) 直接抛 IllegalStateException —— 用户点「设置」就闪退。
+// 外壳是新写的三方代码，宿主必须假设它会出错。
+must(/runCatching \{ navController\.graph \}/.test(shellHostImpl),
+  "ShellHost.navigate 没有保护 navController.graph 未初始化的情况（会闪退）");
 
 
 // ---- 8e. minAppVersion：扩展依赖新宿主 API 时，旧宿主必须拒绝加载 ----
