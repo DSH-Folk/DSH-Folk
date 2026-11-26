@@ -254,6 +254,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.process)
 
+    // setViewTreeSavedStateRegistryOwner：Compose 画在非 Activity 窗口（悬浮窗）里
+    // 需要三个 owner，SavedStateRegistry 是第三个。:ext-display 的 DisplayMirror
+    // 早就用着它，:app 之前没直接用过所以没声明。
+    implementation(libs.androidx.savedstate)
+
     implementation(libs.compose.destinations.core)
     ksp(libs.compose.destinations.ksp)
 
