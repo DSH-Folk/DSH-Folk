@@ -60,7 +60,7 @@ interface UiSeam {
      * @param ownerId 归属者 id，通常是扩展 id。卸载时按它批量摘除。
      * @param content Compose 内容。给它一个 Modifier，扩展负责画满它。
      */
-    fun showGlobalOverlay(ownerId: String, content: androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit): Boolean
+    fun showGlobalOverlay(ownerId: String, content: @androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit): Boolean
 
     /** 摘掉某个 owner 的全局悬浮窗。没挂过也安全（幂等）。 */
     fun hideGlobalOverlay(ownerId: String)

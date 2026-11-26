@@ -79,7 +79,7 @@ internal class HostUiSeam(private val ctx: Context) : UiSeam {
 
     override fun showGlobalOverlay(
         ownerId: String,
-        content: androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
+        content: @androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
     ): Boolean = GlobalOverlayHost.show(ownerId, content)
 
     override fun hideGlobalOverlay(ownerId: String) = GlobalOverlayHost.hide(ownerId)

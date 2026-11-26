@@ -219,8 +219,8 @@ object SeamRegistry {
         override fun openOverlaySettings() {}
         override fun showGlobalOverlay(
             ownerId: String,
-            content: androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
-        ) = false
+            content: @androidx.compose.runtime.Composable (androidx.compose.ui.Modifier) -> Unit,
+        ): Boolean = false
         override fun hideGlobalOverlay(ownerId: String) {}
         override fun hideAllOverlaysOf(ownerId: String) {}
     }
