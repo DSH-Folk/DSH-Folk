@@ -1393,6 +1393,93 @@ object DshPluginRepo {
     }
 
     /**
+     * 存量老用户的旧仓库地址迁移：把 profile 里残留的 `IPF-Sinon/dsh-folk-cloud`
+     * 改成 `DSH-Folk/dsh-folk-cloud`。
+     *
+     * ## 为什么必须有这一步
+     *
+     * 组织改名（`IPF-Sinon` → `DSH-Folk`）之后，**老用户本地**的
+     * `profiles/web/package.json` 与 `pnpm-lock.yaml` 里还写着旧地址。pnpm 解析依赖时
+     * 读的是这份本地 spec，**不读上游包的 `repository.url`** —— 所以只在仓库侧改元数据
+     * 对存量用户完全无效，他们升级 App 后照样失败。
+     *
+     * ## 症状为什么看起来毫不相干
+     *
+     * 用户是在更新 `dsh-config-manager` / `dshmarket`（都是 npm 规格），却报
+     * `git clone git@github.com:IPF-Sinon/dsh-folk-cloud.git` 失败。原因：pnpm 会
+     * **重新解析整个 profile 的依赖树**，撞上那条陈旧的 git 规格就整单失败。
+     * 也正因为失败的不是 dsh-folk-cloud 本身，[DshRuntime.seedFallbackTgz] 那条
+     * tgz 兜底**不会**被触发 —— 兜底只在"装这个包"的路径里，而这次根本没在装它。
+     *
+     * ## 为什么连 pnpm-lock.yaml 一起动
+     *
+     * lock 里存着旧地址的 resolution。只改 package.json 的话，pnpm 会认为 lock 与
+     * manifest 不一致 —— 轻则重新解析一遍（又读到旧值），重则直接报
+     * `ERR_PNPM_OUTDATED_LOCKFILE`。两处必须同时改。
+     *
+     * 幂等：没有旧地址时 grep 不到，直接返回，不产生任何写入。
+     */
+    fun migrateLegacyGitSpecs() {
+        val legacy = "IPF-Sinon/dsh-folk-cloud"
+        val current = "DSH-Folk/dsh-folk-cloud"
+        // 先探测再改：绝大多数用户没有旧地址，不该为他们在每次启动时跑一遍 sed。
+        // grep -rl 只在命中时返回 0，未命中返回 1 —— 用 || true 收住，别让自愈流程抛错。
+        val probe = DshRuntime.execRootfsForOutput(
+            "grep -rl " + shellQuoted(legacy) + " " + PROFILE_DIR +
+                "/package.json " + PROFILE_DIR + "/pnpm-lock.yaml 2>/dev/null || true",
+            20_000,
+        ).trim()
+        if (probe.isEmpty()) return
+
+        // 五种写法一起换：`github:` 规格、pnpm 解析出的 `git+ssh://`、scp 写法、
+        // 以及 lock 里可能存的 https 形式。少一种就留下一处读旧值的入口。
+        // 用「逐文件 + 逐个 -e」而不是一个带分号的巨型 sed：
+        // 后者在 bash 双引号里要叠两层转义（\" 与 \$），一处写错就整条命令语法错，
+        // 而错误又被 runCatching 吞掉 —— 用户那边表现成"迁移静默没做"。
+        // 这里每个 -e 都是独立参数，没有嵌套引号，出问题也只影响那一条替换。
+        val files = listOf(PROFILE_DIR + "/package.json", PROFILE_DIR + "/pnpm-lock.yaml")
+        val edits = listOf(
+            "github:IPF-Sinon/dsh-folk-cloud|github:DSH-Folk/dsh-folk-cloud",
+            "git+ssh://git@github.com/IPF-Sinon/dsh-folk-cloud|git+ssh://git@github.com/DSH-Folk/dsh-folk-cloud",
+            "ssh://git@github.com/IPF-Sinon/dsh-folk-cloud|ssh://git@github.com/DSH-Folk/dsh-folk-cloud",
+            "git@github.com:IPF-Sinon/dsh-folk-cloud|git@github.com:DSH-Folk/dsh-folk-cloud",
+            "https://github.com/IPF-Sinon/dsh-folk-cloud|https://github.com/DSH-Folk/dsh-folk-cloud",
+            "git+https://github.com/IPF-Sinon/dsh-folk-cloud|git+https://github.com/DSH-Folk/dsh-folk-cloud",
+        )
+        val cmds = buildString {
+            for (file in files) {
+                // 文件不存在就跳过这个文件（这里没有循环可 continue，用 || 收住即可）。
+                append("[ -f ").append(file).append(" ] || { :; }; ")
+                append("sed -i")
+                for (e in edits) {
+                    val (from, to) = e.split("|", limit = 2)
+                    // shellQuoted 会把参数包成单引号并转义内部单引号 —— 这里内容里没有单引号，
+                    // 但统一走它，避免以后有人加一条含引号的就出问题。
+                    append(" -e ").append(shellQuoted("s|" + from + "|" + to + "|g"))
+                }
+                append(" ").append(file).append("; ")
+            }
+            append("true")
+        }
+        DshRuntime.execRootfsForOutput(cmds, 30_000)
+
+        // 改完复核：还留着旧地址说明 sed 没命中（权限/只读/格式意外），
+        // 记一行警告 —— 静默失败会让用户下次又撞同一个错，而我们毫无线索。
+        val after = DshRuntime.execRootfsForOutput(
+            "grep -rl " + shellQuoted(legacy) + " " + PROFILE_DIR +
+                "/package.json " + PROFILE_DIR + "/pnpm-lock.yaml 2>/dev/null || true",
+            20_000,
+        ).trim()
+        // 用 DshRuntime.appendLog 而不是 :ext-api 的 ExtLog —— 依赖方向是 :ext-api → :app，
+        // 反过来引会在编译期 Unresolved reference（check-cross-module-symbols 拦的就是这个）。
+        if (after.isEmpty()) {
+            DshRuntime.appendLog("> 已迁移旧仓库地址：" + legacy + " → " + current)
+        } else {
+            DshRuntime.appendLog("! 旧仓库地址迁移未完全生效，仍在: " + after)
+        }
+    }
+
+    /**
      * 给容器全局 git 配 `insteadOf`：把 [GIT_REWRITE_BASES] 里每种 github 写法都重写到
      * `<prefix>https://github.com/`（prefix 空 = 直连，即只做归一化）。
      *

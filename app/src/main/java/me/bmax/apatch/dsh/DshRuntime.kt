@@ -1416,6 +1416,12 @@ object DshRuntime : DshRuntimeHost {
         // 之后 dsh 自身 reconcile / 启动自愈跑 `dsh plugin` 去 https 克隆 github: 插件就会撞
         // 「无 CA」（CAfile: none）。启动前无条件重设，见 DshPluginRepo.ensureGitCaAtStartup。
         DshPluginRepo.ensureGitCaAtStartup()
+        // 组织改名（IPF-Sinon → DSH-Folk）后，老用户 profile 里还写着旧仓库地址。
+        // pnpm 解析依赖读的是本地 spec、不读上游 repository.url，所以只改上游对存量用户无效：
+        // 他们更新**任何**插件时，pnpm 重新解析整个依赖树都会被那条陈旧 git 规格绊倒
+        // （issue #12：装 dsh-config-manager 却报 IPF-Sinon/dsh-folk-cloud clone 失败）。
+        // 幂等、无旧地址时不写盘，所以放在启动路径上无成本。
+        DshPluginRepo.migrateLegacyGitSpecs()
         // chroot 以真 root 写过容器数据的话，切回 proot/proroot 会直接 EACCES（issue #12）。
         // 放在真正起容器之前，且与运行时无关 —— 只有 root 能 chown。
         repairRootfsOwnership()

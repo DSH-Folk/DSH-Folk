@@ -291,6 +291,25 @@ console.log('check-race-channel: 通过');
   }
   want(/private const val GIT_REWRITE_TARGET = "https:\/\/github\.com\/"/.test(repos),
     '重写目标必须是一条 github https 基址（gh-proxy 前缀后面跟 git+ssh://… 它不认）');
+
+  // ── 存量用户的旧仓库地址迁移（issue #12）──────────────────────────────
+  // 组织改名后，老用户 profile 里还写着 IPF-Sinon/dsh-folk-cloud。pnpm 解析依赖读的是
+  // **本地 spec**，不读上游 repository.url —— 所以只在仓库侧改元数据对存量用户无效，
+  // 他们更新任何插件时都会被那条陈旧 git 规格绊倒。这段自愈是唯一能救他们的地方。
+  want(/fun migrateLegacyGitSpecs\(\)/.test(repos),
+    '缺 migrateLegacyGitSpecs：老用户 profile 里的 IPF-Sinon 旧地址没人改，升级后照样失败');
+  const migrateBody = (repos.match(/fun migrateLegacyGitSpecs\(\) \{([\s\S]*?)\n    \}/) || [])[1] || '';
+  want(/pnpm-lock\.yaml/.test(migrateBody),
+    '迁移必须同时改 pnpm-lock.yaml：只改 package.json 会 ERR_PNPM_OUTDATED_LOCKFILE');
+  want(/git@github\.com:IPF-Sinon/.test(migrateBody),
+    '迁移要收 scp 写法（git@github.com:IPF-Sinon/…），真机报错里就是它');
+  want(/github:IPF-Sinon/.test(migrateBody),
+    '迁移要收 github: 规格写法');
+  want(/if \(probe\.isEmpty\(\)\) return/.test(migrateBody),
+    '迁移必须先探测再改：绝大多数用户没有旧地址，不该每次启动都跑 sed');
+  const runtime = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
+  want(/DshPluginRepo\.migrateLegacyGitSpecs\(\)/.test(runtime),
+    '迁移必须挂在启动自愈里（否则用户不点安装就永远不触发）');
   const applyBody = (repos.match(/private fun applyGitRewrite\(prefix: String\) \{([\s\S]*?)\n    \}/) || [])[1] || '';
   want(/val target = prefix \+ GIT_REWRITE_TARGET/.test(applyBody) && /url\.\$target\.insteadOf/.test(applyBody),
     '重写必须落在"一条 github https 基址 + 前缀"上，而不是"前缀 + 原写法"');
