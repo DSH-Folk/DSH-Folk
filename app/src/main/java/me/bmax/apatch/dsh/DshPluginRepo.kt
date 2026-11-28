@@ -285,6 +285,14 @@ object DshPluginRepo {
      */
     private const val GIT_REWRITE_TARGET = "https://github.com/"
 
+    /**
+     * 组织改名后的新路径（相对 github 根）。
+     *
+     * 与 [GIT_REWRITE_TARGET] 拼成完整目标，用来把旧组织的地址在 **git 层**直接改写。
+     * 见 [applyGitRewrite] 末尾那段"旧仓库地址的 git 级兜底"。
+     */
+    private const val LEGACY_GIT_REPO = "DSH-Folk/dsh-folk-cloud"
+
     /** 动态加载器失败的输出签名（proot/proroot 下 exec 缺库时长这样）。 */
     private val LDSO_FAILURE_MARKS = listOf(
         "cannot find lib",
@@ -1201,6 +1209,16 @@ object DshPluginRepo {
         fallbackTgz: String? = null,
     ): String = withContext(Dispatchers.IO) {
         if (pkg.isBlank()) return@withContext str(CoreR.string.dsh_plug_log_no_pkg_install)
+        // 任何一次安装之前都先修一遍旧仓库地址。
+        //
+        // 这是**最靠近 pnpm 的那道闸**：不管调用方是 seedPlugins、插件商店、还是
+        // dsh 自身 reconcile 走到的路径，只要经过 install() 就一定先迁移过。
+        // 放在这里而不是只放启动路径，是因为 pnpm 解析的是**整个 profile 依赖树** ——
+        // 装 A 被 B 的陈旧地址拖死这种跨包连锁，只有"每次装之前都修"才封得住。
+        // 幂等且纯宿主侧文件读写，无旧地址时不写盘。
+        runCatching { migrateLegacyGitSpecs() }.onFailure {
+            DshRuntime.appendLog("! 旧仓库地址迁移失败（已忽略）：" + (it.message ?: it.javaClass.simpleName))
+        }
         // 扩展拦截点：插件**安装/更新之前**的统一入口。
         //
         // around 返回 false = 扩展拒绝这次安装（例如企业场景下的插件白名单）。
@@ -1401,7 +1419,10 @@ object DshPluginRepo {
      * 组织改名（`IPF-Sinon` → `DSH-Folk`）之后，**老用户本地**的
      * `profiles/web/package.json` 与 `pnpm-lock.yaml` 里还写着旧地址。pnpm 解析依赖时
      * 读的是这份本地 spec，**不读上游包的 `repository.url`** —— 所以只在仓库侧改元数据
-     * 对存量用户完全无效，他们升级 App 后照样失败。
+     * 对存量用户完全无效。
+     *
+     * 旧地址会 301 跳到新仓库，但 git 协议**不跟随跨仓库重定向**，服务端返回的 pack
+     * 里缺对象，于是 `fatal: bad object` + `remote did not send all necessary objects`。
      *
      * ## 症状为什么看起来毫不相干
      *
@@ -1409,73 +1430,68 @@ object DshPluginRepo {
      * `git clone git@github.com:IPF-Sinon/dsh-folk-cloud.git` 失败。原因：pnpm 会
      * **重新解析整个 profile 的依赖树**，撞上那条陈旧的 git 规格就整单失败。
      * 也正因为失败的不是 dsh-folk-cloud 本身，[DshRuntime.seedFallbackTgz] 那条
-     * tgz 兜底**不会**被触发 —— 兜底只在"装这个包"的路径里，而这次根本没在装它。
+     * tgz 兜底**不会**被触发 —— 兜底只在"装这个包"的路径里。
      *
-     * ## 为什么连 pnpm-lock.yaml 一起动
+     * ## 为什么在宿主侧改，而不是进容器跑 sed
      *
-     * lock 里存着旧地址的 resolution。只改 package.json 的话，pnpm 会认为 lock 与
-     * manifest 不一致 —— 轻则重新解析一遍（又读到旧值），重则直接报
-     * `ERR_PNPM_OUTDATED_LOCKFILE`。两处必须同时改。
+     * 第一版是在容器里跑 `grep -rl` + `sed`。两个问题：
+     *  - **每次 fork 一个 proot 进程**，proot 冷启动本身就要几百毫秒，探测 + 改写 + 复核
+     *    是三次；而且它在 [seedPlugins] 那条热路径上。
+     *  - `grep`/`sed` **默认区分大小写**，而 `IPF-Sinon` / `ipf-sinon` 两种写法都真实
+     *    存在于历史 lockfile 里（pnpm 归一化过一部分），漏一种就等于没修。
      *
-     * 幂等：没有旧地址时 grep 不到，直接返回，不产生任何写入。
+     * rootfs 就在宿主磁盘上，[DshEnv.dshHome] 已经给出映射好的路径 —— 直接读文件、
+     * 用忽略大小写的正则替换，零进程开销、也不会因为容器没起来而失败。
+     *
+     * ## 为什么 lockfile 是删掉而不是改写
+     *
+     * `pnpm-lock.yaml` 里每条 resolution 都带 integrity/hash，手改文本会让 hash 与内容
+     * 对不上，pnpm 要么报 `ERR_PNPM_OUTDATED_LOCKFILE`，要么在 store 里找不到对应条目
+     * 又重新解析一遍（还是读到旧值）。整份删掉让 pnpm 干净重建，比"改对"更可靠 ——
+     * 代价只是下一次安装多几秒的解析。
+     *
+     * 幂等：没有旧地址时不写盘、不删文件，直接返回。
      */
     fun migrateLegacyGitSpecs() {
-        val legacy = "IPF-Sinon/dsh-folk-cloud"
-        val current = "DSH-Folk/dsh-folk-cloud"
-        // 先探测再改：绝大多数用户没有旧地址，不该为他们在每次启动时跑一遍 sed。
-        // grep -rl 只在命中时返回 0，未命中返回 1 —— 用 || true 收住，别让自愈流程抛错。
-        val probe = DshRuntime.execRootfsForOutput(
-            "grep -rl " + shellQuoted(legacy) + " " + PROFILE_DIR +
-                "/package.json " + PROFILE_DIR + "/pnpm-lock.yaml 2>/dev/null || true",
-            20_000,
-        ).trim()
-        if (probe.isEmpty()) return
+        val ctx = DshRuntime.appContextOrNull() ?: return
+        val profileDir = File(DshEnv.dshHome(ctx), "profiles/" + PROFILE)
+        if (!profileDir.isDirectory) return
 
-        // 五种写法一起换：`github:` 规格、pnpm 解析出的 `git+ssh://`、scp 写法、
-        // 以及 lock 里可能存的 https 形式。少一种就留下一处读旧值的入口。
-        // 用「逐文件 + 逐个 -e」而不是一个带分号的巨型 sed：
-        // 后者在 bash 双引号里要叠两层转义（\" 与 \$），一处写错就整条命令语法错，
-        // 而错误又被 runCatching 吞掉 —— 用户那边表现成"迁移静默没做"。
-        // 这里每个 -e 都是独立参数，没有嵌套引号，出问题也只影响那一条替换。
-        val files = listOf(PROFILE_DIR + "/package.json", PROFILE_DIR + "/pnpm-lock.yaml")
-        val edits = listOf(
-            "github:IPF-Sinon/dsh-folk-cloud|github:DSH-Folk/dsh-folk-cloud",
-            "git+ssh://git@github.com/IPF-Sinon/dsh-folk-cloud|git+ssh://git@github.com/DSH-Folk/dsh-folk-cloud",
-            "ssh://git@github.com/IPF-Sinon/dsh-folk-cloud|ssh://git@github.com/DSH-Folk/dsh-folk-cloud",
-            "git@github.com:IPF-Sinon/dsh-folk-cloud|git@github.com:DSH-Folk/dsh-folk-cloud",
-            "https://github.com/IPF-Sinon/dsh-folk-cloud|https://github.com/DSH-Folk/dsh-folk-cloud",
-            "git+https://github.com/IPF-Sinon/dsh-folk-cloud|git+https://github.com/DSH-Folk/dsh-folk-cloud",
-        )
-        val cmds = buildString {
-            for (file in files) {
-                // 文件不存在就跳过这个文件（这里没有循环可 continue，用 || 收住即可）。
-                append("[ -f ").append(file).append(" ] || { :; }; ")
-                append("sed -i")
-                for (e in edits) {
-                    val (from, to) = e.split("|", limit = 2)
-                    // shellQuoted 会把参数包成单引号并转义内部单引号 —— 这里内容里没有单引号，
-                    // 但统一走它，避免以后有人加一条含引号的就出问题。
-                    append(" -e ").append(shellQuoted("s|" + from + "|" + to + "|g"))
-                }
-                append(" ").append(file).append("; ")
+        // 规则在 core-kernel 里做成纯函数（可单测），这里只管读写文件。
+        // 忽略大小写不是保险：pnpm-lock.yaml 里出现过归一化后的小写形式。
+        val current = me.bmax.apatch.dsh.DshLegacyRepoSpec.CURRENT_REPO_PATH
+
+        var migratedManifest = false
+        var removedLock = false
+
+        val manifest = File(profileDir, "package.json")
+        if (manifest.isFile) {
+            val text = runCatching { manifest.readText() }.getOrNull()
+            if (text != null && me.bmax.apatch.dsh.DshLegacyRepoSpec.containsLegacy(text)) {
+                // 只换组织名那一段，其余一个字节不动：package.json 里可能有用户手写的
+                // 注释性字段、自定义 scripts，整份重排会让 diff 无法审阅。
+                val next = me.bmax.apatch.dsh.DshLegacyRepoSpec.rewrite(text)
+                if (runCatching { manifest.writeText(next) }.isSuccess) migratedManifest = true
             }
-            append("true")
         }
-        DshRuntime.execRootfsForOutput(cmds, 30_000)
 
-        // 改完复核：还留着旧地址说明 sed 没命中（权限/只读/格式意外），
-        // 记一行警告 —— 静默失败会让用户下次又撞同一个错，而我们毫无线索。
-        val after = DshRuntime.execRootfsForOutput(
-            "grep -rl " + shellQuoted(legacy) + " " + PROFILE_DIR +
-                "/package.json " + PROFILE_DIR + "/pnpm-lock.yaml 2>/dev/null || true",
-            20_000,
-        ).trim()
+        val lock = File(profileDir, "pnpm-lock.yaml")
+        if (lock.isFile) {
+            val text = runCatching { lock.readText() }.getOrNull()
+            if (text != null && me.bmax.apatch.dsh.DshLegacyRepoSpec.containsLegacy(text)) {
+                // 删掉而不是改写：见上面 KDoc「为什么 lockfile 是删掉而不是改写」。
+                if (runCatching { lock.delete() }.getOrDefault(false)) removedLock = true
+            }
+        }
+
         // 用 DshRuntime.appendLog 而不是 :ext-api 的 ExtLog —— 依赖方向是 :ext-api → :app，
         // 反过来引会在编译期 Unresolved reference（check-cross-module-symbols 拦的就是这个）。
-        if (after.isEmpty()) {
-            DshRuntime.appendLog("> 已迁移旧仓库地址：" + legacy + " → " + current)
-        } else {
-            DshRuntime.appendLog("! 旧仓库地址迁移未完全生效，仍在: " + after)
+        if (migratedManifest || removedLock) {
+            DshRuntime.appendLog(
+                "> 已迁移旧仓库地址：" +
+                    me.bmax.apatch.dsh.DshLegacyRepoSpec.LEGACY_REPO_PATH + " → " + current +
+                    (if (removedLock) "（已清掉 pnpm-lock.yaml，下次安装会自动重建）" else ""),
+            )
         }
     }
 
@@ -1501,6 +1517,23 @@ object DshPluginRepo {
             "git config --global --add \"url.$target.insteadOf\" \"$base\""
         }
         DshRuntime.execRootfsForOutput(cmds, 30_000)
+
+        // ── 旧仓库地址的 git 级兜底 ──
+        //
+        // 上面那批重写是把**写法**归一（ssh → https），但路径原样保留：`IPF-Sinon/…`
+        // 仍会落到 `…/IPF-Sinon/dsh-folk-cloud`。旧路径 301 到新仓库，而 git 协议不跟随
+        // 跨仓库重定向 —— 服务端返回的 pack 里缺对象，报 `bad object`。
+        //
+        // 这里额外挂一组"旧路径 → 新路径"的重写，把 URL 直接改到正确仓库上。
+        // 与宿主侧的文件迁移是**双保险**：文件迁移负责改本地 spec（治本），
+        // 这条负责兜住任何绕开 spec 的 git 调用（agent 手跑 git、pnpm 从别处读到的缓存 spec）。
+        // 写法清单在 core-kernel 里（与 containsLegacy/rewrite 同源，规则不会两处各长各的）
+        val legacyBases = me.bmax.apatch.dsh.DshLegacyRepoSpec.legacyGitBases()
+        val legacyTarget = prefix + GIT_REWRITE_TARGET + LEGACY_GIT_REPO
+        val legacyCmds = legacyBases.joinToString("; ") { base ->
+            "git config --global --add \"url.$legacyTarget.insteadOf\" \"$base\""
+        }
+        DshRuntime.execRootfsForOutput(legacyCmds, 30_000)
     }
 
     /** 清掉上面配的所有 github insteadOf 重写（幂等，前缀不存在时静默返回）。 */
@@ -1510,6 +1543,10 @@ object DshPluginRepo {
         val cmds = buildString {
             for (prefix in ghMirrorPrefixes()) {
                 append("git config --global --unset-all \"url.${prefix}${GIT_REWRITE_TARGET}.insteadOf\" 2>/dev/null; ")
+                // 旧路径兜底那组也要清：它挂在**另一个** target 键下
+                // （…/DSH-Folk/dsh-folk-cloud），漏掉它会让上一轮的旧地址重写
+                // 一直留在容器里 —— "清过"的下一次安装仍带着它。
+                append("git config --global --unset-all \"url.${prefix}${GIT_REWRITE_TARGET}${LEGACY_GIT_REPO}.insteadOf\" 2>/dev/null; ")
             }
             append("true")
         }

@@ -300,16 +300,43 @@ console.log('check-race-channel: 通过');
     '缺 migrateLegacyGitSpecs：老用户 profile 里的 IPF-Sinon 旧地址没人改，升级后照样失败');
   const migrateBody = (repos.match(/fun migrateLegacyGitSpecs\(\) \{([\s\S]*?)\n    \}/) || [])[1] || '';
   want(/pnpm-lock\.yaml/.test(migrateBody),
-    '迁移必须同时改 pnpm-lock.yaml：只改 package.json 会 ERR_PNPM_OUTDATED_LOCKFILE');
-  want(/git@github\.com:IPF-Sinon/.test(migrateBody),
-    '迁移要收 scp 写法（git@github.com:IPF-Sinon/…），真机报错里就是它');
-  want(/github:IPF-Sinon/.test(migrateBody),
-    '迁移要收 github: 规格写法');
-  want(/if \(probe\.isEmpty\(\)\) return/.test(migrateBody),
-    '迁移必须先探测再改：绝大多数用户没有旧地址，不该每次启动都跑 sed');
+    '迁移必须处理 pnpm-lock.yaml：只改 package.json 会 ERR_PNPM_OUTDATED_LOCKFILE');
+  want(/lock\.delete\(\)/.test(migrateBody),
+    'lockfile 要整份删掉让 pnpm 重建，不能改文本（integrity hash 会对不上）');
+  // 宿主侧直接读写：第一版在容器里 fork 了三次 proot（探测/改写/复核），
+  // 而这段跑在 seedPlugins 的热路径上。
+  want(/DshEnv\.dshHome\(/.test(migrateBody) && /File\(profileDir/.test(migrateBody),
+    '迁移必须在宿主侧直接读写文件，不要进容器跑 grep/sed（每次 fork 一个 proot）');
+  want(!/execRootfsForOutput/.test(migrateBody),
+    '迁移不该再走 execRootfsForOutput：proot 冷启动几百毫秒，且容器没起来时会失败');
+  // 大小写：lockfile 里 pnpm 归一化过的小写形式是真实存在的。
+  want(/DshLegacyRepoSpec/.test(migrateBody),
+    '改写规则必须走 DshLegacyRepoSpec 纯函数（大小写变体在那里统一处理，且可单测）');
+
+  // ── 调用入口：必须赶在任何 pnpm 调用之前 ──
+  // 第一版只挂在 startServer()，而 seedPlugins() 跑在它**之前** —— 预装/升级插件时
+  // 迁移根本没执行过，用户照样撞旧地址。这是 issue #12 反复的根因。
   const runtime = read("app/src/main/java/me/bmax/apatch/dsh/DshRuntime.kt");
   want(/DshPluginRepo\.migrateLegacyGitSpecs\(\)/.test(runtime),
-    '迁移必须挂在启动自愈里（否则用户不点安装就永远不触发）');
+    '迁移必须挂在 DshRuntime（startServer 兜底）');
+  const seedIdx = runtime.indexOf('internal suspend fun seedPlugins()');
+  const seedCallIdx = runtime.indexOf('migrateLegacyGitSpecsSafely()', seedIdx);
+  want(seedCallIdx > seedIdx && seedCallIdx - seedIdx < 900,
+    'seedPlugins() 开头必须先迁移：它跑在 startServer() 之前，只挂 startServer 等于没修');
+  want(/runCatching \{ migrateLegacyGitSpecs\(\) \}/.test(repos),
+    'install() 开头必须先迁移：任何一次 pnpm 调用前都要修一遍（跨包连锁只有这道闸封得住）');
+
+  // ── git 层兜底：旧路径也要重写，不能只归一写法 ──
+  const applyIdx = repos.indexOf('private fun applyGitRewrite(prefix: String)');
+  const applySection = applyIdx >= 0 ? repos.slice(applyIdx, applyIdx + 3000) : '';
+  want(/DshLegacyRepoSpec\.legacyGitBases\(\)/.test(applySection),
+    'applyGitRewrite 要补旧路径重定向：只归一 ssh→https，路径仍是旧组织，照样 bad object');
+  want(/legacyTarget/.test(applySection),
+    '旧路径重写要用独立 target（新仓库完整路径），不能挂在原 target 下');
+  const clearIdx = repos.indexOf('private fun clearGitRewrite()');
+  const clearSection = clearIdx >= 0 ? repos.slice(clearIdx, clearIdx + 1200) : '';
+  want(/LEGACY_GIT_REPO/.test(clearSection),
+    'clearGitRewrite 必须清掉旧路径那组键，否则残留会跟着下一轮安装');
   const applyBody = (repos.match(/private fun applyGitRewrite\(prefix: String\) \{([\s\S]*?)\n    \}/) || [])[1] || '';
   want(/val target = prefix \+ GIT_REWRITE_TARGET/.test(applyBody) && /url\.\$target\.insteadOf/.test(applyBody),
     '重写必须落在"一条 github https 基址 + 前缀"上，而不是"前缀 + 原写法"');

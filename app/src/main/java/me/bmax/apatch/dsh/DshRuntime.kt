@@ -684,8 +684,29 @@ object DshRuntime : DshRuntimeHost {
      * 这里**不做**安装后验证：插件是我们自己挑的、已人工验证过，在首启路径上再跑
      * 一次 `dsh web --port 0` 只会把首启拖长几分钟。
      */
+    /**
+     * [DshPluginRepo.migrateLegacyGitSpecs] 的安全包装。
+     *
+     * 迁移失败绝不能拖垮启动：它修的是一个"装不上插件"的历史问题，
+     * 而启动路径要保证的是"服务能起来"。所以这里吞掉所有异常并记一行 ——
+     * 真出问题时日志里有痕迹，用户仍然能进系统。
+     */
+    private fun migrateLegacyGitSpecsSafely() {
+        runCatching { DshPluginRepo.migrateLegacyGitSpecs() }.onFailure {
+            appendLog("! 旧仓库地址迁移失败（已忽略）：" + (it.message ?: it.javaClass.simpleName))
+        }
+    }
+
     internal suspend fun seedPlugins() {
         if (!DshEnv.isRuntimeInstalled(appContext)) return
+
+        // 旧仓库地址迁移必须**赶在任何 pnpm 调用之前**。
+        //
+        // 第一版只把它挂在 [startServer] 里，而 [seedPlugins] 跑在 startServer **之前**
+        // （见 ensureStarted 的调用顺序：downloadAndInstall → seedPlugins → startAndAwait），
+        // 于是预装/升级插件时迁移根本没执行过 —— 用户更新 dsh-config-manager 照样撞旧地址。
+        // 这里补一次，startServer 那次留作兜底（走其它路径进容器时仍能修）。
+        migrateLegacyGitSpecsSafely()
 
         // 预装/补装全靠 `dsh plugin` → pnpm。运行时没带 pnpm 时（旧 rootfs）只报一次
         // 并停止：四个预装包逐个 exit 127 只是刷屏，用户得不到任何可行动的信息。
@@ -1421,7 +1442,7 @@ object DshRuntime : DshRuntimeHost {
         // 他们更新**任何**插件时，pnpm 重新解析整个依赖树都会被那条陈旧 git 规格绊倒
         // （issue #12：装 dsh-config-manager 却报 IPF-Sinon/dsh-folk-cloud clone 失败）。
         // 幂等、无旧地址时不写盘，所以放在启动路径上无成本。
-        DshPluginRepo.migrateLegacyGitSpecs()
+        migrateLegacyGitSpecsSafely()
         // chroot 以真 root 写过容器数据的话，切回 proot/proroot 会直接 EACCES（issue #12）。
         // 放在真正起容器之前，且与运行时无关 —— 只有 root 能 chown。
         repairRootfsOwnership()
