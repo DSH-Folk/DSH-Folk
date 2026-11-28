@@ -93,8 +93,12 @@ class DshLegacyRepoSpecTest {
         assertFalse(DshLegacyRepoSpec.containsLegacy("""{ "dsh-folk-cloud": "github:DSH-Folk/dsh-folk-cloud" }"""))
         assertFalse(DshLegacyRepoSpec.containsLegacy("""{ "dependencies": {} }"""))
         assertFalse(DshLegacyRepoSpec.containsLegacy(""))
-        // 只差一点点的字符串不能命中：名字是别的仓库
-        assertFalse(DshLegacyRepoSpec.containsLegacy("github:IPF-Sinon/dsh-folk-cloud-extra"))
+        // 名字相近但不同的仓库不该被误判。
+        // 注意：`IPF-Sinon/dsh-folk-cloud-extra` **会**命中 —— 它确实以旧路径开头，
+        // 那是有意的（这类派生仓库同样指向已改名的组织，一起改掉才对）。
+        // 真正该排除的是"根本不含旧路径"的邻居。
+        assertFalse(DshLegacyRepoSpec.containsLegacy("github:IPF-Sinon/other-repo"))
+        assertFalse(DshLegacyRepoSpec.containsLegacy("github:someone/dsh-folk-cloud"))
     }
 
     @Test
